@@ -1,148 +1,242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CYBERHUNT</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CYBERHUNT // Tactical Cybersecurity Game</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Three.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-  <!-- ============ INTRO CINEMATIC ============ -->
-  <div id="intro">
-    <div id="intro-dot"></div>
-    <div class="scanline-overlay"></div>
-    <div id="intro-flash-text" class="intro-text"></div>
-    <div id="intro-title">
-      <span id="title-cyber">CYBER</span><span id="title-hunt">HUNT</span>
+  <!-- CINEMATIC INTRO OVERLAY -->
+  <div id="intro-overlay" class="intro-screen">
+    <div id="intro-caption" class="intro-text-glow">INITIALIZING SECURITY SUB-ROUTINES...</div>
+    <div id="title-container" class="hidden">
+      <h1 class="game-title"><span class="cyber-part">CYBER</span><span class="hunt-part">HUNT</span></h1>
     </div>
-    <div id="intro-skip">PRESS ANY KEY TO SKIP</div>
   </div>
 
-  <!-- ============ MAIN MENU ============ -->
-  <div id="menu" class="hidden">
-    <div class="scanline-overlay"></div>
-    <div id="menu-title">
-      <span id="menu-cyber">CYBER</span><span id="menu-hunt">HUNT</span>
-    </div>
-    <div id="menu-buttons">
-      <button class="menu-btn" id="btn-start">START MISSION</button>
-      <button class="menu-btn" id="btn-operatives">OPERATIVES</button>
-      <button class="menu-btn" id="btn-armory">ARMORY</button>
-      <button class="menu-btn" id="btn-select">MISSION SELECT</button>
-      <button class="menu-btn" id="btn-profile">PROFILE</button>
-      <button class="menu-btn" id="btn-settings">SETTINGS</button>
-    </div>
-    <div id="menu-footer">MISSION 01 // PHISHING BREACH — READY</div>
-  </div>
-
-  <!-- ============ SIMPLE INFO OVERLAYS (Operatives / Armory / etc) ============ -->
-  <div id="info-panel" class="hidden">
-    <div class="scanline-overlay"></div>
-    <div id="info-content"></div>
-    <button class="menu-btn small" id="btn-info-close">BACK</button>
-  </div>
-
-  <!-- ============ GAME CANVAS ============ -->
-  <canvas id="game-canvas" class="hidden"></canvas>
-
-  <!-- ============ HUD ============ -->
-  <div id="hud" class="hidden">
-    <div class="hud-scanlines"></div>
-
-    <div id="hud-top-left">
-      <div class="hud-label">MISSION 01</div>
-      <div class="hud-mission-name">PHISHING BREACH</div>
-      <div class="hud-location">LOCATION: CORPORATE SECURITY OFFICE</div>
+  <!-- MAIN MENU UI -->
+  <div id="menu-overlay" class="ui-layer hidden">
+    <div class="menu-brand">
+      <h1 class="game-title"><span class="cyber-part">CYBER</span><span class="hunt-part">HUNT</span></h1>
+      <p class="tagline">HUNT THE THREAT. PROTECT TOMORROW.</p>
     </div>
 
-    <div id="hud-top-right">
-      <div>LVL <span id="hud-level">4</span></div>
-      <div>XP <span id="hud-xp">1280</span></div>
-      <div>COINS <span id="hud-coins">640</span></div>
+    <div class="menu-navigation">
+      <button class="btn-menu primary" onclick="switchTab('missions')">START MISSION</button>
+      <button class="btn-menu" onclick="switchTab('operatives')">OPERATIVES</button>
+      <button class="btn-menu" onclick="switchTab('armory')">ARMORY</button>
+      <button class="btn-menu" onclick="switchTab('badges')">BADGES</button>
     </div>
 
-    <div id="hud-threat">
-      <div class="hud-label">THREAT LEVEL</div>
-      <div id="threat-bar-outer"><div id="threat-bar-inner"></div></div>
-    </div>
-
-    <div id="crosshair">
-      <div class="ch-line ch-h"></div>
-      <div class="ch-line ch-v"></div>
-    </div>
-
-    <div id="interact-prompt" class="hidden">[E] <span id="interact-label">INTERACT</span></div>
-
-    <div id="hud-objectives">
-      <div class="hud-label">CURRENT OBJECTIVES</div>
-      <ul id="objectives-list"></ul>
-    </div>
-
-    <div id="hud-bottom-left">
-      <div class="stat-row"><span class="stat-tag">HEALTH</span><div class="stat-bar"><div id="health-fill" class="stat-fill health"></div></div></div>
-      <div class="stat-row"><span class="stat-tag">ARMOR</span><div class="stat-bar"><div id="armor-fill" class="stat-fill armor"></div></div></div>
-    </div>
-
-    <div id="hud-bottom-right">
-      <div id="weapon-name">NIGHTFALL</div>
-      <div id="ammo-count"><span id="ammo-current">30</span> / <span id="ammo-reserve">90</span></div>
-    </div>
-
-    <div id="evidence-counter">EVIDENCE <span id="evidence-count">0</span>/<span id="evidence-total">3</span></div>
-
-  </div>
-
-  <!-- ============ PUZZLE MODAL ============ -->
-  <div id="puzzle-modal" class="hidden">
-    <div id="puzzle-box">
-      <div id="puzzle-title">ACCESS TERMINAL — DECODE REQUIRED</div>
-      <div id="puzzle-desc">A partial log fragment was recovered nearby. Reconstruct the access sequence.</div>
-      <div id="puzzle-clue"></div>
-      <div id="puzzle-input-row">
-        <input maxlength="1" class="puzzle-digit" data-i="0" />
-        <span class="puzzle-sep">_</span>
-        <input maxlength="1" class="puzzle-digit" data-i="1" />
-        <span class="puzzle-sep">_</span>
-        <input maxlength="1" class="puzzle-digit" data-i="2" />
-        <span class="puzzle-sep">_</span>
-        <input maxlength="1" class="puzzle-digit" data-i="3" />
+    <!-- TAB: MISSIONS -->
+    <div id="tab-missions" class="tab-content active">
+      <h3 class="tab-header">SELECT OPERATION</h3>
+      <div class="missions-grid">
+        <div class="mission-card active" onclick="selectMission(1)">
+          <span class="m-num">01</span>
+          <h4>PHISHING BREACH</h4>
+          <p>CORPORATE OFFICE • LOW SECURITY</p>
+        </div>
+        <div class="mission-card" onclick="selectMission(2)">
+          <span class="m-num">02</span>
+          <h4>MALWARE INFILTRATION</h4>
+          <p>RESEARCH FACILITY • MED SECURITY</p>
+        </div>
+        <div class="mission-card" onclick="selectMission(3)">
+          <span class="m-num">03</span>
+          <h4>RANSOMWARE LOCKDOWN</h4>
+          <p>DATA CENTER • HIGH THREAT</p>
+        </div>
+        <div class="mission-card" onclick="selectMission(4)">
+          <span class="m-num">04</span>
+          <h4>CREDENTIAL THEFT</h4>
+          <p>INTELLIGENCE HUB • CRITICAL</p>
+        </div>
+        <div class="mission-card" onclick="selectMission(5)">
+          <span class="m-num">05</span>
+          <h4>ZERO-DAY RESPONSE</h4>
+          <p>COMMAND CENTER • ZERO-DAY</p>
+        </div>
       </div>
-      <div id="puzzle-feedback"></div>
-      <div id="puzzle-buttons">
-        <button class="menu-btn small" id="puzzle-submit">DECODE</button>
-        <button class="menu-btn small ghost" id="puzzle-cancel">ABORT</button>
+      <button class="btn-action launch" onclick="launchMission()">DEPLOY TO MISSION</button>
+    </div>
+
+    <!-- TAB: OPERATIVES -->
+    <div id="tab-operatives" class="tab-content">
+      <h3 class="tab-header">SELECT OPERATIVE</h3>
+      <div class="operatives-grid">
+        <div class="op-card selected" onclick="selectOperative('RAVEN', this)">
+          <div class="op-avatar raven-bg">RAVEN</div>
+          <h4>RAVEN</h4>
+          <p>STEALTH OPERATIVE</p>
+          <span class="stat-tag">SPEED ++ | SILENT</span>
+        </div>
+        <div class="op-card" onclick="selectOperative('VOLT', this)">
+          <div class="op-avatar volt-bg">VOLT</div>
+          <h4>VOLT</h4>
+          <p>ASSAULT OPERATIVE</p>
+          <span class="stat-tag">ARMOR ++ | HEAVY</span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ============ EVIDENCE / EMAIL VIEWER ============ -->
-  <div id="doc-modal" class="hidden">
-    <div id="doc-box">
-      <div id="doc-title">EVIDENCE COLLECTED</div>
-      <div id="doc-body"></div>
-      <button class="menu-btn small" id="doc-close">CLOSE</button>
+    <!-- TAB: ARMORY -->
+    <div id="tab-armory" class="tab-content">
+      <h3 class="tab-header">SELECT LOADOUT</h3>
+      <div class="armory-grid">
+        <div class="weap-card selected" onclick="selectWeapon('NIGHTFALL', this)">
+          <h4>NIGHTFALL</h4>
+          <p>ASSAULT RIFLE</p>
+          <span class="w-stat">DMG: 85 | SPD: 70</span>
+        </div>
+        <div class="weap-card" onclick="selectWeapon('REDLINE', this)">
+          <h4>REDLINE</h4>
+          <p>COMPACT SMG</p>
+          <span class="w-stat">DMG: 60 | SPD: 95</span>
+        </div>
+        <div class="weap-card" onclick="selectWeapon('SPECTRE', this)">
+          <h4>SPECTRE</h4>
+          <p>SNIPER RIFLE</p>
+          <span class="w-stat">DMG: 100 | SPD: 30</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: BADGES -->
+    <div id="tab-badges" class="tab-content">
+      <h3 class="tab-header">BADGES & ACHIEVEMENTS</h3>
+      <div class="badges-grid">
+        <div class="badge-item unlocked"><div class="badge-icon">🛡️</div><span>PHANTOM TRACE</span></div>
+        <div class="badge-item unlocked"><div class="badge-icon">☣️</div><span>MALWARE BREAKER</span></div>
+        <div class="badge-item"><div class="badge-icon">🔒</div><span>LOCKDOWN SURVIVOR</span></div>
+        <div class="badge-item"><div class="badge-icon">👤</div><span>GHOST ID</span></div>
+        <div class="badge-item"><div class="badge-icon">⚡</div><span>ZERO-DAY ELITE</span></div>
+        <div class="badge-item master"><div class="badge-icon">🏆</div><span>CYBERHUNT ELITE</span></div>
+      </div>
     </div>
   </div>
 
-  <!-- ============ ALERT TOASTS ============ -->
-  <div id="alert-toast" class="hidden"></div>
-
-  <!-- ============ MISSION COMPLETE / BADGE REWARD ============ -->
-  <div id="reward-screen" class="hidden">
-    <div id="badge-wrap">
-      <div id="badge-3d"></div>
+  <!-- IN-GAME HUD -->
+  <div id="game-hud" class="ui-layer hidden transparent">
+    <div class="hud-top-left">
+      <div id="hud-mission-title" class="hud-title">MISSION 01 // PHISHING BREACH</div>
+      <ul id="hud-objectives-list">
+        <li id="obj-0">◇ Find evidence workstation [0/1]</li>
+        <li id="obj-1">◇ Neutralize security guards [0/2]</li>
+        <li id="obj-2">◇ Unlock Door A1 & Clear Threat</li>
+      </ul>
     </div>
-    <div id="badge-unlocked-text">BADGE UNLOCKED</div>
-    <div id="badge-name">PHANTOM TRACE</div>
-    <div id="badge-rewards">+500 XP &nbsp;&nbsp;·&nbsp;&nbsp; +250 COINS</div>
-    <div id="mission-complete-text">MISSION COMPLETE</div>
-    <button class="menu-btn" id="btn-return-menu">RETURN TO MENU</button>
+
+    <div class="hud-top-right">
+      <div class="radar-box">
+        <div class="radar-line"></div>
+        <div class="radar-dot player"></div>
+      </div>
+    </div>
+
+    <!-- Interaction Prompts -->
+    <div id="prompt-evidence" class="interact-box hidden">
+      <span class="btn-key">Q</span>
+      <div class="prompt-info">
+        <strong>LOOT EVIDENCE</strong>
+        <p>Access Code Fragment: <b id="evidence-code">4430</b></p>
+      </div>
+    </div>
+
+    <div id="prompt-door" class="interact-box hidden">
+      <span class="btn-key">E</span>
+      <div class="prompt-info">
+        <strong>SECURITY DOOR A1</strong>
+        <p>Requires 4-Digit Cipher Code</p>
+      </div>
+    </div>
+
+    <div id="prompt-terminal" class="interact-box hidden">
+      <span class="btn-key">E</span>
+      <div class="prompt-info">
+        <strong>SECURITY TERMINAL</strong>
+        <p>Digital Threat Analysis Needed</p>
+      </div>
+    </div>
+
+    <!-- Controls & Status -->
+    <div class="hud-bottom-right">
+      <div class="hud-actions">
+        <button class="btn-hud-action" onclick="triggerTakedown()">🎯 TAKEDOWN</button>
+      </div>
+      <div class="hud-stats">
+        <div class="stat-label">HEALTH <span id="hp-text">100/100</span></div>
+        <div class="bar-bg"><div id="hp-bar" class="bar-fill" style="width: 100%;"></div></div>
+        <div class="ammo-info">AMMO: <span id="ammo-text">15 / 45</span></div>
+      </div>
+    </div>
   </div>
 
-  <div id="pointer-lock-hint" class="hidden">CLICK TO ENGAGE TACTICAL VIEW</div>
+  <!-- MODAL: TERMINAL DIGITAL ANALYSIS -->
+  <div id="modal-terminal" class="modal-layer hidden">
+    <div class="cyber-window">
+      <div class="window-header">SECURITY TERMINAL // DIGITAL THREAT ANALYSIS</div>
+      <div class="window-body">
+        <div class="terminal-left">
+          <p class="threat-alert">ALERT: MALICIOUS PROCESS DETECTED</p>
+          <p>IP: 185.199.42.73</p>
+          <p>Process: Trojan.Phish.exe</p>
+          <div class="console-box" id="console-output">> Select action to resolve threat...</div>
+        </div>
+        <div class="terminal-right">
+          <button class="btn-terminal" onclick="runTerminalAction('SCAN')">SCAN NETWORK</button>
+          <button class="btn-terminal" onclick="runTerminalAction('TRACE')">TRACE IP</button>
+          <button class="btn-terminal" onclick="runTerminalAction('ISOLATE')">ISOLATE THREAT</button>
+          <button class="btn-terminal alert" onclick="runTerminalAction('REMOVE')">REMOVE MALWARE</button>
+        </div>
+      </div>
+      <button class="btn-close" onclick="closeModal('modal-terminal')">CLOSE TERMINAL</button>
+    </div>
+  </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="script.js"></script>
+  <!-- MODAL: DOOR KEYPAD CIPHER -->
+  <div id="modal-keypad" class="modal-layer hidden">
+    <div class="keypad-window">
+      <div class="window-header">KEYPAD SECURITY // DOOR A1</div>
+      <div id="keypad-display">_ _ _ _</div>
+      <div class="keypad-grid">
+        <button onclick="pressKeypad('1')">1</button>
+        <button onclick="pressKeypad('2')">2</button>
+        <button onclick="pressKeypad('3')">3</button>
+        <button onclick="pressKeypad('4')">4</button>
+        <button onclick="pressKeypad('5')">5</button>
+        <button onclick="pressKeypad('6')">6</button>
+        <button onclick="pressKeypad('7')">7</button>
+        <button onclick="pressKeypad('8')">8</button>
+        <button onclick="pressKeypad('9')">9</button>
+        <button onclick="clearKeypad()">CLR</button>
+        <button onclick="pressKeypad('0')">0</button>
+        <button onclick="submitKeypad()">ENTER</button>
+      </div>
+      <p id="keypad-msg"></p>
+      <button class="btn-close" onclick="closeModal('modal-keypad')">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- MODAL: MISSION COMPLETE & REWARD -->
+  <div id="modal-complete" class="modal-layer hidden">
+    <div class="reward-window">
+      <h1 class="reward-title">MISSION COMPLETE</h1>
+      <div class="reward-badge-3d">🏆</div>
+      <h2>BADGE UNLOCKED</h2>
+      <p id="reward-badge-name" class="highlight-red">PHANTOM TRACE</p>
+      <div class="reward-xp">+500 XP | +250 COINS</div>
+      <button class="btn-action" onclick="returnToMenu()">RETURN TO HUB</button>
+    </div>
+  </div>
+
+  <!-- THREE.JS 3D CANVAS CONTAINER -->
+  <div id="canvas-container"></div>
+
+  <script src="game.js"></script>
 </body>
 </html>
