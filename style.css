@@ -2,7 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Consolas', 'Courier New', monospace, sans-serif;
+  font-family: 'Consolas', 'Courier New', monospace;
   user-select: none;
 }
 
@@ -23,21 +23,20 @@ body, html {
   z-index: 1;
 }
 
-/* UI OVERLAYS & LAYERS */
-.ui-layer {
+.overlay-layer {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   z-index: 10;
-  background: rgba(3, 3, 6, 0.94);
+  background: rgba(3, 3, 6, 0.95);
   display: flex;
   flex-direction: column;
   padding: 30px;
 }
 
-.ui-layer.transparent {
+.overlay-layer.transparent {
   background: transparent !important;
   pointer-events: none;
 }
@@ -45,7 +44,7 @@ body, html {
 .hidden { display: none !important; }
 
 /* INTRO SCREEN */
-.intro-screen {
+#intro-screen {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
   z-index: 50;
@@ -54,92 +53,69 @@ body, html {
   justify-content: center;
   align-items: center;
   flex-direction: column;
-  pointer-events: none;
   transition: opacity 1.5s ease;
 }
 
-.intro-text-glow {
+.glow-text {
   color: #ff0033;
   font-size: 1.2rem;
   letter-spacing: 4px;
   text-shadow: 0 0 15px #ff0033;
-  animation: pulse 1.5s infinite alternate;
+  animation: blink 1.5s infinite alternate;
 }
 
-/* TITLES & BRANDING */
-.game-title {
-  font-size: 3.5rem;
-  letter-spacing: 6px;
+.logo-title {
+  font-size: 3.8rem;
+  letter-spacing: 8px;
   font-weight: 900;
 }
-.cyber-part { color: #ffffff; }
-.hunt-part { color: #ff0033; text-shadow: 0 0 20px #ff0033; }
+.white-text { color: #fff; }
+.red-text { color: #ff0033; text-shadow: 0 0 20px #ff0033; }
+.tagline { color: #666; font-size: 0.85rem; letter-spacing: 3px; margin-top: 5px; }
 
-.tagline {
-  color: #666;
-  font-size: 0.85rem;
-  letter-spacing: 3px;
-  margin-top: 5px;
-}
-
-/* MENU LAYOUT */
-.menu-navigation {
-  display: flex;
-  gap: 15px;
-  margin: 25px 0;
-}
-
-.btn-menu {
-  background: rgba(15, 15, 20, 0.8);
+/* MENU TABS */
+.menu-tabs { display: flex; gap: 15px; margin: 25px 0; }
+.tab-btn {
+  background: rgba(15, 15, 20, 0.9);
   border: 1px solid #222;
-  color: #aaa;
+  color: #888;
   padding: 12px 24px;
   font-weight: bold;
   cursor: pointer;
   transition: 0.2s;
 }
-
-.btn-menu:hover, .btn-menu.primary {
+.tab-btn.active, .tab-btn:hover {
   border-color: #ff0033;
   color: #fff;
-  box-shadow: 0 0 10px rgba(255, 0, 51, 0.4);
+  box-shadow: 0 0 12px rgba(255, 0, 51, 0.4);
 }
 
-.tab-content { display: none; flex-direction: column; height: 100%; }
-.tab-content.active { display: flex; }
+.tab-pane { display: none; flex-direction: column; height: 100%; }
+.tab-pane.active { display: flex; }
+.pane-title { color: #ff0033; font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 15px; }
 
-.tab-header {
-  color: #ff0033;
-  font-size: 1.1rem;
-  letter-spacing: 2px;
-  margin-bottom: 15px;
-}
-
-/* GRIDS (Missions, Operatives, Armory, Badges) */
-.missions-grid, .operatives-grid, .armory-grid, .badges-grid {
+.grid-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 15px;
 }
 
-.mission-card, .op-card, .weap-card, .badge-item {
+.card {
   background: rgba(10, 10, 15, 0.85);
   border: 1px solid #1a1a24;
-  padding: 15px;
+  padding: 18px;
   cursor: pointer;
   transition: 0.3s;
 }
-
-.mission-card:hover, .op-card.selected, .weap-card.selected, .mission-card.active {
+.card.active, .card:hover {
   border-color: #ff0033;
   box-shadow: 0 0 15px rgba(255, 0, 51, 0.3);
   transform: translateY(-3px);
 }
+.card-id { color: #ff0033; font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 5px; }
+.tag { font-size: 0.7rem; color: #ff0033; border: 1px solid #ff0033; padding: 2px 6px; margin-top: 8px; display: inline-block; }
 
-.m-num { color: #ff0033; font-weight: bold; font-size: 1.2rem; }
-.op-avatar { height: 100px; background: #111; display: flex; align-items: center; justify-content: center; color: #ff0033; font-weight: bold; margin-bottom: 10px; border: 1px solid #222; }
-
-.btn-action {
+.btn-main {
   background: #ff0033;
   color: #fff;
   border: none;
@@ -149,103 +125,81 @@ body, html {
   margin-top: auto;
   align-self: flex-start;
   box-shadow: 0 0 20px rgba(255,0,51,0.5);
+  pointer-events: auto;
 }
 
-/* IN-GAME HUD Elements */
+/* HUD ELEMENTS */
 .hud-top-left {
-  position: absolute;
-  top: 25px; left: 25px;
+  position: absolute; top: 25px; left: 25px;
   background: rgba(5,5,10,0.85);
   border-left: 3px solid #ff0033;
   padding: 15px 20px;
   pointer-events: auto;
 }
-
-.hud-title { color: #ff0033; font-weight: bold; font-size: 0.9rem; letter-spacing: 2px; margin-bottom: 8px; }
-#hud-objectives-list li { list-style: none; font-size: 0.8rem; color: #ccc; margin-top: 4px; }
+.hud-red-title { color: #ff0033; font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; }
+#hud-objectives li { list-style: none; font-size: 0.8rem; color: #ccc; margin-top: 4px; }
 
 .hud-top-right { position: absolute; top: 25px; right: 25px; }
-.radar-box {
+.radar-circle {
   width: 90px; height: 90px; border-radius: 50%;
   border: 2px solid #ff0033; background: rgba(5,5,10,0.9);
   position: relative; overflow: hidden;
 }
-.radar-line {
+.radar-sweep {
   width: 100%; height: 100%;
   background: conic-gradient(from 0deg, rgba(255,0,51,0.4), transparent 60deg);
   animation: radarScan 3s linear infinite;
 }
-.radar-dot.player { width: 6px; height: 6px; background: #fff; border-radius: 50%; position: absolute; top: 42px; left: 42px; }
+.radar-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; position: absolute; top: 42px; left: 42px; }
 
-@keyframes radarScan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-/* INTERACTION PROMPTS */
-.interact-box {
-  position: absolute;
-  top: 60%; left: 50%;
+.interaction-prompt {
+  position: absolute; top: 60%; left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(5,5,10,0.95);
-  border: 1px solid #ff0033;
-  padding: 12px 25px;
-  display: flex; align-items: center; gap: 15px;
-  box-shadow: 0 0 20px rgba(255,0,51,0.4);
-  pointer-events: auto;
+  background: rgba(5,5,10,0.95); border: 1px solid #ff0033;
+  padding: 12px 25px; display: flex; align-items: center; gap: 15px;
+  box-shadow: 0 0 20px rgba(255,0,51,0.4); pointer-events: auto;
 }
-
-.btn-key { background: #ff0033; color: #fff; padding: 6px 12px; font-weight: bold; border-radius: 3px; }
+.key-badge { background: #ff0033; color: #fff; padding: 6px 12px; font-weight: bold; }
 
 .hud-bottom-right {
-  position: absolute;
-  bottom: 25px; right: 25px;
+  position: absolute; bottom: 25px; right: 25px;
   display: flex; flex-direction: column; align-items: flex-end; gap: 15px;
   pointer-events: auto;
 }
-
-.btn-hud-action {
-  background: rgba(15,15,20,0.9); border: 1px solid #ff0033;
-  color: #fff; padding: 10px 20px; font-weight: bold; cursor: pointer;
-}
-
-.hud-stats { background: rgba(5,5,10,0.9); border: 1px solid #222; padding: 12px; width: 200px; }
-.stat-label { font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-bottom: 5px; }
-.bar-bg { height: 6px; background: #222; overflow: hidden; }
-.bar-fill { height: 100%; background: #ff0033; }
-.ammo-info { font-size: 0.8rem; color: #aaa; margin-top: 8px; text-align: right; }
+.status-panel { background: rgba(5,5,10,0.9); border: 1px solid #222; padding: 12px; width: 200px; }
+.status-row { font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-bottom: 5px; }
+.health-bar-bg { height: 6px; background: #222; }
+.health-bar-fill { height: 100%; width: 100%; background: #ff0033; }
+.ammo-row { font-size: 0.8rem; color: #aaa; margin-top: 8px; text-align: right; }
 
 /* MODALS */
-.modal-layer {
+.modal-backdrop {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  z-index: 30; background: rgba(0,0,0,0.85);
+  z-index: 40; background: rgba(0,0,0,0.85);
   display: flex; justify-content: center; align-items: center;
 }
-
-.cyber-window, .keypad-window, .reward-window {
+.modal-box {
   background: #08080d; border: 2px solid #ff0033; padding: 25px;
   width: 90%; max-width: 550px; box-shadow: 0 0 30px rgba(255,0,51,0.4);
 }
+.modal-header { color: #ff0033; font-weight: bold; font-size: 1rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }
+.modal-body { display: flex; gap: 20px; }
+.terminal-info { flex: 1; font-size: 0.85rem; color: #ccc; }
+.alert-red { color: #ff0033; font-weight: bold; margin-bottom: 10px; }
+.terminal-logs { background: #000; border: 1px solid #222; padding: 10px; height: 100px; margin-top: 10px; color: #00ff66; font-size: 0.8rem; }
+.terminal-actions { display: flex; flex-direction: column; gap: 8px; }
+.terminal-actions button { background: #111; border: 1px solid #333; color: #fff; padding: 8px 15px; font-weight: bold; cursor: pointer; }
+.terminal-actions button.btn-alert { border-color: #ff0033; color: #ff0033; }
 
-.window-header { color: #ff0033; font-weight: bold; font-size: 1rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }
-.window-body { display: flex; gap: 20px; }
-.terminal-left { flex: 1; font-size: 0.85rem; color: #ccc; }
-.threat-alert { color: #ff0033; font-weight: bold; margin-bottom: 10px; }
-.console-box { background: #000; border: 1px solid #222; padding: 10px; height: 100px; margin-top: 10px; color: #00ff66; font-size: 0.8rem; }
-.terminal-right { display: flex; flex-direction: column; gap: 8px; }
+#keypad-screen { font-size: 2rem; letter-spacing: 12px; color: #ff0033; background: #000; border: 1px solid #222; text-align: center; padding: 10px; margin-bottom: 15px; }
+.keypad-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.keypad-buttons button { padding: 15px; background: #111; border: 1px solid #ff0033; color: #ff0033; font-weight: bold; cursor: pointer; }
 
-.btn-terminal { background: #111; border: 1px solid #333; color: #fff; padding: 8px 15px; font-weight: bold; cursor: pointer; }
-.btn-terminal.alert { border-color: #ff0033; color: #ff0033; }
+.close-btn { background: transparent; border: none; color: #666; margin-top: 15px; cursor: pointer; width: 100%; text-align: center; }
+.reward-box { text-align: center; }
+.badge-3d-icon { font-size: 4rem; margin: 15px 0; animation: float 2s infinite ease-in-out; }
+.xp-text { color: #888; font-size: 0.9rem; margin: 15px 0; }
 
-#keypad-display { font-size: 2rem; letter-spacing: 12px; color: #ff0033; background: #000; border: 1px solid #222; text-align: center; padding: 10px; margin-bottom: 15px; }
-.keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.keypad-grid button { padding: 15px; background: #111; border: 1px solid #ff0033; color: #ff0033; font-weight: bold; cursor: pointer; }
-
-.btn-close { background: transparent; border: none; color: #666; margin-top: 15px; cursor: pointer; width: 100%; text-align: center; }
-
-/* REWARD MODAL */
-.reward-window { text-align: center; }
-.reward-title { color: #ff0033; font-size: 2rem; letter-spacing: 4px; }
-.reward-badge-3d { font-size: 4rem; margin: 20px 0; animation: float 2s infinite ease-in-out; }
-.highlight-red { color: #ff0033; font-weight: bold; letter-spacing: 2px; }
-.reward-xp { color: #888; font-size: 0.9rem; margin: 15px 0 25px 0; }
-
+@keyframes radarScan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-@keyframes pulse { from { opacity: 0.3; } to { opacity: 1; } }
