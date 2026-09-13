@@ -1,670 +1,275 @@
-/* =====================================================================
-   CYBERHUNT v2 — isometric tactical rebuild
-   Flow: intro -> main menu -> operative select -> weapon select
-         -> mission list -> mission briefing -> isometric gameplay
-         -> mission complete -> back to mission list
-   ===================================================================== */
+/**
+ * CYBERHUNT FULL PRODUCTION STEALTH ENGINE
+ * Handles Cinematic 10s Loader, UnrealBloom Composers, Core Movement Engine,
+ * Interaction Detection Matrices, Enemy AI, and multi-level progression arrays.
+ */
 
-/* ---------------------------------------------------------------------
-   DATA
-   --------------------------------------------------------------------- */
-const OPERATIVES = [
-  { id:'raven',   name:'RAVEN',   role:'STEALTH · BALANCED',   icon:'🥷' },
-  { id:'specter', name:'SPECTER', role:'SNIPER · LONG RANGE',  icon:'🎯' },
-  { id:'volt',    name:'VOLT',    role:'ASSAULT · AGGRESSIVE', icon:'💥' },
-  { id:'nova',    name:'NOVA',    role:'ANALYST · SUPPORT',    icon:'🧠' },
-];
+// Global System Instantiations
+let scene, camera, renderer, composer, particleSystem, gridHelper;
+let mouseX = 0, mouseY = 0;
 
-const WEAPONS = [
-  { id:'ar12',           name:'AR-12',           type:'ASSAULT RIFLE', icon:'🔫', ammo:'15/45', stats:{DMG:70,RATE:60,ACC:65,AMMO:70} },
-  { id:'volt-smg',       name:'VOLT SMG',        type:'SMG',           icon:'🔫', ammo:'30/90', stats:{DMG:40,RATE:90,ACC:50,AMMO:80} },
-  { id:'shadow-sniper',  name:'SHADOW SNIPER',   type:'SNIPER RIFLE',  icon:'🎯', ammo:'5/15',  stats:{DMG:95,RATE:20,ACC:95,AMMO:30} },
-  { id:'twin-pistols',   name:'TWIN PISTOLS',    type:'PISTOL',        icon:'🔫', ammo:'12/48', stats:{DMG:50,RATE:70,ACC:60,AMMO:60} },
-];
+// Game Logic Data
+let currentLevel = 1;
+const totalLevels = 7;
+let playerHP = 100;
+let isTerminalDecrypted = false;
 
-const MISSIONS = [
-  { id:1,  name:'PHISHING BREACH',     available:true },
-  { id:2,  name:'MALWARE INFILTRATION',available:false },
-  { id:3,  name:'RANSOMWARE LOCKDOWN', available:false },
-  { id:4,  name:'CREDENTIAL THEFT',    available:false },
-  { id:5,  name:'MITM ATTACK',         available:false },
-  { id:6,  name:'INSIDER THREAT',      available:false },
-  { id:7,  name:'DDOS ATTACK',         available:false },
-  { id:8,  name:'DATA EXFILTRATION',   available:false },
-  { id:9,  name:'SOCIAL ENGINEERING',  available:false },
-  { id:10, name:'ZERO-DAY RESPONSE',   available:false },
-];
+// 3D Gameplay Elements
+let playerMesh = null;
+let enemies = [];
+let terminalNodeMesh = null;
+let targetTerminalPos = new THREE.Vector3(0, -3.5, -15);
 
-let selectedOperative = OPERATIVES[0];
-let selectedWeapon = WEAPONS[0];
+// Input Tracking Configurations
+let keysPressed = { w: false, a: false, s: false, d: false };
+const playerSpeed = 0.35;
 
-/* ---------------------------------------------------------------------
-   SCREEN NAVIGATION
-   --------------------------------------------------------------------- */
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-document.querySelectorAll('[data-back]').forEach(btn => {
-  btn.addEventListener('click', () => showScreen(btn.dataset.back));
+document.addEventListener("DOMContentLoaded", () => {
+    runCinematicIntroEngine();
 });
 
-function showToast(msg){
-  const t = document.getElementById('alert-toast');
-  t.textContent = msg;
-  t.classList.remove('show'); void t.offsetWidth;
-  t.classList.remove('hidden'); t.classList.add('show');
-}
-
-/* ---------------------------------------------------------------------
-   INTRO CINEMATIC
-   --------------------------------------------------------------------- */
-const introEl = document.getElementById('intro');
-const introFlash = document.getElementById('intro-flash-text');
-const introTitle = document.getElementById('intro-title');
-const introLines = ['INTRUSION DETECTED', 'UNAUTHORIZED ACCESS', 'NETWORK COMPROMISED'];
-let introSkipped = false;
-let introTimers = [];
-
-function runIntro(){
-  const dot = document.getElementById('intro-dot');
-  dot.style.left = (44 + Math.random()*12) + '%';
-  dot.style.top = (40 + Math.random()*12) + '%';
-
-  introLines.forEach((line, i) => {
-    introTimers.push(setTimeout(() => {
-      introFlash.textContent = line;
-      introFlash.classList.remove('show'); void introFlash.offsetWidth;
-      introFlash.classList.add('show');
-    }, 3400 + i * 1300));
-  });
-  introTimers.push(setTimeout(() => {
-    introFlash.classList.remove('show');
-    introTitle.classList.add('reveal');
-  }, 3400 + introLines.length * 1300 + 400));
-  introTimers.push(setTimeout(finishIntro, 3400 + introLines.length * 1300 + 2600));
-}
-function finishIntro(){
-  if (introSkipped) return;
-  introSkipped = true;
-  introTimers.forEach(clearTimeout);
-  introEl.style.transition = 'opacity 0.6s ease';
-  introEl.style.opacity = '0';
-  setTimeout(() => {
-    introEl.classList.add('hidden');
-    showScreen('main-menu');
-  }, 600);
-}
-window.addEventListener('keydown', () => { if(!introSkipped) finishIntro(); });
-introEl.addEventListener('click', () => { if(!introSkipped) finishIntro(); });
-runIntro();
-
-/* ---------------------------------------------------------------------
-   MAIN MENU
-   --------------------------------------------------------------------- */
-document.getElementById('btn-play').onclick = () => { renderOperatives(); showScreen('operative-select'); };
-document.getElementById('btn-settings').onclick = () => showToast('SETTINGS — COMING SOON');
-document.getElementById('btn-quit').onclick = () => showToast('THANKS FOR PLAYING CYBERHUNT');
-
-/* ---------------------------------------------------------------------
-   OPERATIVE SELECT
-   --------------------------------------------------------------------- */
-function renderOperatives(){
-  const row = document.getElementById('operative-cards');
-  row.innerHTML = '';
-  OPERATIVES.forEach(op => {
-    const card = document.createElement('div');
-    card.className = 'op-card-sel' + (op.id === selectedOperative.id ? ' selected' : '');
-    card.innerHTML = `<div class="op-portrait">${op.icon}</div><div class="op-name">${op.name}</div><div class="op-role">${op.role}</div>`;
-    card.onclick = () => { selectedOperative = op; renderOperatives(); };
-    row.appendChild(card);
-  });
-}
-document.getElementById('btn-confirm-operative').onclick = () => { renderWeapons(); showScreen('weapon-select'); };
-
-/* ---------------------------------------------------------------------
-   WEAPON SELECT
-   --------------------------------------------------------------------- */
-function renderWeapons(){
-  const row = document.getElementById('weapon-cards');
-  row.innerHTML = '';
-  WEAPONS.forEach(w => {
-    const card = document.createElement('div');
-    card.className = 'weap-card-sel' + (w.id === selectedWeapon.id ? ' selected' : '');
-    const statsHtml = Object.entries(w.stats).map(([k,v]) =>
-      `<div class="stat-mini"><span>${k}</span><div class="stat-mini-bar"><i style="width:${v}%"></i></div></div>`
-    ).join('');
-    card.innerHTML = `<div class="weap-icon">${w.icon}</div><div class="weap-name">${w.name}</div><div class="weap-type">${w.type}</div>${statsHtml}`;
-    card.onclick = () => { selectedWeapon = w; renderWeapons(); };
-    row.appendChild(card);
-  });
-}
-document.getElementById('btn-confirm-weapon').onclick = () => { renderMissionList(); showScreen('mission-list'); };
-
-/* ---------------------------------------------------------------------
-   MISSION LIST
-   --------------------------------------------------------------------- */
-function renderMissionList(){
-  document.getElementById('chip-operative').textContent = selectedOperative.name;
-  const grid = document.getElementById('mission-grid');
-  grid.innerHTML = '';
-  MISSIONS.forEach(m => {
-    const tile = document.createElement('div');
-    tile.className = 'mission-tile ' + (m.available ? 'available' : 'locked');
-    tile.innerHTML = `<div class="mission-num">${String(m.id).padStart(2,'0')}</div>
-      ${m.available ? '' : '<div class="lock-icon">🔒</div>'}
-      <div class="mission-name">${m.name}</div>`;
-    tile.onclick = () => {
-      if (!m.available){ showToast('MISSION LOCKED — COMPLETE PRIOR OPERATIONS'); return; }
-      showScreen('mission-briefing');
-    };
-    grid.appendChild(tile);
-  });
-}
-document.getElementById('btn-start-mission').onclick = () => {
-  document.getElementById('main-menu').classList.add('hidden');
-  document.getElementById('hud').classList.remove('hidden');
-  document.getElementById('game-canvas').classList.remove('hidden');
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  startMission();
-};
-
-/* ---------------------------------------------------------------------
-   GAME STATE
-   --------------------------------------------------------------------- */
-let scene, camera, renderer, clock;
-let player, guard;
-let interactables = [];
-let currentTarget = null;
-let gameRunning = false;
-let threat = 8, health = 100;
-let evidenceCollected = 0;
-const evidenceTotal = 3;
-let doorLocked = true, doorMesh = null;
-let missionComplete = false;
-let guardDir = 1;
-let sprinting = false;
-
-const objectives = [
-  { text:'Enter the facility', done:true },
-  { text:'Avoid security', done:false },
-  { text:'Find suspicious workstation', done:false },
-  { text:'Inspect the phishing email', done:false },
-  { text:'Collect digital evidence', done:false },
-  { text:'Decode access credentials', done:false },
-  { text:'Enter the server room', done:false },
-  { text:'Secure compromised system', done:false },
-];
-let objectiveIndex = 0;
-
-function completeObjective(i){
-  if (objectives[i]) objectives[i].done = true;
-  if (i === objectiveIndex && objectives[i+1]) objectiveIndex = i+1;
-  renderObjectives();
-}
-function renderObjectives(){
-  document.getElementById('hud-objectives').innerHTML = objectives.map((o,i) =>
-    `<li class="${o.done?'done':(i===objectiveIndex?'active':'')}">${o.text}</li>`).join('');
-}
-function renderBriefingObjectives(){
-  document.getElementById('brief-objectives-list').innerHTML = objectives.map(o => `<li>${o.text}</li>`).join('');
-}
-renderBriefingObjectives();
-
-/* ---------------------------------------------------------------------
-   MISSION START / THREE.JS SETUP
-   --------------------------------------------------------------------- */
-function startMission(){
-  document.getElementById('hud-mission-name').textContent = 'PHISHING BREACH';
-  document.getElementById('ammo-current').textContent = selectedWeapon.ammo.split('/')[0];
-  document.getElementById('ammo-reserve').textContent = selectedWeapon.ammo.split('/')[1];
-  renderObjectives();
-  if (!gameRunning){
-    initThree();
-    gameRunning = true;
-    animate();
-  }
-  showToast('MISSION 01 // PHISHING BREACH — INITIATED');
-}
-
-function initThree(){
-  const canvas = document.getElementById('game-canvas');
-  scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x030304, 0.035);
-  scene.background = new THREE.Color(0x020203);
-
-  camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 200);
-
-  renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  clock = new THREE.Clock();
-
-  buildEnvironment();
-  window.addEventListener('resize', onResize);
-  setupJoystick();
-  setupButtons();
-}
-function onResize(){
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-/* ---------- materials ---------- */
-const matDark = new THREE.MeshStandardMaterial({ color:0x101114, roughness:0.7, metalness:0.4 });
-const matSteel = new THREE.MeshStandardMaterial({ color:0x2a2c31, roughness:0.35, metalness:0.7 });
-const matGlass = new THREE.MeshStandardMaterial({ color:0x0a0d12, roughness:0.1, metalness:0.9, transparent:true, opacity:0.55 });
-const matRedGlow = new THREE.MeshStandardMaterial({ color:0x2a0006, emissive:0xff2c47, emissiveIntensity:1.6, roughness:0.4 });
-const matFloor = new THREE.MeshStandardMaterial({ color:0x0c0d10, roughness:0.55, metalness:0.5 });
-const matPlayer = new THREE.MeshStandardMaterial({ color:0x1c1d21, roughness:0.5, emissive:0x300008, emissiveIntensity:0.3 });
-const matGuard = new THREE.MeshStandardMaterial({ color:0x24161a, roughness:0.6 });
-
-function box(w,h,d,mat,x,y,z,parent){
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
-  m.position.set(x,y,z);
-  (parent||scene).add(m);
-  return m;
-}
-function redLight(x,y,z,intensity=2.2,dist=8){
-  const l = new THREE.PointLight(0xff2c47, intensity, dist, 2);
-  l.position.set(x,y,z); scene.add(l);
-  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8), matRedGlow);
-  bulb.position.set(x,y,z); scene.add(bulb);
-}
-
-/* ---------- environment ---------- */
-function buildEnvironment(){
-  scene.add(new THREE.AmbientLight(0x0c0d12, 0.6));
-  scene.add(new THREE.HemisphereLight(0x1a1c22, 0x000000, 0.35));
-
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(28, 60), matFloor);
-  floor.rotation.x = -Math.PI/2; floor.position.set(0,0,-14);
-  scene.add(floor);
-
-  for (let z = 6; z > -10; z -= 3){
-    box(0.4, 3.2, 2.2, matSteel, -9.6, 1.6, z);
-    box(0.4, 3.2, 2.2, matSteel, 9.6, 1.6, z);
-    redLight(-9.3, 2.6, z, 1.6, 6); redLight(9.3, 2.6, z, 1.6, 6);
-  }
-  box(0.3, 3.2, 40, matDark, -11, 1.6, -10);
-  box(0.3, 3.2, 40, matDark, 11, 1.6, -10);
-
-  box(0.3, 3.2, 12, matDark, -11, 1.6, -18);
-  box(0.3, 3.2, 12, matDark, 11, 1.6, -18);
-
-  const terminal1 = box(1.1, 1.1, 0.5, matGlass, -3, 0.9, -16);
-  redLight(-3, 1.5, -15.6, 2, 4);
-  const terminal2 = box(1.1, 1.1, 0.5, matGlass, 3, 0.9, -20);
-  redLight(3, 1.5, -19.6, 2, 4);
-
-  const evPositions = [ [-2, 0.5, -12], [6, 0.5, -17], [-6, 0.5, -22] ];
-  const evMeshes = evPositions.map(p => box(0.3,0.3,0.3, matRedGlow, p[0], p[1], p[2]));
-
-  doorMesh = box(4, 3, 0.35, matSteel, 0, 1.5, -26);
-  redLight(0, 2.4, -25.6, 2.4, 5);
-  const doorPanel = box(0.5,0.5,0.1, matRedGlow, 2.4, 1.2, -25.8);
-
-  box(0.3, 3.2, 22, matDark, -11, 1.6, -33);
-  box(0.3, 3.2, 22, matDark, 11, 1.6, -33);
-  for (let z = -29; z > -38; z -= 3){
-    box(1, 2.6, 0.8, matSteel, -6, 1.3, z);
-    box(1, 2.6, 0.8, matSteel, 6, 1.3, z);
-    redLight(-6, 2.4, z, 1.4, 5); redLight(6, 2.4, z, 1.4, 5);
-  }
-  const finalTerminal = box(1.4, 1.3, 0.6, matGlass, 0, 0.9, -37);
-  redLight(0, 1.6, -36.6, 2.4, 5);
-  box(22, 3.2, 0.3, matDark, 0, 1.6, -39.5);
-
-  // ---- player avatar (visible top-down, third-person) ----
-  player = new THREE.Group();
-  const pBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 1.0, 4, 8), matPlayer);
-  pBody.position.y = 0.95;
-  const pVisor = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.06,0.05), matRedGlow);
-  pVisor.position.set(0, 1.4, 0.3);
-  player.add(pBody, pVisor);
-  player.position.set(0, 0, 8);
-  scene.add(player);
-
-  // ---- guard ----
-  const guardGroup = new THREE.Group();
-  const gBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 1.05, 4, 8), matGuard);
-  gBody.position.y = 0.95;
-  const gVisor = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.07,0.05), matRedGlow);
-  gVisor.position.set(0, 1.45, 0.3);
-  guardGroup.add(gBody, gVisor);
-  guardGroup.position.set(-3, 0, -14);
-  scene.add(guardGroup);
-  guard = { group: guardGroup, minZ:-19, maxZ:-9, speed:1.5, neutralized:false };
-
-  interactables.push({ mesh:terminal1, type:'terminal', title:'WORKSTATION', label:'ANALYZE WORKSTATION', range:2.4, kind:'email', done:false });
-  interactables.push({ mesh:terminal2, type:'terminal', title:'NETWORK LOG', label:'SCAN NETWORK LOG', range:2.4, kind:'network', done:false });
-  evMeshes.forEach((m,i) => interactables.push({ mesh:m, type:'evidence', label:'COLLECT EVIDENCE', name:'Suspicious USB Device', range:1.8, id:i, done:false }));
-  interactables.push({ mesh:doorPanel, type:'door', label:'DECODE ACCESS', range:2.4, done:false });
-  interactables.push({ mesh:finalTerminal, type:'terminal', title:'CORE SYSTEM', label:'SECURE SYSTEM', range:2.4, kind:'final', done:false });
-  interactables.push({ mesh:guardGroup, type:'guard', label:'CONFRONT', range:3.2, done:false });
-}
-
-/* ---------------------------------------------------------------------
-   VIRTUAL JOYSTICK
-   --------------------------------------------------------------------- */
-let joyVec = {x:0, y:0};
-function setupJoystick(){
-  const zone = document.getElementById('joystick-zone');
-  const stick = document.getElementById('joystick-stick');
-  let active = false, pointerId = null, radius = 34;
-
-  function setStick(dx, dy){
-    const len = Math.hypot(dx,dy);
-    const clamped = Math.min(len, radius);
-    const ang = Math.atan2(dy,dx);
-    const cx = Math.cos(ang)*clamped, cy = Math.sin(ang)*clamped;
-    stick.style.transform = `translate(${cx}px, ${cy}px)`;
-    joyVec.x = cx/radius; joyVec.y = cy/radius;
-  }
-  function reset(){
-    stick.style.transform = 'translate(0,0)';
-    joyVec.x = 0; joyVec.y = 0; active = false; pointerId = null;
-  }
-  zone.addEventListener('pointerdown', e => {
-    active = true; pointerId = e.pointerId;
-    zone.setPointerCapture(pointerId);
-    const rect = zone.getBoundingClientRect();
-    setStick(e.clientX-(rect.left+rect.width/2), e.clientY-(rect.top+rect.height/2));
-  });
-  zone.addEventListener('pointermove', e => {
-    if (!active || e.pointerId !== pointerId) return;
-    const rect = zone.getBoundingClientRect();
-    setStick(e.clientX-(rect.left+rect.width/2), e.clientY-(rect.top+rect.height/2));
-  });
-  ['pointerup','pointercancel','pointerleave'].forEach(ev => zone.addEventListener(ev, reset));
-}
-
-/* ---------------------------------------------------------------------
-   ACTION BUTTONS (run / aim / fire / pause / map)
-   --------------------------------------------------------------------- */
-function setupButtons(){
-  document.getElementById('run-btn').onclick = (e) => {
-    sprinting = !sprinting;
-    e.currentTarget.classList.toggle('active', sprinting);
-  };
-  document.getElementById('aim-btn').onclick = (e) => {
-    e.currentTarget.classList.toggle('active');
-  };
-  document.getElementById('fire-btn').onclick = fireWeapon;
-  document.getElementById('pause-btn').onclick = () => showToast('PAUSED — (prototype: no pause menu yet)');
-  document.getElementById('map-btn').onclick = () => document.getElementById('map-modal').classList.remove('hidden');
-  document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => document.getElementById(b.dataset.close).classList.add('hidden'));
-  document.getElementById('interact-prompt').addEventListener('click', () => { if (currentTarget) handleInteract(currentTarget); });
-  window.addEventListener('keydown', e => { if (e.code === 'KeyE' && currentTarget && !anyModalOpen()) handleInteract(currentTarget); });
-}
-
-function fireWeapon(){
-  if (anyModalOpen() || !guard || guard.neutralized) { showToast('NO TARGET'); return; }
-  const dist = guard.group.position.distanceTo(player.position);
-  if (dist < 7){
-    neutralizeGuard();
-  } else {
-    showToast('OUT OF RANGE');
-  }
-}
-function neutralizeGuard(){
-  guard.group.visible = false;
-  guard.neutralized = true;
-  threat = Math.max(0, threat - 30);
-  showToast('HOSTILE NEUTRALIZED');
-}
-
-/* ---------------------------------------------------------------------
-   INTERACTION
-   --------------------------------------------------------------------- */
-function anyModalOpen(){
-  return ['evidence-modal','enemy-modal','terminal-modal','door-modal','map-modal','mission-complete']
-    .some(id => !document.getElementById(id).classList.contains('hidden'));
-}
-function findNearestInteractable(){
-  let best = null, bestDist = Infinity;
-  interactables.forEach(it => {
-    if (it.done) return;
-    if (it.type === 'door' && !doorLocked) return;
-    if (it.type === 'terminal' && it.kind === 'final' && doorLocked) return;
-    if (it.type === 'guard' && it.guardDoneFlag) return;
-    const d = it.mesh.position.distanceTo(player.position);
-    if (d > it.range) return;
-    if (d < bestDist){ bestDist = d; best = it; }
-  });
-  return best;
-}
-const interactLabel = document.getElementById('interact-label');
-const interactPrompt = document.getElementById('interact-prompt');
-
-function handleInteract(it){
-  switch(it.type){
-    case 'terminal': openTerminal(it); break;
-    case 'evidence': openEvidence(it); break;
-    case 'door': openDoor(it); break;
-    case 'guard': openEnemy(it); break;
-  }
-}
-
-/* ---------- EVIDENCE MODAL ---------- */
-function openEvidence(it){
-  document.getElementById('evidence-item-name').textContent = it.name;
-  document.getElementById('evidence-modal').classList.remove('hidden');
-  document.getElementById('evidence-take-btn').onclick = () => {
-    it.done = true;
-    scene.remove(it.mesh);
-    evidenceCollected++;
-    showToast('EVIDENCE SECURED (' + evidenceCollected + '/' + evidenceTotal + ')');
-    if (evidenceCollected >= evidenceTotal) completeObjective(4);
-    document.getElementById('evidence-modal').classList.add('hidden');
-  };
-}
-
-/* ---------- ENEMY MODAL ---------- */
-function openEnemy(it){
-  document.getElementById('enemy-modal').classList.remove('hidden');
-  document.getElementById('enemy-eliminate-btn').onclick = () => {
-    neutralizeGuard();
-    document.getElementById('enemy-modal').classList.add('hidden');
-  };
-  document.getElementById('enemy-leave-btn').onclick = () => {
-    document.getElementById('enemy-modal').classList.add('hidden');
-  };
-}
-
-/* ---------- TERMINAL MODAL ---------- */
-let terminalProgress = 0;
-function openTerminal(it){
-  terminalProgress = 0;
-  document.getElementById('terminal-modal').classList.remove('hidden');
-  document.querySelectorAll('.term-action-btn').forEach(b => { b.classList.remove('done'); b.disabled = false; });
-  document.getElementById('terminal-remove-btn').disabled = true;
-
-  document.querySelectorAll('.term-action-btn[data-action]').forEach(btn => {
-    btn.onclick = () => {
-      if (btn.dataset.action === 'remove'){
-        it.done = true;
-        document.getElementById('terminal-modal').classList.add('hidden');
-        if (it.kind === 'email'){
-          showToast('MALICIOUS EMAIL IDENTIFIED');
-          completeObjective(1); completeObjective(2); completeObjective(3);
-        } else if (it.kind === 'network'){
-          showToast('MALWARE PROCESS REMOVED');
-        } else if (it.kind === 'final'){
-          showToast('SYSTEM SECURED');
-          completeObjective(7);
-          finishMission();
+// ==========================================================================
+// Phase 1: 10-Second Boot System Sequence
+// ==========================================================================
+function runCinematicIntroEngine() {
+    const feed = document.getElementById('terminal-feed');
+    const fill = document.getElementById('intro-fill');
+    const percentDisplay = document.getElementById('load-percentage');
+    const statusText = document.getElementById('load-status');
+    const introDuration = 10000; // Complete 10s Runtime Benchmark
+    
+    const logs = [
+        "PARSING SECURITY NODES...", "BYPASSING FIREWALL INTRUSIONS...",
+        "MOUNTING CYBERHUNT SIMULATION DECK...", "HOOKING INJECTED THREE.JS GRAPHICS...",
+        "STATUS: ISOMETRIC GRID CACHE STABLE", "COMPILING MODEL ASSET LOADERS...",
+        "CONFIGURING UNREALBLOOM POST-PROCESSING...", "SPAWNING RED-SECTOR ENEMY ENTIRES..."
+    ];
+    
+    let logIdx = 0;
+    const feedTimer = setInterval(() => {
+        if(logIdx < logs.length) {
+            const row = document.createElement('div');
+            row.innerText = `>> ${logs[logIdx]}`;
+            feed.appendChild(row);
+            feed.scrollTop = feed.scrollHeight;
+            logIdx++;
         }
-        return;
-      }
-      btn.classList.add('done');
-      btn.disabled = true;
-      terminalProgress++;
-      if (terminalProgress >= 3) document.getElementById('terminal-remove-btn').disabled = false;
-    };
-  });
-}
+    }, 900);
 
-/* ---------- DOOR / ACCESS CODE PUZZLE ---------- */
-const doorAnswer = '4092';
-function openDoor(){
-  if (evidenceCollected < evidenceTotal){
-    showToast('INSUFFICIENT EVIDENCE — RECOVER ALL LOGS FIRST');
-    return;
-  }
-  const row = document.getElementById('door-input-row');
-  row.innerHTML = '';
-  for (let i=0;i<4;i++){
-    const inp = document.createElement('input');
-    inp.className = 'door-digit'; inp.maxLength = 1;
-    inp.addEventListener('input', () => {
-      inp.value = inp.value.replace(/[^0-9]/g,'').slice(0,1);
-      const next = row.children[i+1];
-      if (inp.value && next) next.focus();
-    });
-    row.appendChild(inp);
-  }
-  document.getElementById('door-hints').innerHTML = `
-    <li>1. Access logs show 3:47 AM — maintenance staff.</li>
-    <li>2. Second digit is even and less than 4.</li>
-    <li>3. Final digit equals (1st digit) minus (2nd digit).</li>`;
-  document.getElementById('door-feedback').textContent = '';
-  document.getElementById('door-feedback').className = '';
-  document.getElementById('door-modal').classList.remove('hidden');
-  row.children[0].focus();
+    let startTimestamp = null;
+    function updateLoader(timestamp) {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const elapsed = timestamp - startTimestamp;
+        const progressionRatio = Math.min(elapsed / introDuration, 1);
+        const activePct = Math.floor(progressionRatio * 100);
+        
+        percentDisplay.innerText = `${activePct.toString().padStart(2, '0')}%`;
+        fill.style.width = `${activePct}%`;
 
-  document.getElementById('door-decode-btn').onclick = () => {
-    const entered = Array.from(row.children).map(i => i.value).join('');
-    const fb = document.getElementById('door-feedback');
-    if (entered.length < 4){ fb.textContent = 'INCOMPLETE SEQUENCE'; fb.className='bad'; return; }
-    if (entered === doorAnswer){
-      fb.textContent = 'ACCESS GRANTED'; fb.className='good';
-      setTimeout(() => { document.getElementById('door-modal').classList.add('hidden'); unlockDoor(); }, 600);
-    } else {
-      fb.textContent = 'ACCESS DENIED — THREAT RISING'; fb.className='bad';
-      threat = Math.min(100, threat+15);
+        if(activePct < 30) statusText.innerText = "ACCESSING COMPROMISED VAULTS...";
+        else if(activePct < 65) statusText.innerText = "OVERRIDING ENEMY RADAR CHANNELS...";
+        else if(activePct < 90) statusText.innerText = "SYNCING TACTICAL HEADS-UP DISPLAY...";
+        else statusText.innerText = "SIMULATION ENGINE ENGAGED.";
+
+        if (elapsed < introDuration) {
+            requestAnimationFrame(updateLoader);
+        } else {
+            clearInterval(feedTimer);
+            transitionToLiveSimulation();
+        }
     }
-  };
-}
-function unlockDoor(){
-  doorLocked = false;
-  completeObjective(5);
-  const startY = doorMesh.position.y, targetY = startY+3.4, t0 = performance.now();
-  (function slide(){
-    const t = Math.min(1, (performance.now()-t0)/900);
-    doorMesh.position.y = startY + (targetY-startY)*t;
-    if (t<1) requestAnimationFrame(slide); else completeObjective(6);
-  })();
-  showToast('SECURITY DOOR UNLOCKED');
+    requestAnimationFrame(updateLoader);
 }
 
-/* ---------------------------------------------------------------------
-   MOVEMENT + CAMERA (fixed-angle isometric follow)
-   --------------------------------------------------------------------- */
-const camOffset = new THREE.Vector3(11, 15, 11);
-const worldForward = new THREE.Vector3(-1,0,-1).normalize();
-const worldRight = new THREE.Vector3(worldForward.z, 0, -worldForward.x);
-let facingAngle = Math.PI;
-
-function updateMovement(dt){
-  const speed = (sprinting ? 6.5 : 3.6) * dt;
-  const move = new THREE.Vector3()
-    .addScaledVector(worldRight, joyVec.x)
-    .addScaledVector(worldForward, -joyVec.y);
-  if (move.lengthSq() > 0.0001){
-    move.normalize().multiplyScalar(speed);
-    player.position.add(move);
-    const targetAngle = Math.atan2(move.x, move.z);
-    let diff = targetAngle - facingAngle;
-    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    facingAngle += diff * Math.min(1, dt*10);
-    player.rotation.y = facingAngle;
-  }
-  player.position.x = Math.max(-10, Math.min(10, player.position.x));
-  player.position.z = Math.max(-38.5, Math.min(9, player.position.z));
-  if (doorLocked && player.position.z < -25 && player.position.z > -27) player.position.z = -25;
-
-  const desiredCamPos = player.position.clone().add(camOffset);
-  camera.position.lerp(desiredCamPos, 0.12);
-  camera.lookAt(player.position.clone().add(new THREE.Vector3(0,1.2,0)));
+function transitionToLiveSimulation() {
+    document.getElementById('cinematic-intro').classList.add('fade-out');
+    document.getElementById('main-hud').classList.remove('hidden');
+    
+    setTimeout(() => {
+        document.getElementById('cinematic-intro').remove();
+        initWebGLGameContainer();
+        initGameplayListeners();
+        animateMasterEngineLoop();
+    }, 1000);
 }
 
-function updateGuard(dt){
-  if (guard.neutralized) return;
-  const g = guard.group;
-  g.position.z += guard.speed*dt*guardDir;
-  if (g.position.z < guard.minZ) guardDir = 1;
-  if (g.position.z > guard.maxZ) guardDir = -1;
-  g.rotation.y = guardDir > 0 ? Math.PI : 0;
+// ==========================================================================
+// Phase 2: WebGL 3D Tactical Core Initialization
+// ==========================================================================
+function initWebGLGameContainer() {
+    const canvasContainer = document.getElementById('threejs-canvas').parentElement;
+    const w = canvasContainer.clientWidth;
+    const h = canvasContainer.clientHeight;
 
-  const dist = g.position.distanceTo(player.position);
-  if (dist < 5) threat = Math.min(100, threat + dt*14);
-  else threat = Math.max(0, threat - dt*6);
-  if (threat >= 100) health = Math.max(0, health - dt*25);
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x020305);
+    scene.fog = new THREE.FogExp2(0x020305, 0.015);
+
+    // Cinematic Isometric-vibe Camera configuration
+    camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 1000);
+    camera.position.set(0, 22, 32);
+
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('threejs-canvas'), antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+
+    // Floor Grid Setup (Valorant Neon Grid Styling)
+    gridHelper = new THREE.GridHelper(120, 45, 0xff0055, 0x0f1522);
+    gridHelper.position.y = -5;
+    scene.add(gridHelper);
+
+    // Tactical Scene Lighting Arrays
+    const ambLight = new THREE.AmbientLight(0x0a111e, 1.0);
+    scene.add(ambLight);
+
+    const dirLight = new THREE.DirectionalLight(0x00f5d4, 1.2);
+    dirLight.position.set(20, 40, 10);
+    scene.add(dirLight);
+
+    // Interactive Core Key Objective Mesh (Glowing Cyan Cyber Terminal Box)
+    const termGeom = new THREE.BoxGeometry(3, 3, 3);
+    const termMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4, wireframe: true });
+    terminalNodeMesh = new THREE.Mesh(termGeom, termMat);
+    terminalNodeMesh.position.copy(targetTerminalPos);
+    scene.add(terminalNodeMesh);
+
+    // PLAYER OBJECT GENERATOR CONFIGURATION (Your Three.js placeholder to override with model instances)
+    const pGeom = new THREE.CylinderGeometry(1, 1, 4, 6);
+    const pMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.8 });
+    playerMesh = new THREE.Mesh(pGeom, pMat);
+    playerMesh.position.set(0, -3, 10); // Start in foreground space
+    scene.add(playerMesh);
+
+    // Particle FX Engine setup
+    initParticleEngine();
+    
+    // Build initial level threats
+    spawnLevelThreats();
+
+    // UnrealBloom Glow Composer Compositing Configuration
+    const renderPass = new THREE.RenderPass(scene, camera);
+    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 1.7, 0.45, 0.08);
+    composer = new THREE.EffectComposer(renderer);
+    composer.addPass(renderPass);
+    composer.addPass(bloomPass);
 }
 
-/* ---------------------------------------------------------------------
-   HUD LIVE UPDATE (health, interact prompt, radar)
-   --------------------------------------------------------------------- */
-function updateHud(){
-  document.getElementById('health-fill').style.width = health.toFixed(0)+'%';
-  document.getElementById('health-num').textContent = Math.round(health)+'/100';
+function initParticleEngine() {
+    const count = 400;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
 
-  const target = findNearestInteractable();
-  currentTarget = target;
-  if (target){
-    interactLabel.textContent = target.label;
-    interactPrompt.classList.remove('hidden');
-  } else {
-    interactPrompt.classList.add('hidden');
-  }
-
-  updateRadar();
+    for(let i=0; i<count*3; i+=3) {
+        positions[i] = (Math.random() - 0.5) * 90;
+        positions[i+1] = Math.random() * 50 - 5;
+        positions[i+2] = (Math.random() - 0.5) * 90;
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({ color: 0x00f5d4, size: 0.25, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+    particleSystem = new THREE.Points(geometry, mat);
+    scene.add(particleSystem);
 }
 
-function updateRadar(){
-  const radar = document.getElementById('radar');
-  let dot = radar.querySelector('.radar-dot');
-  if (!guard || guard.neutralized){ if (dot) dot.remove(); return; }
-  const rel = guard.group.position.clone().sub(player.position);
-  const rx = rel.dot(worldRight), ry = rel.dot(worldForward);
-  const maxRange = 22, radius = 40;
-  const dist = Math.hypot(rx,ry);
-  if (dist > maxRange){ if (dot) dot.remove(); return; }
-  if (!dot){ dot = document.createElement('div'); dot.className='radar-dot'; radar.appendChild(dot); }
-  const px = 50 + (rx/maxRange)*radius;
-  const py = 50 - (ry/maxRange)*radius;
-  dot.style.left = px+'%'; dot.style.top = py+'%';
+function spawnLevelThreats() {
+    // Clear out old nodes
+    enemies.forEach(e => scene.remove(e.mesh));
+    enemies = [];
+
+    // Scale guard count based on current level progress limits
+    const threatCount = 2 + currentLevel; 
+    for(let i=0; i < threatCount; i++) {
+        const eGeom = new THREE.BoxGeometry(2, 4, 2);
+        const eMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x330011 });
+        const mesh = new THREE.Mesh(eGeom, eMat);
+        
+        // Distribute positions dynamically
+        mesh.position.set(
+            (Math.random() - 0.5) * 50,
+            -3,
+            -10 - (Math.random() * 30)
+        );
+        scene.add(mesh);
+
+        enemies.push({
+            mesh: mesh,
+            dir: Math.random() > 0.5 ? 1 : -1,
+            range: 10 + Math.random() * 15,
+            startX: mesh.position.x
+        });
+    }
+    document.getElementById('guard-status-count').innerText = `${enemies.length} ALIVE`;
 }
 
-/* ---------------------------------------------------------------------
-   MISSION COMPLETE
-   --------------------------------------------------------------------- */
-function finishMission(){
-  if (missionComplete) return;
-  missionComplete = true;
-  setTimeout(() => document.getElementById('mission-complete').classList.remove('hidden'), 500);
-}
-document.getElementById('btn-next-mission').onclick = () => {
-  document.getElementById('mission-complete').classList.add('hidden');
-  document.getElementById('hud').classList.add('hidden');
-  document.getElementById('game-canvas').classList.add('hidden');
-  renderMissionList();
-  showScreen('mission-list');
-};
+// ==========================================================================
+// Phase 3: Interactive Inputs & Game Logic Engine
+// ==========================================================================
+function initGameplayListeners() {
+    window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k in keysPressed) keysPressed[k] = true;
+        
+        // E Interactivity action hook
+        if (k === 'e' && !document.getElementById('action-prompt').classList.contains('hidden')) {
+            decryptMatrixObjective();
+        }
+    });
 
-/* ---------------------------------------------------------------------
-   MAIN LOOP
-   --------------------------------------------------------------------- */
-function animate(){
-  requestAnimationFrame(animate);
-  const dt = Math.min(0.05, clock.getDelta());
-  if (!anyModalOpen()){
-    updateMovement(dt);
-    updateGuard(dt);
-  }
-  updateHud();
-  renderer.render(scene, camera);
+    window.addEventListener('keyup', (e) => {
+        const k = e.key.toLowerCase();
+        if (k in keysPressed) keysPressed[k] = false;
+    });
+
+    window.addEventListener('click', () => {
+        fireActiveWeaponRaycast();
+    });
+    
+    window.addEventListener('resize', handleWindowResize);
 }
+
+function processPlayerStealthControls() {
+    if (!playerMesh) return;
+
+    if (keysPressed.w) playerMesh.position.z -= playerSpeed;
+    if (keysPressed.s) playerMesh.position.z += playerSpeed;
+    if (keysPressed.a) playerMesh.position.x -= playerSpeed;
+    if (keysPressed.d) playerMesh.position.x += playerSpeed;
+
+    // Constrain boundaries within visual helper grids
+    playerMesh.position.x = Math.max(Math.min(playerMesh.position.x, 50), -50);
+    playerMesh.position.z = Math.max(Math.min(playerMesh.position.z, 50), -50);
+
+    // Keep isometric rendering camera smoothly tracked to coordinate points
+    camera.position.x += (playerMesh.position.x - camera.position.x) * 0.05;
+    camera.position.z += ((playerMesh.position.z + 32) - camera.position.z) * 0.05;
+    camera.lookAt(playerMesh.position.x, playerMesh.position.y + 2, playerMesh.position.z);
+
+    // Matrix node proximity evaluations
+    const distToObjective = playerMesh.position.distanceTo(terminalNodeMesh.position);
+    if(distToObjective < 6 && !isTerminalDecrypted) {
+        document.getElementById('action-prompt').classList.remove('hidden');
+    } else {
+        document.getElementById('action-prompt').classList.add('hidden');
+    }
+}
+
+function processEnemyAIMatrix() {
+    enemies.forEach(enemy => {
+/ Linear path pacing loop mechanicsenemy.mesh.position.x += 0.08 * enemy.dir;if(Math.abs(enemy.mesh.position.x - enemy.startX) > enemy.range) {enemy.dir *= -1; // Reverse course direction}// Raycast field-of-view alert loop check (Is player spotted?)if(playerMesh) {const dist = enemy.mesh.position.distanceTo(playerMesh.position);if(dist < 8) { // Security Detection Radius limit parametersdeductPlayerHealthPoints(0.5); // Damage tick over tracking updates}}});}function fireActiveWeaponRaycast() {const ammoNode = document.getElementById('current-ammo');let count = parseInt(ammoNode.innerText);if(count <= 0) {console.warn("[WEAPON STACK]: MAG EMPTY. ENGINE REBOOT REQUIRED.");return;}// Decrement valuesammoNode.innerText = count - 1;triggerVFX(); // Expand lens bloom flares momentarily// Core Raycast Calculation Layer: Target nearest enemy guard in front alignment rangeif(enemies.length > 0 && playerMesh) {for(let i = enemies.length - 1; i >= 0; i--) {let enemyDistance = playerMesh.position.distanceTo(enemies[i].mesh.mesh.position);if(enemyDistance < 18) { // Effective shooting radius footprintscene.remove(enemies[i].mesh.mesh);enemies.splice(i, 1);break; // Target single entity per registration frame click}}document.getElementById('guard-status-count').innerText = ${enemies.length} ALIVE;checkLevelProgressionConditions();}}function decryptMatrixObjective() {const btn = document.getElementById('decrypt-btn');btn.innerText = "BYPASSING PROTOCOLS...";btn.style.pointerEvents = "none";composer.passes[1].strength = 4.5; // Flash glow intensity spikessetTimeout(() => {isTerminalDecrypted = true;btn.innerText = "DECRYPT COMPLETE";composer.passes[1].strength = 1.7; // Restore rendering variablesdocument.getElementById('obj-1').className = "completed";document.getElementById('obj-1').querySelector('.status').innerText = "SUCCESS";terminalNodeMesh.material.color.setHex(0xff0055); // Change core to red hacked statecheckLevelProgressionConditions();}, 1500);}function checkLevelProgressionConditions() {// Advancement rule parameters: Decryption complete AND all sector threats dropped to zeroif(isTerminalDecrypted && enemies.length === 0) {if(currentLevel < totalLevels) {currentLevel++;advanceToNextProgressiveSector();} else {alert("✨ OPERATION COMPLETE: STEALTH MASTER SECURED SYSTEM INTEGRITY EXTREME! ✨");resetCurrentSimulation();}}}function advanceToNextProgressiveSector() {isTerminalDecrypted = false;// Manage level visual selectors states dynamically in DOM matrixdocument.getElementById('level-display-tracker').innerText = LEVEL ${currentLevel}/${totalLevels};// Reset buttons configurationsconst btn = document.getElementById('decrypt-btn');btn.innerText = "BYPASS SECURE NODE";btn.style.pointerEvents = "auto";// Reset base structural layout task valuesconst obj1 = document.getElementById('obj-1');obj1.className = "pending";obj1.querySelector('.status').innerText = "PENDING";terminalNodeMesh.material.color.setHex(0x00f5d4);// Relocate interactive targets further down map limits to escalate complexity mapstargetTerminalPos.z -= 5;terminalNodeMesh.position.copy(targetTerminalPos);if(playerMesh) playerMesh.position.set(0, -3, 15); // Return tracking point back safely// Light up progression matrix cards indicatorsif(currentLevel <= 5) {const nextCard = document.getElementById(card-lvl-${currentLevel});if(nextCard) {nextCard.classList.remove('locked');nextCard.classList.add('active');}}spawnLevelThreats();console.log([CORE PROCESSOR]: Shifted operational architecture to Level Block: ${currentLevel});}function deductPlayerHealthPoints(amt) {playerHP = Math.max(playerHP - amt, 0);document.getElementById('hp-bar-element').style.width = ${playerHP}%;document.getElementById('hp-numeric-display').innerText = ${Math.ceil(playerHP)}/100;if(playerHP <= 0) {alert("❌ CRITICAL INTRUSION INTRUPT // STEALTH MASTER DEFEATED. REDEPLOYING. ❌");resetCurrentSimulation();}}function resetCurrentSimulation() {playerHP = 100;currentLevel = 1;isTerminalDecrypted = false;targetTerminalPos.set(0, -3.5, -15);if(playerMesh) playerMesh.position.set(0, -3, 10);if(terminalNodeMesh) {terminalNodeMesh.position.copy(targetTerminalPos);terminalNodeMesh.material.color.setHex(0x00f5d4);}// Reset task interfaces markersdocument.getElementById('level-display-tracker').innerText = LEVEL 1/${totalLevels};document.getElementById('current-ammo').innerText = "15";document.getElementById('hp-bar-element').style.width = "100%";document.getElementById('hp-numeric-display').innerText = "100/100";const obj1 = document.getElementById('obj-1');obj1.className = "pending";obj1.querySelector('.status').innerText = "PENDING";const btn = document.getElementById('decrypt-btn');btn.innerText = "BYPASS SECURE NODE";btn.style.pointerEvents = "auto";// Re-lock progression indicator bars interfacesfor(let i=2; i<=5; i++) {const c = document.getElementById(card-lvl-${i});if(c) { c.className = "level-card locked"; }}spawnLevelThreats();}// ==========================================================================// Phase 4: Ambient Core FX Engineering Mechanics Loops// ==========================================================================function animateMasterEngineLoop() {requestAnimationFrame(animateMasterEngineLoop);// Compute actions frames updatesprocessPlayerStealthControls();processEnemyAIMatrix();// Constant rotation updates on key interactive nodes anchorsif (terminalNodeMesh) {terminalNodeMesh.rotation.x += 0.01;terminalNodeMesh.rotation.y += 0.015;}// Handle downward movement arrays processing inside particle arrays matrixif (particleSystem) {const pts = particleSystem.geometry.attributes.position.array;for (let i = 1; i < pts.length; i += 3) {pts[i] -= 0.2; // Velocity scalar limits matching ambient aestheticsif (pts[i] < -5) pts[i] = 45; // Relocate heights bounds loop thresholds}particleSystem.geometry.attributes.position.needsUpdate = true;}if(gridHelper) gridHelper.rotation.y += 0.0005;// Route rendering output sequence fields out directly via bloom composer paths pipelineif (composer) {composer.render();}}function triggerVFX() {if(!composer) return;composer.passes[1].strength = 3.8;setTimeout(() => { if(composer) composer.passes[1].strength = 1.7; }, 120);}function handleWindowResize() {const c = document.getElementById('threejs-canvas');if (!c) return;const w = c.parentElement.clientWidth;const h = c.parentElement.clientHeight;camera.aspect = w / h;camera.updateProjectionMatrix();renderer.setSize(w, h);composer.setSize(w, h);}
+---
+
+### 🕹️ How Your Three.js Character Models Connect:
+To hook your custom **`.gltf`** or **`.glb`** models directly into this engine:
+1. Put your character files inside the same folder as your code (e.g., `character.glb`).
+2. Search for the text `// PLAYER OBJECT GENERATOR CONFIGURATION` inside your **`script.js`**.
+3. Replace that code block with this snippet to substitute the generic capsule with your custom model asset:
+
+```javascript
+const loader = new THREE.GLTFLoader();
+loader.load('character.glb', (gltf) => {
+    playerMesh = gltf.scene;
+    playerMesh.position.set(0, -3, 10);
+    playerMesh.scale.set(2, 2, 2); // Adjust dimensions scale matching grids
+    scene.add(playerMesh);
+});
+                    
