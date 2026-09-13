@@ -4609,3 +4609,29 @@
     );
 
 })();
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest(
+    "button, a, [role='button']"
+  );
+
+  if (!btn) return;
+
+  const text = btn.textContent.trim().toUpperCase();
+
+  if (text === "ENTER" || text.includes("ENTER")) {
+    const intro = document.getElementById("intro");
+
+    if (intro) {
+      intro.style.transition = "opacity 0.8s ease";
+      intro.style.opacity = "0";
+
+      setTimeout(() => {
+        intro.style.display = "none";
+
+        if (typeof showMainMenu === "function") {
+          showMainMenu();
+        }
+      }, 800);
+    }
+  }
+});
