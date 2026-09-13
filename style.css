@@ -2508,3 +2508,709 @@ canvas {
 /* =========================================================
    END
    ========================================================= */
+/* =========================================================
+   CYBERHUNT CURRENT UI FIX
+   Paste at the VERY END of style.css
+   ========================================================= */
+
+#app {
+  min-height: 100vh;
+  position: relative;
+  background: #030305;
+  color: #f5f5f7;
+  font-family: "Rajdhani", sans-serif;
+}
+
+.screen,
+.menu-screen {
+  min-height: 100vh;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* START SCREEN */
+
+#start-screen {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 45%, rgba(255,23,79,.16), transparent 30%),
+    linear-gradient(120deg,#020204,#09070b 60%,#16030a);
+}
+
+.menu-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255,23,79,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,23,79,.025) 1px,transparent 1px);
+  background-size: 40px 40px;
+}
+
+.brand {
+  position: absolute;
+  top: 30px;
+  left: 5%;
+  z-index: 10;
+}
+
+.brand-main {
+  font-family: "Orbitron",sans-serif;
+  font-size: clamp(30px,4vw,52px);
+  font-weight: 800;
+  letter-spacing: 5px;
+  color: white;
+  text-shadow: 0 0 25px rgba(255,23,79,.45);
+}
+
+.brand-main span {
+  color: #ff174f;
+}
+
+.brand-sub {
+  color: #888;
+  font-size: 11px;
+  letter-spacing: 5px;
+  margin-top: 5px;
+}
+
+.start-layout {
+  position: relative;
+  z-index: 3;
+  width: min(1400px,92%);
+  min-height: 100vh;
+  margin: auto;
+  padding: 110px 0 40px;
+  display: grid;
+  grid-template-columns: 330px 1fr 280px;
+  gap: 22px;
+  align-items: center;
+}
+
+.start-panel,
+.hero-panel,
+.dossier {
+  background: rgba(7,7,11,.88);
+  border: 1px solid rgba(255,23,79,.4);
+  box-shadow:
+    inset 0 0 35px rgba(255,23,79,.035),
+    0 20px 60px rgba(0,0,0,.6);
+  backdrop-filter: blur(12px);
+}
+
+.start-panel {
+  padding: 22px;
+}
+
+.panel-title {
+  color: white;
+  font-family: "Orbitron",sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-bottom: 18px;
+}
+
+.panel-title::before {
+  content: "// ";
+  color: #ff174f;
+}
+
+.menu-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-btn {
+  width: 100%;
+  padding: 15px;
+  text-align: left;
+  color: white;
+  background: rgba(255,23,79,.04);
+  border: 1px solid rgba(255,23,79,.35);
+  font-weight: 700;
+  letter-spacing: 2px;
+  transition: .2s;
+}
+
+.menu-btn:hover,
+.menu-btn.active {
+  background: rgba(255,23,79,.14);
+  border-color: #ff174f;
+  box-shadow: 0 0 18px rgba(255,23,79,.25);
+  transform: translateX(3px);
+}
+
+.mini-status {
+  margin-top: 18px;
+  color: #888;
+  font-size: 12px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #39ff9a;
+  box-shadow: 0 0 10px #39ff9a;
+}
+
+/* HERO */
+
+.hero-panel {
+  min-height: 600px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 55px;
+}
+
+.hero-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  right: 0;
+  top: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255,23,79,.18),
+    transparent 65%
+  );
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 5;
+  max-width: 560px;
+}
+
+.eyebrow {
+  color: #ff174f;
+  font-family: "Orbitron",sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+}
+
+.hero-copy h1 {
+  margin: 15px 0;
+  font-family: "Orbitron",sans-serif;
+  font-size: clamp(32px,4vw,60px);
+  line-height: 1.05;
+}
+
+.hero-copy p {
+  max-width: 500px;
+  color: #999;
+  font-size: 17px;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.primary-btn {
+  padding: 15px 28px;
+  border: 1px solid #ff174f;
+  background: #ff174f;
+  color: white;
+  font-weight: 800;
+  letter-spacing: 2px;
+  box-shadow: 0 0 20px rgba(255,23,79,.4);
+}
+
+.primary-btn:hover {
+  box-shadow: 0 0 35px rgba(255,23,79,.7);
+  transform: translateY(-2px);
+}
+
+/* CHARACTER */
+
+.hero-character {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 52%;
+  height: 90%;
+  pointer-events: none;
+}
+
+.character-silhouette {
+  position: absolute;
+  right: 10%;
+  bottom: 0;
+  width: 260px;
+  height: 500px;
+  filter: drop-shadow(0 0 25px rgba(255,23,79,.35));
+}
+
+.char-head {
+  position: absolute;
+  top: 3%;
+  left: 35%;
+  width: 75px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#292932,#050507);
+  border: 1px solid #555;
+}
+
+.char-body {
+  position: absolute;
+  top: 20%;
+  left: 17%;
+  width: 175px;
+  height: 250px;
+  border-radius: 45px 45px 20px 20px;
+  background: linear-gradient(145deg,#282832,#07070a);
+  border: 1px solid #481525;
+}
+
+.char-leg {
+  position: absolute;
+  bottom: 0;
+  width: 70px;
+  height: 235px;
+  background: linear-gradient(90deg,#07070a,#24242d);
+}
+
+.char-leg.left {
+  left: 25%;
+}
+
+.char-leg.right {
+  right: 22%;
+}
+
+.scan-ring {
+  position: absolute;
+  right: 2%;
+  top: 10%;
+  width: 350px;
+  height: 350px;
+  border: 1px solid rgba(255,23,79,.35);
+  border-radius: 50%;
+  box-shadow:
+    0 0 50px rgba(255,23,79,.12),
+    inset 0 0 50px rgba(255,23,79,.06);
+}
+
+/* DOSSIER */
+
+.dossier {
+  padding: 20px;
+}
+
+.dossier-avatar {
+  height: 180px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,23,79,.35);
+  background:
+    radial-gradient(circle,rgba(255,23,79,.18),transparent 55%),
+    #050507;
+}
+
+.avatar-placeholder {
+  color: #ff174f;
+  font-family: "Orbitron",sans-serif;
+  font-size: 42px;
+  text-shadow: 0 0 25px #ff174f;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  color: #888;
+}
+
+.stat-row strong {
+  color: white;
+}
+
+.xp-track {
+  height: 7px;
+  margin-top: 7px;
+  background: #18151a;
+}
+
+.xp-track div {
+  height: 100%;
+  background: linear-gradient(90deg,#a8002d,#ff174f);
+  box-shadow: 0 0 12px rgba(255,23,79,.5);
+}
+
+.badge-mini {
+  display: inline-block;
+  padding: 5px 8px;
+  margin: 4px;
+  color: #ff174f;
+  border: 1px solid rgba(255,23,79,.35);
+  font-size: 10px;
+}
+
+/* MODALS */
+
+.overlay-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0,0,0,.82);
+  backdrop-filter: blur(10px);
+}
+
+.modal-shell {
+  width: min(1100px,94vw);
+  max-height: 90vh;
+  overflow: auto;
+  position: relative;
+  padding: 28px;
+  background: linear-gradient(145deg,#121017,#050609);
+  border: 1px solid rgba(255,23,79,.45);
+  box-shadow: 0 0 50px rgba(255,23,79,.2);
+}
+
+.modal-shell.wide {
+  width: min(1250px,95vw);
+}
+
+.modal-title {
+  color: white;
+  font-family: "Orbitron",sans-serif;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.close-btn {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 25px;
+}
+
+.close-btn:hover {
+  color: #ff174f;
+}
+
+.mission-grid,
+.weapon-grid,
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap: 14px;
+}
+
+.mission-card,
+.weapon-card,
+.operative-card,
+.badge-card {
+  position: relative;
+  padding: 18px;
+  background: rgba(12,9,14,.9);
+  border: 1px solid rgba(255,23,79,.25);
+  transition: .2s;
+}
+
+.mission-card:hover,
+.weapon-card:hover,
+.operative-card:hover,
+.badge-card:hover,
+.mission-card.active,
+.weapon-card.active,
+.operative-card.active {
+  border-color: #ff174f;
+  box-shadow: 0 0 18px rgba(255,23,79,.2);
+}
+
+.mission-number {
+  color: #ff174f;
+  font-family: "Orbitron",sans-serif;
+}
+
+.mission-name {
+  margin: 10px 0;
+  font-family: "Orbitron",sans-serif;
+}
+
+.mission-type {
+  color: #888;
+}
+
+/* GAME */
+
+#game-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #020304;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.vignette,
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vignette {
+  z-index: 2;
+  background: radial-gradient(
+    circle,
+    transparent 45%,
+    rgba(0,0,0,.7)
+  );
+}
+
+.scanlines {
+  z-index: 3;
+  opacity: .25;
+  background: linear-gradient(
+    transparent 50%,
+    rgba(255,255,255,.02) 51%
+  );
+  background-size: 100% 6px;
+}
+
+/* GAME HUD */
+
+.mission-hud {
+  position: absolute;
+  z-index: 10;
+  top: 20px;
+  left: 20px;
+  width: 350px;
+  padding: 16px;
+  background: rgba(3,5,8,.86);
+  border-left: 3px solid #ff174f;
+  backdrop-filter: blur(8px);
+}
+
+.mission-label {
+  color: #ff174f;
+  font-family: "Orbitron",sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+#hud-mission-title {
+  font-family: "Orbitron",sans-serif;
+  margin: 6px 0 12px;
+}
+
+#objective-list {
+  display: grid;
+  gap: 7px;
+  color: #ddd;
+}
+
+.minimap {
+  position: absolute;
+  z-index: 10;
+  top: 20px;
+  right: 20px;
+  width: 180px;
+  height: 180px;
+  overflow: hidden;
+  border: 1px solid #ff174f;
+  border-radius: 50%;
+  background: rgba(0,0,0,.75);
+  box-shadow:
+    0 0 20px rgba(255,23,79,.3),
+    inset 0 0 30px rgba(255,23,79,.1);
+}
+
+#minimap-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.map-head {
+  position: absolute;
+  top: 10px;
+  left: 15px;
+  color: #ff174f;
+  font-family: "Orbitron",sans-serif;
+  font-size: 9px;
+  z-index: 2;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 8px;
+  width: 100%;
+  text-align: center;
+  color: #777;
+  font-size: 9px;
+}
+
+#interaction-panel {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  bottom: 135px;
+  transform: translateX(-50%);
+  width: min(520px,85vw);
+  padding: 18px;
+  text-align: center;
+  background: rgba(4,4,7,.92);
+  border: 1px solid rgba(255,23,79,.45);
+  box-shadow: 0 0 25px rgba(255,23,79,.2);
+}
+
+#interaction-type {
+  color: #ff174f;
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+#interaction-title {
+  font-family: "Orbitron",sans-serif;
+  margin: 7px;
+}
+
+#interaction-desc {
+  color: #999;
+}
+
+.interaction-actions {
+  margin-top: 12px;
+}
+
+.bottom-hud {
+  position: absolute;
+  z-index: 10;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+}
+
+.health-box,
+.xp-box,
+.weapon-hud {
+  background: rgba(3,4,7,.9);
+  border: 1px solid rgba(255,23,79,.3);
+  padding: 10px 14px;
+}
+
+.health-box {
+  width: 260px;
+}
+
+.health-track,
+#game-xp-bar {
+  height: 8px;
+  margin-top: 7px;
+  background: #17151b;
+}
+
+#health-bar,
+#game-xp-bar div {
+  height: 100%;
+  background: linear-gradient(90deg,#a8002d,#ff174f);
+  box-shadow: 0 0 12px rgba(255,23,79,.5);
+}
+
+.xp-box {
+  width: 220px;
+}
+
+.weapon-hud {
+  min-width: 180px;
+  text-align: right;
+}
+
+.weapon-name {
+  font-family: "Orbitron",sans-serif;
+}
+
+.ammo {
+  font-family: "Orbitron",sans-serif;
+  font-size: 24px;
+}
+
+.hud-square,
+.action-circle {
+  border-color: #ff174f !important;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1000px){
+  .start-layout{
+    grid-template-columns:300px 1fr;
+  }
+  .dossier{display:none}
+}
+
+@media(max-width:700px){
+  .start-layout{
+    display:block;
+    padding-top:100px;
+  }
+
+  .start-panel{
+    margin-bottom:15px;
+  }
+
+  .hero-panel{
+    min-height:500px;
+    padding:30px;
+  }
+
+  .hero-character{
+    opacity:.3;
+  }
+
+  .mission-hud{
+    width:calc(100% - 150px);
+    left:10px;
+    top:10px;
+  }
+
+  .minimap{
+    width:125px;
+    height:125px;
+    right:10px;
+    top:10px;
+  }
+
+  .bottom-hud{
+    left:10px;
+    right:10px;
+    bottom:10px;
+  }
+
+  .xp-box{
+    display:none;
+  }
+
+  .health-box{
+    width:40%;
+  }
+
+  .weapon-hud{
+    min-width:40%;
+  }
+}
+
