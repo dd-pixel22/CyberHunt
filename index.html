@@ -1,243 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>CYBERHUNT</title>
-<link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBERHUNT // Complete Stealth Engine</title>
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Required Graphics Engines CDNs -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
+    <!-- GLTF Model Loader Extension Module -->
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body>
 
-  <!-- ============ INTRO CINEMATIC ============ -->
-  <div id="intro">
-    <div id="intro-dot"></div>
-    <div class="scanline-overlay"></div>
-    <div id="intro-flash-text" class="intro-text"></div>
-    <div id="intro-title">
-      <span id="title-cyber">CYBER</span><span id="title-hunt">HUNT</span>
-    </div>
-    <div id="intro-skip">TAP ANYWHERE TO SKIP</div>
-  </div>
-
-  <!-- ============ MAIN MENU ============ -->
-  <div id="main-menu" class="screen hidden">
-    <div class="scanline-overlay"></div>
-    <div class="menu-left">
-      <div class="brand">
-        <span class="brand-cyber">CYBER</span><span class="brand-hunt">HUNT</span>
-      </div>
-      <div class="brand-tag">HUNT THE THREAT. PROTECT TOMORROW.</div>
-      <div class="menu-nav">
-        <button class="nav-btn primary" id="btn-play">▶ PLAY</button>
-        <button class="nav-btn" id="btn-settings">⚙ SETTINGS</button>
-        <button class="nav-btn" id="btn-quit">⏻ QUIT</button>
-      </div>
-    </div>
-    <div class="menu-right">
-      <div class="silhouette"></div>
-    </div>
-  </div>
-
-  <!-- ============ OPERATIVE SELECT ============ -->
-  <div id="operative-select" class="screen hidden">
-    <div class="panel-header"><button class="back-btn" data-back="main-menu">‹</button><div><div class="panel-title">SELECT OPERATIVE</div><div class="panel-sub">CHOOSE YOUR PLAYSTYLE</div></div></div>
-    <div class="card-row" id="operative-cards"></div>
-    <button class="confirm-btn" id="btn-confirm-operative">CONFIRM</button>
-  </div>
-
-  <!-- ============ WEAPON SELECT ============ -->
-  <div id="weapon-select" class="screen hidden">
-    <div class="panel-header"><button class="back-btn" data-back="operative-select">‹</button><div><div class="panel-title">SELECT WEAPON</div><div class="panel-sub">EACH WEAPON HAS A UNIQUE STYLE</div></div></div>
-    <div class="card-row" id="weapon-cards"></div>
-    <button class="confirm-btn" id="btn-confirm-weapon">CONFIRM</button>
-  </div>
-
-  <!-- ============ MISSION LIST ============ -->
-  <div id="mission-list" class="screen hidden">
-    <div class="panel-header">
-      <button class="back-btn" data-back="weapon-select">‹</button>
-      <div><div class="panel-title">MISSIONS</div><div class="panel-sub">10 OPERATIONS</div></div>
-      <div class="profile-chip"><span id="chip-operative">RAVEN</span> · LV 3 · XP <span id="chip-xp">250</span>/1000</div>
-    </div>
-    <div id="mission-grid"></div>
-  </div>
-
-  <!-- ============ MISSION BRIEFING ============ -->
-  <div id="mission-briefing" class="screen hidden">
-    <div class="panel-header"><button class="back-btn" data-back="mission-list">‹</button><div><div class="panel-title" id="brief-title">MISSION 01 — PHISHING BREACH</div><div class="panel-sub">THREAT: <span id="brief-threat" class="threat-word">HIGH</span></div></div></div>
-    <div class="brief-body">
-      <p id="brief-desc">A fake internal email is circulating in the company. The attacker is harvesting credentials through a cloned login page.</p>
-      <div class="brief-meta">
-        <div><span class="meta-label">LOCATION</span><span id="brief-location">CORPORATE OFFICE</span></div>
-        <div><span class="meta-label">PRIMARY THREAT</span><span id="brief-primary">CREDENTIAL HARVESTING</span></div>
-        <div><span class="meta-label">OBJECTIVE</span><span id="brief-objective">TRACE THE PHISHING ORIGIN</span></div>
-      </div>
-      <div class="brief-label">MISSION OBJECTIVES</div>
-      <ul id="brief-objectives-list"></ul>
-    </div>
-    <button class="confirm-btn" id="btn-start-mission">START MISSION</button>
-  </div>
-
-  <!-- ============ GAME CANVAS ============ -->
-  <canvas id="game-canvas" class="hidden"></canvas>
-
-  <!-- ============ ISOMETRIC HUD ============ -->
-  <div id="hud" class="hidden">
-    <div class="hud-scanlines"></div>
-
-    <div id="hud-top-left">
-      <button id="pause-btn">II</button>
-      <div id="hud-mission-block">
-        <div class="hud-mission-num" id="hud-mission-num">MISSION 01</div>
-        <div class="hud-mission-name" id="hud-mission-name">PHISHING BREACH</div>
-        <ul id="hud-objectives"></ul>
-      </div>
-    </div>
-
-    <div id="hud-top-right">
-      <button id="map-btn">MAP</button>
-      <div id="radar">
-        <div id="radar-arrow"></div>
-        <div id="radar-player"></div>
-      </div>
-    </div>
-
-    <div id="interact-prompt" class="hidden"><span class="e-key">E</span><span id="interact-label">INTERACT</span></div>
-
-    <div id="hud-bottom-left">
-      <div id="joystick-zone">
-        <div id="joystick-base">
-          <div id="joystick-stick"></div>
+    <!-- 10-SECOND CINEMATIC INTRO SCREEN -->
+    <div id="cinematic-intro" class="intro-screen">
+        <div class="intro-grid-overlay"></div>
+        <div class="intro-terminal-feed" id="terminal-feed"></div>
+        
+        <div class="intro-core-container">
+            <div class="warning-banner">⚠️ INITIALIZING COMPROMISED SYSTEM DECK ⚠️</div>
+            <h1 class="intro-glitch-logo" data-text="CYBERHUNT">CYBERHUNT</h1>
+            <p class="intro-subtext">HUNT THE THREAT. PROTECT TOMORROW.</p>
+            
+            <div class="progress-wrapper">
+                <div class="progress-text-row">
+                    <span id="load-status">DECRYPTING SECURITY KEY...</span>
+                    <span id="load-percentage">00%</span>
+                </div>
+                <div class="intro-progress-bar"><div class="intro-progress-fill" id="intro-fill"></div></div>
+            </div>
         </div>
-      </div>
     </div>
 
-    <div id="hud-bottom-center">
-      <div id="health-row"><span class="heart">♥</span><div class="hbar-outer"><div id="health-fill" class="hbar-fill"></div></div><span id="health-num">100/100</span></div>
+    <!-- MAIN INTERFACE HUD -->
+    <div class="vfx-overlay"></div>
+    <div class="hud-container hidden" id="main-hud">
+        <!-- MISSION HUD NODE -->
+        <header class="hud-panel mission-objective">
+            <div class="panel-header"><span>SYSTEM PROTOCOL</span> <span class="tag-id">SYS.05</span></div>
+            <div class="panel-body">
+                <div class="glitch-title" data-text="CYBERHUNT">CYBERHUNT</div>
+                <h2 id="active-mission-title">STEALTH INFILTRATION</h2>
+                <ul class="objective-list">
+                    <li class="pending" id="obj-1">Decrypt terminal keys (<span class="status">PENDING</span>)</li>
+                    <li class="pending" id="obj-2">Eliminate guards nearby (<span class="status" id="guard-status-count">0/3</span>)</li>
+                    <li class="pending" id="obj-3">Level Progression Progress (<span class="status" id="level-display-tracker">LEVEL 1/7</span>)</li>
+                </ul>
+                <div class="hud-divider"></div>
+                <div class="stat-bar-container">
+                    <span class="label">HP</span>
+                    <div class="bar"><div class="fill hp-fill" id="hp-bar-element" style="width: 100%;"></div></div>
+                    <span class="value" id="hp-numeric-display">100/100</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN WEBGL GAMING ARENA FRAME -->
+        <main class="hud-panel game-arena">
+            <div class="panel-header">WEBGL MATRIX // ACTIVE STEALTH SIMULATION <span class="live-indicator">ACTIVE</span></div>
+            <div class="arena-wrapper">
+                <canvas id="threejs-canvas"></canvas>
+                
+                <!-- Action Prompts Overlay -->
+                <div id="action-prompt" class="action-overlay hidden">
+                    <div class="prompt-box">
+                        <span class="key-bind">E</span>
+                        <span class="prompt-text">DECRYPT CORE MATRIX</span>
+                    </div>
+                </div>
+                
+                <!-- Weapon Display HUD Overlay -->
+                <div class="weapon-hud">
+                    <div class="weapon-name">AR-12 SILENCED</div>
+                    <div class="ammo-counter"><span id="current-ammo">15</span><span class="max-ammo">/45</span></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- TERMINAL INTERFACE -->
+        <section class="hud-panel terminal-control">
+            <div class="panel-header">THREAT DECK</div>
+            <div class="panel-body terminal-layout">
+                <div class="alert-box danger">
+                    <div class="alert-title">⚠️ DIGITAL THREAT DETECTED</div>
+                    <p class="process-id">Core: stealth_master.exe</p>
+                    <p class="ip-address">Vector IP: 185.199.42.73</p>
+                </div>
+                <div class="terminal-actions">
+                    <button class="hud-btn glow-btn-cyan" onclick="triggerVFX()">INITIALIZE RADAR</button>
+                    <button class="hud-btn glow-btn-red" id="decrypt-btn" onclick="decryptMatrixObjective()">BYPASS SECURE NODE</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROGRESSION MAP -->
+        <section class="hud-panel progression-selector">
+            <div class="panel-header">OPERATIONAL SECTORS MATRIX</div>
+            <div class="panel-body level-grid">
+                <div class="level-card active" id="card-lvl-1"><span class="lvl-num">01</span><span class="lvl-name">SECTOR 1</span></div>
+                <div class="level-card locked" id="card-lvl-2"><span class="lvl-num">02</span><span class="lvl-name">SECTOR 2</span></div>
+                <div class="level-card locked" id="card-lvl-3"><span class="lvl-num">03</span><span class="lvl-name">SECTOR 3</span></div>
+                <div class="level-card locked" id="card-lvl-4"><span class="lvl-num">04</span><span class="lvl-name">SECTOR 4</span></div>
+                <div class="level-card locked" id="card-lvl-5"><span class="lvl-num">05</span><span class="lvl-name">SECTOR 5</span></div>
+            </div>
+        </section>
+
+        <!-- OPERATIVE CARD -->
+        <section class="hud-panel squad-deck">
+            <div class="panel-header">OPERATIVE FILE</div>
+            <div class="panel-body squad-layout">
+                <div class="profile-card">
+                    <div class="avatar-placeholder"></div>
+                    <div class="char-details">
+                        <div class="char-name">STEALTH MASTER</div>
+                        <div class="char-class">TACTICAL AGENT</div>
+                    </div>
+                </div>
+                <button class="hud-btn system-confirm-btn" onclick="resetCurrentSimulation()">REBOOT LOGIC</button>
+            </div>
+        </section>
     </div>
 
-    <div id="hud-bottom-right">
-      <button id="fire-btn"><span id="ammo-current">15</span>/<span id="ammo-reserve">45</span></button>
-      <div id="action-buttons">
-        <button id="run-btn" class="round-btn">🏃</button>
-        <button id="aim-btn" class="round-btn">◎</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ MAP MODAL ============ -->
-  <div id="map-modal" class="modal hidden">
-    <div class="modal-box wide">
-      <div class="modal-titlebar"><span>MAP</span><button class="x-btn" data-close="map-modal">✕</button></div>
-      <div class="modal-sub">FACILITY LAYOUT</div>
-      <div id="map-grid">
-        <div class="map-room" style="grid-area:1/1/3/3"></div>
-        <div class="map-room" style="grid-area:1/3/2/5"></div>
-        <div class="map-room locked" style="grid-area:3/1/5/3"></div>
-        <div class="map-room" style="grid-area:2/3/5/5"></div>
-        <div class="map-marker player" style="top:30%;left:20%"></div>
-        <div class="map-marker enemy" style="top:55%;left:60%"></div>
-        <div class="map-marker objective" style="top:70%;left:75%"></div>
-      </div>
-      <div id="map-legend">
-        <div><span class="ico player"></span>Player</div>
-        <div><span class="ico enemy"></span>Enemy</div>
-        <div><span class="ico objective"></span>Objective</div>
-        <div><span class="ico locked"></span>Door (Locked)</div>
-        <div><span class="ico unlocked"></span>Door (Unlocked)</div>
-        <div><span class="ico terminal"></span>Terminal</div>
-        <div><span class="ico evidence"></span>Evidence</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ EVIDENCE FOUND MODAL ============ -->
-  <div id="evidence-modal" class="modal hidden">
-    <div class="modal-box narrow">
-      <div class="modal-titlebar"><span>EVIDENCE FOUND</span></div>
-      <div id="evidence-item-row">
-        <div id="evidence-icon">🔑</div>
-        <div id="evidence-item-name">Suspicious USB Device</div>
-      </div>
-      <button class="action-btn" id="evidence-take-btn"><span class="e-key">E</span> TAKE</button>
-    </div>
-  </div>
-
-  <!-- ============ ENEMY ENCOUNTER MODAL ============ -->
-  <div id="enemy-modal" class="modal hidden">
-    <div class="modal-box narrow">
-      <div class="modal-titlebar"><span>HOSTILE NEARBY</span></div>
-      <div class="modal-sub">What do you want to do?</div>
-      <button class="action-btn danger" id="enemy-eliminate-btn">☠ ELIMINATE</button>
-      <button class="action-btn ghost" id="enemy-leave-btn">🚶 LEAVE</button>
-    </div>
-  </div>
-
-  <!-- ============ SECURITY TERMINAL MODAL ============ -->
-  <div id="terminal-modal" class="modal hidden">
-    <div class="modal-box wide">
-      <div class="modal-titlebar"><span>SECURITY TERMINAL</span><button class="x-btn" data-close="terminal-modal">✕</button></div>
-      <div class="modal-sub">Analyze the system and identify the threat.</div>
-      <div id="terminal-body">
-        <ul id="terminal-findings">
-          <li>1. Unknown Process</li>
-          <li>2. Suspicious IP</li>
-          <li>3. Encrypted Files</li>
-          <li>4. Failed Login Attempts</li>
-        </ul>
-        <div id="terminal-alert">
-          <div class="alert-icon">⚠</div>
-          <div>
-            <div class="alert-title">MALWARE DETECTED</div>
-            <div class="alert-detail">Process: svchosl.exe<br/>IP: 185.199.42.73</div>
-          </div>
-        </div>
-      </div>
-      <div class="brief-label">SELECT ACTION</div>
-      <div id="terminal-actions">
-        <button class="term-action-btn" data-action="scan">SCAN</button>
-        <button class="term-action-btn" data-action="trace">TRACE</button>
-        <button class="term-action-btn" data-action="isolate">ISOLATE</button>
-        <button class="term-action-btn danger" data-action="remove" id="terminal-remove-btn" disabled>REMOVE</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ SECURITY DOOR MODAL ============ -->
-  <div id="door-modal" class="modal hidden">
-    <div class="modal-box row-layout">
-      <div class="modal-col">
-        <div class="modal-titlebar"><span>SECURITY DOOR</span></div>
-        <div class="modal-sub">Enter the code to unlock.</div>
-        <div id="door-input-row"></div>
-        <div id="door-feedback"></div>
-      </div>
-      <div class="modal-col hints-col">
-        <div class="modal-titlebar small"><span>⚠ HINTS FOUND</span></div>
-        <ul id="door-hints"></ul>
-      </div>
-    </div>
-    <button class="action-btn" id="door-decode-btn" style="max-width:520px;margin:14px auto 0;">DECODE</button>
-  </div>
-
-  <!-- ============ MISSION COMPLETE ============ -->
-  <div id="mission-complete" class="modal hidden">
-    <div class="modal-box narrow center">
-      <div class="modal-titlebar center"><span>MISSION COMPLETE</span></div>
-      <div id="hex-badge"><div id="hex-badge-inner">◈</div></div>
-      <div id="complete-desc">You've neutralized the threat and secured the evidence.</div>
-      <div id="complete-stats">
-        <div><span class="meta-label">XP EARNED</span><span class="stat-big">+250</span></div>
-        <div><span class="meta-label">BADGE UNLOCKED</span><span class="stat-big" id="badge-earned-name">CYBER DETECTIVE</span></div>
-      </div>
-      <button class="confirm-btn" id="btn-next-mission">NEXT MISSION</button>
-    </div>
-  </div>
-
-  <!-- ============ ALERT TOAST ============ -->
-  <div id="alert-toast" class="hidden"></div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
