@@ -1,275 +1,5827 @@
-/**
- * CYBERHUNT FULL PRODUCTION STEALTH ENGINE
- * Handles Cinematic 10s Loader, UnrealBloom Composers, Core Movement Engine,
- * Interaction Detection Matrices, Enemy AI, and multi-level progression arrays.
- */
+import * as THREE from 'three';
 
-// Global System Instantiations
-let scene, camera, renderer, composer, particleSystem, gridHelper;
-let mouseX = 0, mouseY = 0;
+import {
+  GLTFLoader
+} from 'three/addons/loaders/GLTFLoader.js';
 
-// Game Logic Data
-let currentLevel = 1;
-const totalLevels = 7;
-let playerHP = 100;
-let isTerminalDecrypted = false;
 
-// 3D Gameplay Elements
-let playerMesh = null;
-let enemies = [];
-let terminalNodeMesh = null;
-let targetTerminalPos = new THREE.Vector3(0, -3.5, -15);
+/*
+=========================================================
+                    CYBERHUNT
+=========================================================
 
-// Input Tracking Configurations
-let keysPressed = { w: false, a: false, s: false, d: false };
-const playerSpeed = 0.35;
+5 LEVEL WEBGL CYBER SECURITY GAME
 
-document.addEventListener("DOMContentLoaded", () => {
-    runCinematicIntroEngine();
-});
+FEATURES
+---------------------------------------------------------
+• Three.js WebGL
+• Player movement
+• Shooting
+• Enemy AI
+• Physical evidence
+• Digital threats
+• Security terminals
+• Decryption
+• Locked doors
+• XP
+• Level progression
+• Mission progression
+• Badges
+• Boss
+• Tactical minimap
+• Mobile controls
 
-// ==========================================================================
-// Phase 1: 10-Second Boot System Sequence
-// ==========================================================================
-function runCinematicIntroEngine() {
-    const feed = document.getElementById('terminal-feed');
-    const fill = document.getElementById('intro-fill');
-    const percentDisplay = document.getElementById('load-percentage');
-    const statusText = document.getElementById('load-status');
-    const introDuration = 10000; // Complete 10s Runtime Benchmark
-    
-    const logs = [
-        "PARSING SECURITY NODES...", "BYPASSING FIREWALL INTRUSIONS...",
-        "MOUNTING CYBERHUNT SIMULATION DECK...", "HOOKING INJECTED THREE.JS GRAPHICS...",
-        "STATUS: ISOMETRIC GRID CACHE STABLE", "COMPILING MODEL ASSET LOADERS...",
-        "CONFIGURING UNREALBLOOM POST-PROCESSING...", "SPAWNING RED-SECTOR ENEMY ENTIRES..."
-    ];
-    
-    let logIdx = 0;
-    const feedTimer = setInterval(() => {
-        if(logIdx < logs.length) {
-            const row = document.createElement('div');
-            row.innerText = `>> ${logs[logIdx]}`;
-            feed.appendChild(row);
-            feed.scrollTop = feed.scrollHeight;
-            logIdx++;
-        }
-    }, 900);
+=========================================================
+*/
 
-    let startTimestamp = null;
-    function updateLoader(timestamp) {
-        if (!startTimestamp) startTimestamp = timestamp;
-        const elapsed = timestamp - startTimestamp;
-        const progressionRatio = Math.min(elapsed / introDuration, 1);
-        const activePct = Math.floor(progressionRatio * 100);
-        
-        percentDisplay.innerText = `${activePct.toString().padStart(2, '0')}%`;
-        fill.style.width = `${activePct}%`;
 
-        if(activePct < 30) statusText.innerText = "ACCESSING COMPROMISED VAULTS...";
-        else if(activePct < 65) statusText.innerText = "OVERRIDING ENEMY RADAR CHANNELS...";
-        else if(activePct < 90) statusText.innerText = "SYNCING TACTICAL HEADS-UP DISPLAY...";
-        else statusText.innerText = "SIMULATION ENGINE ENGAGED.";
+/*
+=========================================================
+              CUSTOM MODEL SETTINGS
+=========================================================
+*/
 
-        if (elapsed < introDuration) {
-            requestAnimationFrame(updateLoader);
-        } else {
-            clearInterval(feedTimer);
-            transitionToLiveSimulation();
-        }
-    }
-    requestAnimationFrame(updateLoader);
+/*
+KEEP FALSE FOR NOW.
+
+When you upload your .glb models:
+
+assets/models/
+
+change this to:
+
+const USE_CUSTOM_MODELS = true;
+*/
+
+const USE_CUSTOM_MODELS = false;
+
+
+/*
+=========================================================
+                  MODEL PATHS
+=========================================================
+*/
+
+const MODEL_PATHS = {
+
+  player:
+    'assets/models/player.glb',
+
+  girlAgent:
+    'assets/models/girl-agent.glb',
+
+  boyAgent:
+    'assets/models/boy-agent.glb',
+
+  enemy:
+    'assets/models/enemy.glb',
+
+  boss:
+    'assets/models/boss.glb',
+
+  usb:
+    'assets/models/usb.glb',
+
+  terminal:
+    'assets/models/terminal.glb',
+
+  door:
+    'assets/models/door.glb',
+
+  crate:
+    'assets/models/crate.glb',
+
+  weapon:
+    'assets/models/weapon.glb'
+
+};
+
+
+
+/*
+=========================================================
+                     MISSIONS
+=========================================================
+*/
+
+const MISSIONS = [
+
+  {
+
+    id: 1,
+
+    title:
+      'PHISHING BREACH',
+
+    zone:
+      'A1 // CORPORATE WING',
+
+    desc:
+      'Trace a phishing operation and secure the physical evidence before the guards erase it.',
+
+    objectives: [
+
+      {
+        id: 'code',
+        text: 'Find the access code',
+        target: 1
+      },
+
+      {
+        id: 'guards',
+        text: 'Eliminate the guards',
+        target: 3
+      },
+
+      {
+        id: 'evidence',
+        text: 'Collect the evidence',
+        target: 1
+      }
+
+    ],
+
+    xp: 250,
+
+    code: '3142',
+
+    badge:
+      'PHISHING HUNTER',
+
+    threat:
+      'PHISHING'
+
+  },
+
+
+  {
+
+    id: 2,
+
+    title:
+      'MALWARE INFILTRATION',
+
+    zone:
+      'B2 // NETWORK LAB',
+
+    desc:
+      'A compromised workstation is spreading malware. Isolate the node, eliminate hostile operatives and unlock the server room.',
+
+    objectives: [
+
+      {
+        id: 'terminal',
+        text: 'Analyze the security terminal',
+        target: 1
+      },
+
+      {
+        id: 'guards',
+        text: 'Eliminate the guards',
+        target: 4
+      },
+
+      {
+        id: 'evidence',
+        text: 'Collect the evidence',
+        target: 1
+      }
+
+    ],
+
+    xp: 350,
+
+    code: '7285',
+
+    badge:
+      'MALWARE TRACKER',
+
+    threat:
+      'MALWARE'
+
+  },
+
+
+  {
+
+    id: 3,
+
+    title:
+      'RANSOMWARE LOCKDOWN',
+
+    zone:
+      'C3 // SERVER VAULT',
+
+    desc:
+      'The facility is locked down. Find the infected terminal, disable the ransomware and extract the encrypted evidence.',
+
+    objectives: [
+
+      {
+        id: 'terminal',
+        text: 'Find the infected terminal',
+        target: 1
+      },
+
+      {
+        id: 'guards',
+        text: 'Eliminate the guards',
+        target: 5
+      },
+
+      {
+        id: 'malware',
+        text: 'Disable the malware',
+        target: 1
+      }
+
+    ],
+
+    xp: 450,
+
+    code: '1907',
+
+    badge:
+      'LOCKDOWN BREAKER',
+
+    threat:
+      'RANSOMWARE'
+
+  },
+
+
+  {
+
+    id: 4,
+
+    title:
+      'CREDENTIAL THEFT',
+
+    zone:
+      'D4 // IDENTITY CORE',
+
+    desc:
+      'An insider has stolen privileged credentials. Decode the identity core and stop the exfiltration.',
+
+    objectives: [
+
+      {
+        id: 'evidence',
+        text: 'Find credential evidence',
+        target: 2
+      },
+
+      {
+        id: 'guards',
+        text: 'Eliminate hostile operatives',
+        target: 6
+      },
+
+      {
+        id: 'terminal',
+        text: 'Decrypt the identity core',
+        target: 1
+      }
+
+    ],
+
+    xp: 600,
+
+    code: '6429',
+
+    badge:
+      'CREDENTIAL HUNTER',
+
+    threat:
+      'ESPIONAGE'
+
+  },
+
+
+  {
+
+    id: 5,
+
+    title:
+      'MITM ATTACK',
+
+    zone:
+      'NEXUS // CORE SERVER',
+
+    desc:
+      'Final operation. A hostile network actor is intercepting the core traffic. Secure the server and neutralize the commander.',
+
+    objectives: [
+
+      {
+        id: 'terminal',
+        text: 'Reach the core terminal',
+        target: 1
+      },
+
+      {
+        id: 'guards',
+        text: 'Eliminate the defenders',
+        target: 7
+      },
+
+      {
+        id: 'boss',
+        text: 'Neutralize the network commander',
+        target: 1
+      }
+
+    ],
+
+    xp: 1000,
+
+    code: '8503',
+
+    badge:
+      'NETWORK SENTINEL',
+
+    threat:
+      'MITM'
+
+  }
+
+];
+
+
+
+/*
+=========================================================
+                     BADGES
+=========================================================
+*/
+
+const BADGES = [
+
+  [
+    'CYBER DETECTIVE',
+    'Complete your first investigation'
+  ],
+
+  [
+    'PHISHING HUNTER',
+    'Stop the phishing breach'
+  ],
+
+  [
+    'MALWARE TRACKER',
+    'Trace and isolate malware'
+  ],
+
+  [
+    'LOCKDOWN BREAKER',
+    'Escape the ransomware lockdown'
+  ],
+
+  [
+    'CREDENTIAL HUNTER',
+    'Recover stolen credentials'
+  ],
+
+  [
+    'NETWORK SENTINEL',
+    'Secure the core network'
+  ]
+
+];
+
+
+
+/*
+=========================================================
+                     GAME STATE
+=========================================================
+*/
+
+const state = {
+
+  level: 1,
+
+  xp: 0,
+
+  health: 100,
+
+  maxHealth: 100,
+
+  ammo: 12,
+
+  reserve: 48,
+
+  mission: null,
+
+  paused: false,
+
+  objectiveProgress: {},
+
+  evidenceCollected: 0,
+
+  guardsDefeated: 0,
+
+  currentInteractable: null,
+
+  decryptInput: '',
+
+  unlockedMissions: 1,
+
+  completed: new Set(),
+
+  badges: new Set(),
+
+  accuracyShots: 0,
+
+  accuracyHits: 0
+
+};
+
+
+
+/*
+=========================================================
+                     THREE.JS VARIABLES
+=========================================================
+*/
+
+let scene;
+
+let camera;
+
+let renderer;
+
+let clock;
+
+let raycaster;
+
+let player;
+
+let playerGroup;
+
+let playerVelocity =
+  new THREE.Vector3();
+
+let keys = {};
+
+let mouse = {
+
+  x: 0,
+
+  y: 0,
+
+  down: false
+
+};
+
+
+
+let modelCache = {};
+
+
+
+let world = {
+
+  objects: [],
+
+  enemies: [],
+
+  interactables: [],
+
+  doors: [],
+
+  effects: []
+
+};
+
+
+
+let gameRunning = false;
+
+let lastShot = 0;
+
+
+
+/*
+=========================================================
+                     HELPER
+=========================================================
+*/
+
+const $ = id =>
+  document.getElementById(id);
+
+
+
+/*
+=========================================================
+                     SCREEN SYSTEM
+=========================================================
+*/
+
+function show(id) {
+
+  document
+    .querySelectorAll(
+      '.overlay-screen,.menu-screen,.game-screen'
+    )
+    .forEach(
+      el =>
+        el.classList.add('hidden')
+    );
+
+  $(id)
+    .classList
+    .remove('hidden');
+
 }
 
-function transitionToLiveSimulation() {
-    document.getElementById('cinematic-intro').classList.add('fade-out');
-    document.getElementById('main-hud').classList.remove('hidden');
-    
-    setTimeout(() => {
-        document.getElementById('cinematic-intro').remove();
-        initWebGLGameContainer();
-        initGameplayListeners();
-        animateMasterEngineLoop();
-    }, 1000);
+
+
+function hide(id) {
+
+  $(id)
+    .classList
+    .add('hidden');
+
 }
 
-// ==========================================================================
-// Phase 2: WebGL 3D Tactical Core Initialization
-// ==========================================================================
-function initWebGLGameContainer() {
-    const canvasContainer = document.getElementById('threejs-canvas').parentElement;
-    const w = canvasContainer.clientWidth;
-    const h = canvasContainer.clientHeight;
 
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020305);
-    scene.fog = new THREE.FogExp2(0x020305, 0.015);
 
-    // Cinematic Isometric-vibe Camera configuration
-    camera = new THREE.PerspectiveCamera(55, w / h, 0.1, 1000);
-    camera.position.set(0, 22, 32);
+/*
+=========================================================
+                     TOAST
+=========================================================
+*/
 
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('threejs-canvas'), antialias: true });
-    renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ReinhardToneMapping;
+function toast(text) {
 
-    // Floor Grid Setup (Valorant Neon Grid Styling)
-    gridHelper = new THREE.GridHelper(120, 45, 0xff0055, 0x0f1522);
-    gridHelper.position.y = -5;
-    scene.add(gridHelper);
+  const t =
+    $('toast');
 
-    // Tactical Scene Lighting Arrays
-    const ambLight = new THREE.AmbientLight(0x0a111e, 1.0);
-    scene.add(ambLight);
+  t.textContent =
+    text;
 
-    const dirLight = new THREE.DirectionalLight(0x00f5d4, 1.2);
-    dirLight.position.set(20, 40, 10);
-    scene.add(dirLight);
+  t.classList
+    .add('show');
 
-    // Interactive Core Key Objective Mesh (Glowing Cyan Cyber Terminal Box)
-    const termGeom = new THREE.BoxGeometry(3, 3, 3);
-    const termMat = new THREE.MeshBasicMaterial({ color: 0x00f5d4, wireframe: true });
-    terminalNodeMesh = new THREE.Mesh(termGeom, termMat);
-    terminalNodeMesh.position.copy(targetTerminalPos);
-    scene.add(terminalNodeMesh);
+  clearTimeout(
+    toast.timer
+  );
 
-    // PLAYER OBJECT GENERATOR CONFIGURATION (Your Three.js placeholder to override with model instances)
-    const pGeom = new THREE.CylinderGeometry(1, 1, 4, 6);
-    const pMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2, metalness: 0.8 });
-    playerMesh = new THREE.Mesh(pGeom, pMat);
-    playerMesh.position.set(0, -3, 10); // Start in foreground space
-    scene.add(playerMesh);
+  toast.timer =
+    setTimeout(
+      () =>
+        t.classList.remove('show'),
+      1800
+    );
 
-    // Particle FX Engine setup
-    initParticleEngine();
-    
-    // Build initial level threats
-    spawnLevelThreats();
-
-    // UnrealBloom Glow Composer Compositing Configuration
-    const renderPass = new THREE.RenderPass(scene, camera);
-    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(w, h), 1.7, 0.45, 0.08);
-    composer = new THREE.EffectComposer(renderer);
-    composer.addPass(renderPass);
-    composer.addPass(bloomPass);
 }
 
-function initParticleEngine() {
-    const count = 400;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3);
 
-    for(let i=0; i<count*3; i+=3) {
-        positions[i] = (Math.random() - 0.5) * 90;
-        positions[i+1] = Math.random() * 50 - 5;
-        positions[i+2] = (Math.random() - 0.5) * 90;
-    }
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({ color: 0x00f5d4, size: 0.25, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
-    particleSystem = new THREE.Points(geometry, mat);
-    scene.add(particleSystem);
-}
 
-function spawnLevelThreats() {
-    // Clear out old nodes
-    enemies.forEach(e => scene.remove(e.mesh));
-    enemies = [];
+/*
+=========================================================
+                     BOOT
+=========================================================
+*/
 
-    // Scale guard count based on current level progress limits
-    const threatCount = 2 + currentLevel; 
-    for(let i=0; i < threatCount; i++) {
-        const eGeom = new THREE.BoxGeometry(2, 4, 2);
-        const eMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x330011 });
-        const mesh = new THREE.Mesh(eGeom, eMat);
-        
-        // Distribute positions dynamically
-        mesh.position.set(
-            (Math.random() - 0.5) * 50,
-            -3,
-            -10 - (Math.random() * 30)
+window.addEventListener(
+  'load',
+  () => {
+
+    setTimeout(
+      () => {
+
+        $('boot-screen')
+          .classList
+          .add('hidden');
+
+        $('app')
+          .classList
+          .remove('hidden');
+
+        initUI();
+
+        updateProfileUI();
+
+      },
+      2300
+    );
+
+  }
+);
+
+
+
+/*
+=========================================================
+                     UI INIT
+=========================================================
+*/
+
+function initUI() {
+
+
+  /*
+  START MISSION
+  */
+
+  $('begin-mission')
+    .onclick =
+    () => {
+
+      show('mission-screen');
+
+      renderMissionGrid();
+
+    };
+
+
+
+  /*
+  MAIN MENU BUTTONS
+  */
+
+  document
+    .querySelectorAll(
+      '[data-screen]'
+    )
+    .forEach(
+      btn => {
+
+        btn.onclick =
+          () => {
+
+            const s =
+              btn.dataset.screen;
+
+
+            if (
+              s === 'missions'
+            ) {
+
+              show(
+                'mission-screen'
+              );
+
+              renderMissionGrid();
+
+            }
+
+
+            if (
+              s === 'operative'
+            ) {
+
+              show(
+                'operative-screen'
+              );
+
+            }
+
+
+            if (
+              s === 'arsenal'
+            ) {
+
+              show(
+                'arsenal-screen'
+              );
+
+            }
+
+
+            if (
+              s === 'badges'
+            ) {
+
+              show(
+                'badges-screen'
+              );
+
+              renderBadges();
+
+            }
+
+          };
+
+      }
+    );
+
+
+
+  /*
+  CLOSE BUTTONS
+  */
+
+  document
+    .querySelectorAll(
+      '[data-close]'
+    )
+    .forEach(
+      b =>
+        b.onclick =
+          () =>
+            show(
+              'start-screen'
+            )
+    );
+
+
+
+  /*
+  PAUSE
+  */
+
+  $('pause-btn')
+    .onclick =
+    togglePause;
+
+
+  $('resume-btn')
+    .onclick =
+    togglePause;
+
+
+
+  /*
+  RESTART
+  */
+
+  $('restart-btn')
+    .onclick =
+    () =>
+      startMission(
+        state.level
+      );
+
+
+
+  /*
+  EXIT
+  */
+
+  $('exit-btn')
+    .onclick =
+    () => {
+
+      gameRunning =
+        false;
+
+      show(
+        'start-screen'
+      );
+
+    };
+
+
+
+  /*
+  DECRYPT CLOSE
+  */
+
+  $('decrypt-close')
+    .onclick =
+    () =>
+      hide(
+        'decrypt-screen'
+      );
+
+
+
+  /*
+  DECODE
+  */
+
+  $('decode-btn')
+    .onclick =
+    checkCode;
+
+
+
+  /*
+  EVIDENCE
+  */
+
+  $('collect-evidence')
+    .onclick =
+    collectEvidence;
+
+
+  $('leave-evidence')
+    .onclick =
+    () =>
+      hide(
+        'evidence-screen'
+      );
+
+
+
+  /*
+  INTERACTION
+  */
+
+  $('interact-primary')
+    .onclick =
+    handleInteraction;
+
+
+  $('mobile-interact')
+    .onclick =
+    handleInteraction;
+
+
+
+  /*
+  SHOOT
+  */
+
+  $('mobile-shoot')
+    .onclick =
+    () =>
+      shoot();
+
+
+  $('shoot-btn')
+    .onclick =
+    () =>
+      shoot();
+
+
+
+  /*
+  SPRINT
+  */
+
+  $('sprint-btn')
+    .onclick =
+    () => {
+
+      keys.Shift =
+        true;
+
+      setTimeout(
+        () =>
+          keys.Shift =
+            false,
+        250
+      );
+
+    };
+
+
+
+  /*
+  NEXT LEVEL
+  */
+
+  $('next-mission')
+    .onclick =
+    () => {
+
+      if (
+        state.level <
+        5
+      ) {
+
+        startMission(
+          state.level + 1
         );
-        scene.add(mesh);
 
-        enemies.push({
-            mesh: mesh,
-            dir: Math.random() > 0.5 ? 1 : -1,
-            range: 10 + Math.random() * 15,
-            startX: mesh.position.x
-        });
+      }
+
+      else {
+
+        show(
+          'start-screen'
+        );
+
+      }
+
+    };
+
+
+
+  /*
+  MISSION SELECT
+  */
+
+  $('complete-menu')
+    .onclick =
+    () => {
+
+      show(
+        'mission-screen'
+      );
+
+      renderMissionGrid();
+
+    };
+
+
+
+  /*
+  KEYBOARD
+  */
+
+  window.addEventListener(
+    'keydown',
+    e => {
+
+      keys[e.code] =
+        true;
+
+
+      if (
+        e.code ===
+        'KeyE'
+      ) {
+
+        handleInteraction();
+
+      }
+
+
+      if (
+        e.code ===
+        'Escape'
+      ) {
+
+        togglePause();
+
+      }
+
+
+      if (
+        e.code ===
+        'Space'
+      ) {
+
+        shoot();
+
+      }
+
+
+      if (
+        [
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight'
+        ].includes(
+          e.code
+        )
+      ) {
+
+        e.preventDefault();
+
+      }
+
     }
-    document.getElementById('guard-status-count').innerText = `${enemies.length} ALIVE`;
+  );
+
+
+
+  window.addEventListener(
+    'keyup',
+    e =>
+      keys[e.code] =
+        false
+  );
+
+
+
+  /*
+  MOUSE
+  */
+
+  window.addEventListener(
+    'mousemove',
+    e => {
+
+      mouse.x =
+        (e.clientX /
+          innerWidth) *
+        2 - 1;
+
+      mouse.y =
+        -(e.clientY /
+          innerHeight) *
+        2 + 1;
+
+    }
+  );
+
+
+
+  window.addEventListener(
+    'mousedown',
+    () => {
+
+      mouse.down =
+        true;
+
+      shoot();
+
+    }
+  );
+
+
+
+  window.addEventListener(
+    'mouseup',
+    () => {
+
+      mouse.down =
+        false;
+
+    }
+  );
+
+
+
+  window.addEventListener(
+    'resize',
+    onResize
+  );
+
+
+
+  initThree();
+
+  renderMissionGrid();
+
+  renderBadges();
+
 }
 
-// ==========================================================================
-// Phase 3: Interactive Inputs & Game Logic Engine
-// ==========================================================================
-function initGameplayListeners() {
-    window.addEventListener('keydown', (e) => {
-        const k = e.key.toLowerCase();
-        if (k in keysPressed) keysPressed[k] = true;
-        
-        // E Interactivity action hook
-        if (k === 'e' && !document.getElementById('action-prompt').classList.contains('hidden')) {
-            decryptMatrixObjective();
+
+
+/*
+=========================================================
+                     THREE INITIALIZATION
+=========================================================
+*/
+
+function initThree() {
+
+  const canvas =
+    $('game-canvas');
+
+
+  renderer =
+    new THREE.WebGLRenderer({
+
+      canvas,
+
+      antialias: true,
+
+      alpha: false
+
+    });
+
+
+  renderer.setPixelRatio(
+    Math.min(
+      devicePixelRatio,
+      2
+    )
+  );
+
+
+  renderer.setSize(
+    innerWidth,
+    innerHeight
+  );
+
+
+  renderer.shadowMap.enabled =
+    true;
+
+
+  renderer.shadowMap.type =
+    THREE.PCFSoftShadowMap;
+
+
+  renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+
+  renderer.toneMapping =
+    THREE.ACESFilmicToneMapping;
+
+
+  renderer.toneMappingExposure =
+    1.25;
+
+
+
+  scene =
+    new THREE.Scene();
+
+
+  scene.background =
+    new THREE.Color(
+      0x04050a
+    );
+
+
+  scene.fog =
+    new THREE.FogExp2(
+      0x05060b,
+      0.018
+    );
+
+
+
+  camera =
+    new THREE.PerspectiveCamera(
+
+      52,
+
+      innerWidth /
+        innerHeight,
+
+      0.1,
+
+      300
+
+    );
+
+
+  camera.position.set(
+    0,
+    15,
+    12
+  );
+
+
+  camera.lookAt(
+    0,
+    0,
+    0
+  );
+
+
+
+  clock =
+    new THREE.Clock();
+
+
+  raycaster =
+    new THREE.Raycaster();
+
+
+
+  addLights();
+
+  animate();
+
+}
+
+
+
+/*
+=========================================================
+                     LIGHTING
+=========================================================
+*/
+
+function addLights() {
+
+
+  /*
+  AMBIENT
+  */
+
+  scene.add(
+    new THREE.HemisphereLight(
+      0x313544,
+      0x08090c,
+      1.4
+    )
+  );
+
+
+
+  /*
+  RED LIGHT
+  */
+
+  const red =
+    new THREE.PointLight(
+      0xff003f,
+      25,
+      22
+    );
+
+  red.position.set(
+    0,
+    5,
+    0
+  );
+
+  scene.add(red);
+
+
+
+  /*
+  MAIN LIGHT
+  */
+
+  const key =
+    new THREE.DirectionalLight(
+      0xffffff,
+      2
+    );
+
+  key.position.set(
+    10,
+    18,
+    8
+  );
+
+  key.castShadow =
+    true;
+
+  scene.add(key);
+
+}
+
+
+
+/*
+=========================================================
+                  CLEAR WORLD
+=========================================================
+*/
+
+function clearWorld() {
+
+
+  world.objects
+    .forEach(
+      o =>
+        scene.remove(o)
+    );
+
+
+  world.enemies
+    .forEach(
+      e =>
+        scene.remove(
+          e.group
+        )
+    );
+
+
+  world.interactables
+    .forEach(
+      o =>
+        scene.remove(
+          o.mesh
+        )
+    );
+
+
+  world.doors
+    .forEach(
+      o =>
+        scene.remove(
+          o.mesh
+        )
+    );
+
+
+  world.effects
+    .forEach(
+      o =>
+        scene.remove(o)
+    );
+
+
+  world = {
+
+    objects: [],
+
+    enemies: [],
+
+    interactables: [],
+
+    doors: [],
+
+    effects: []
+
+  };
+
+
+  if (
+    playerGroup
+  ) {
+
+    scene.remove(
+      playerGroup
+    );
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                  START MISSION
+=========================================================
+*/
+
+function startMission(level) {
+
+
+  level =
+    Math.max(
+      1,
+      Math.min(
+        5,
+        level
+      )
+    );
+
+
+  if (
+    level >
+    state.unlockedMissions
+  ) {
+
+    toast(
+      'MISSION LOCKED — COMPLETE THE PREVIOUS OPERATION'
+    );
+
+    return;
+
+  }
+
+
+
+  state.level =
+    level;
+
+
+  state.mission =
+    MISSIONS[
+      level - 1
+    ];
+
+
+  state.health =
+    100;
+
+
+  state.ammo =
+    12;
+
+
+  state.reserve =
+    48;
+
+
+  state.objectiveProgress =
+    {};
+
+
+  state.evidenceCollected =
+    0;
+
+
+  state.guardsDefeated =
+    0;
+
+
+  state.accuracyShots =
+    0;
+
+
+  state.accuracyHits =
+    0;
+
+
+  state.paused =
+    false;
+
+
+  gameRunning =
+    true;
+
+
+
+  hide(
+    'mission-screen'
+  );
+
+
+  hide(
+    'pause-screen'
+  );
+
+
+  hide(
+    'complete-screen'
+  );
+
+
+  hide(
+    'decrypt-screen'
+  );
+
+
+  hide(
+    'evidence-screen'
+  );
+
+
+  show(
+    'game-screen'
+  );
+
+
+
+  clearWorld();
+
+
+  buildLevel(
+    state.mission
+  );
+
+
+  updateHUD();
+
+
+  toast(
+    `MISSION ${String(level).padStart(2,'0')} // ${state.mission.title}`
+  );
+
+}
+
+
+
+/*
+=========================================================
+                     BUILD LEVEL
+=========================================================
+*/
+
+function buildLevel(
+  mission
+) {
+
+
+  /*
+  FLOOR
+  */
+
+  const floorMat =
+    new THREE.MeshStandardMaterial({
+
+      color: 0x11131a,
+
+      roughness: .72,
+
+      metalness: .25
+
+    });
+
+
+  const floor =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        62,
+        .5,
+        46
+      ),
+
+      floorMat
+
+    );
+
+
+  floor.position.y =
+    -.25;
+
+
+  floor.receiveShadow =
+    true;
+
+
+  scene.add(
+    floor
+  );
+
+
+  world.objects.push(
+    floor
+  );
+
+
+
+  /*
+  FLOOR GRID
+  */
+
+  for (
+    let x = -30;
+    x <= 30;
+    x += 6
+  ) {
+
+    const strip =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .045,
+          .015,
+          44
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0x2c303a
+
+        })
+
+      );
+
+
+    strip.position.set(
+      x,
+      .02,
+      0
+    );
+
+
+    scene.add(
+      strip
+    );
+
+
+    world.objects.push(
+      strip
+    );
+
+  }
+
+
+
+  for (
+    let z = -22;
+    z <= 22;
+    z += 6
+  ) {
+
+    const strip =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          60,
+          .015,
+          .045
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0x2c303a
+
+        })
+
+      );
+
+
+    strip.position.set(
+      0,
+      .02,
+      z
+    );
+
+
+    scene.add(
+      strip
+    );
+
+
+    world.objects.push(
+      strip
+    );
+
+  }
+
+
+
+  /*
+  WALLS
+  */
+
+  const wallMat =
+    new THREE.MeshStandardMaterial({
+
+      color: 0x171a23,
+
+      roughness: .5,
+
+      metalness: .5
+
+    });
+
+
+
+  const addWall =
+    (
+      x,
+      z,
+      w,
+      d,
+      h = 3
+    ) => {
+
+      const m =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+            w,
+            h,
+            d
+          ),
+
+          wallMat
+
+        );
+
+
+      m.position.set(
+        x,
+        h / 2,
+        z
+      );
+
+
+      m.castShadow =
+        true;
+
+
+      m.receiveShadow =
+        true;
+
+
+      scene.add(
+        m
+      );
+
+
+      world.objects.push(
+        m
+      );
+
+
+
+      /*
+      RED NEON STRIP
+      */
+
+      const glow =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+            Math.max(
+              .08,
+              w * .7
+            ),
+            .04,
+            .05
+          ),
+
+          new THREE.MeshBasicMaterial({
+
+            color: 0x8b0029
+
+          })
+
+        );
+
+
+      glow.position.set(
+
+        x,
+
+        h * .7,
+
+        z - d / 2 - .01
+
+      );
+
+
+      scene.add(
+        glow
+      );
+
+
+      world.effects.push(
+        glow
+      );
+
+    };
+
+
+
+  addWall(
+    0,
+    -22,
+    60,
+    1
+  );
+
+
+  addWall(
+    0,
+    22,
+    60,
+    1
+  );
+
+
+  addWall(
+    -30,
+    0,
+    1,
+    46
+  );
+
+
+  addWall(
+    30,
+    0,
+    1,
+    46
+  );
+
+
+  addWall(
+    -11,
+    0,
+    1,
+    28
+  );
+
+
+  addWall(
+    11,
+    -7,
+    1,
+    30
+  );
+
+
+  addWall(
+    0,
+    8,
+    22,
+    1
+  );
+
+
+
+  /*
+  CRATES
+  */
+
+  for (
+    let i = 0;
+    i < 14;
+    i++
+  ) {
+
+    const x =
+      -25 +
+      Math.random() *
+      50;
+
+
+    const z =
+      -17 +
+      Math.random() *
+      34;
+
+
+    if (
+      Math.abs(x) < 5 &&
+      Math.abs(z) < 5
+    ) {
+
+      continue;
+
+    }
+
+
+    addCrate(
+      x,
+      z
+    );
+
+  }
+
+
+
+  /*
+  RED SECURITY LIGHTS
+  */
+
+  [
+
+    [-24, -18],
+
+    [24, -18],
+
+    [-24, 18],
+
+    [24, 18],
+
+    [0, -19],
+
+    [0, 18]
+
+  ].forEach(
+    ([x,z]) => {
+
+
+      const lamp =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+            .25,
+            .25,
+            .25
+          ),
+
+          new THREE.MeshBasicMaterial({
+
+            color: 0xff003c
+
+          })
+
+        );
+
+
+      lamp.position.set(
+        x,
+        3,
+        z
+      );
+
+
+      scene.add(
+        lamp
+      );
+
+
+      world.effects.push(
+        lamp
+      );
+
+
+
+      const l =
+        new THREE.PointLight(
+          0xff003c,
+          5,
+          8
+        );
+
+
+      l.position.set(
+        x,
+        2.5,
+        z
+      );
+
+
+      scene.add(
+        l
+      );
+
+
+      world.effects.push(
+        l
+      );
+
+    }
+  );
+
+
+
+  /*
+  PLAYER
+  */
+
+  playerGroup =
+    createPlayer();
+
+
+  playerGroup.position.set(
+    0,
+    0,
+    16
+  );
+
+
+  scene.add(
+    playerGroup
+  );
+
+
+  player =
+    playerGroup;
+
+
+
+  /*
+  LEVEL 1
+  */
+
+  if (
+    mission.id === 1
+  ) {
+
+    addEvidence(
+      -19,
+      10
+    );
+
+
+    addTerminal(
+      17,
+      -15
+    );
+
+
+    addDoor(
+      11,
+      7,
+      'LOCKED'
+    );
+
+
+    addObjectiveMarker(
+      11,
+      9
+    );
+
+
+    spawnEnemies(
+      3
+    );
+
+  }
+
+
+
+  /*
+  LEVEL 2
+  */
+
+  else if (
+    mission.id === 2
+  ) {
+
+    addEvidence(
+      -18,
+      -13
+    );
+
+
+    addTerminal(
+      17,
+      -14
+    );
+
+
+    addDoor(
+      11,
+      7,
+      'LOCKED'
+    );
+
+
+    addObjectiveMarker(
+      17,
+      -12
+    );
+
+
+    spawnEnemies(
+      4
+    );
+
+  }
+
+
+
+  /*
+  LEVEL 3
+  */
+
+  else if (
+    mission.id === 3
+  ) {
+
+    addTerminal(
+      -17,
+      -14
+    );
+
+
+    addEvidence(
+      18,
+      15
+    );
+
+
+    addDoor(
+      11,
+      7,
+      'LOCKED'
+    );
+
+
+    addObjectiveMarker(
+      -17,
+      -12
+    );
+
+
+    spawnEnemies(
+      5
+    );
+
+  }
+
+
+
+  /*
+  LEVEL 4
+  */
+
+  else if (
+    mission.id === 4
+  ) {
+
+    addEvidence(
+      -18,
+      11
+    );
+
+
+    addEvidence(
+      18,
+      -13
+    );
+
+
+    addTerminal(
+      17,
+      13
+    );
+
+
+    addDoor(
+      0,
+      8,
+      'LOCKED'
+    );
+
+
+    spawnEnemies(
+      6
+    );
+
+  }
+
+
+
+  /*
+  LEVEL 5
+  */
+
+  else {
+
+    addTerminal(
+      0,
+      -17
+    );
+
+
+    addDoor(
+      0,
+      8,
+      'LOCKED'
+    );
+
+
+    spawnEnemies(
+      7
+    );
+
+
+    spawnBoss();
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                     CRATE
+=========================================================
+*/
+
+function addCrate(
+  x,
+  z
+) {
+
+  const m =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        2,
+        1.8,
+        2
+      ),
+
+      new THREE.MeshStandardMaterial({
+
+        color: 0x20232d,
+
+        roughness: .8,
+
+        metalness: .15
+
+      })
+
+    );
+
+
+  m.position.set(
+    x,
+    .9,
+    z
+  );
+
+
+  m.rotation.y =
+    Math.random() *
+    Math.PI;
+
+
+  m.castShadow =
+    true;
+
+
+  m.receiveShadow =
+    true;
+
+
+  scene.add(
+    m
+  );
+
+
+  world.objects.push(
+    m
+  );
+
+
+  /*
+  CRATE RED STRIPE
+  */
+
+  const stripe =
+    new THREE.Mesh(
+
+      new THREE.BoxGeometry(
+        2.02,
+        .06,
+        .18
+      ),
+
+      new THREE.MeshBasicMaterial({
+
+        color: 0x3b0b18
+
+      })
+
+    );
+
+
+  stripe.position.copy(
+    m.position
+  );
+
+
+  stripe.position.y =
+    1.4;
+
+
+  stripe.rotation.y =
+    m.rotation.y;
+
+
+  scene.add(
+    stripe
+  );
+
+
+  world.effects.push(
+    stripe
+  );
+
+}
+
+
+
+/*
+=========================================================
+                     PLAYER
+=========================================================
+*/
+
+function createPlayer() {
+
+  const g =
+    new THREE.Group();
+
+
+  /*
+  CUSTOM GLB
+  */
+
+  if (
+    USE_CUSTOM_MODELS
+  ) {
+
+    loadModel(
+      'player',
+      MODEL_PATHS.player,
+      g
+    );
+
+  }
+
+
+  /*
+  TEMPORARY PROCEDURAL PLAYER
+  */
+
+  else {
+
+    const body =
+      new THREE.Mesh(
+
+        new THREE.CapsuleGeometry(
+          .65,
+          1.35,
+          6,
+          10
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x1a1c25,
+
+          roughness: .55,
+
+          metalness: .4
+
+        })
+
+      );
+
+
+    body.position.y =
+      1.2;
+
+
+    body.castShadow =
+      true;
+
+
+    g.add(
+      body
+    );
+
+
+
+    /*
+    HEAD
+    */
+
+    const head =
+      new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+          .43,
+          18,
+          14
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x282b35,
+
+          roughness: .45
+
+        })
+
+      );
+
+
+    head.position.y =
+      2.35;
+
+
+    head.castShadow =
+      true;
+
+
+    g.add(
+      head
+    );
+
+
+
+    /*
+    RED VISOR
+    */
+
+    const visor =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .58,
+          .12,
+          .18
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0xe4003b
+
+        })
+
+      );
+
+
+    visor.position.set(
+      0,
+      2.4,
+      .37
+    );
+
+
+    g.add(
+      visor
+    );
+
+
+
+    /*
+    WEAPON
+    */
+
+    const gun =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .18,
+          .18,
+          1.1
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x090a0e,
+
+          metalness: .8
+
+        })
+
+      );
+
+
+    gun.position.set(
+      .62,
+      1.35,
+      .48
+    );
+
+
+    gun.rotation.x =
+      -.12;
+
+
+    g.add(
+      gun
+    );
+
+  }
+
+
+  return g;
+
+}
+
+
+
+/*
+=========================================================
+                  GLTF MODEL LOADER
+=========================================================
+*/
+
+async function loadModel(
+  id,
+  path,
+  parent,
+  scale = 1
+) {
+
+  /*
+  CACHE
+  */
+
+  if (
+    modelCache[path]
+  ) {
+
+    const c =
+      modelCache[path]
+        .clone(true);
+
+
+    c.scale.setScalar(
+      scale
+    );
+
+
+    parent.add(
+      c
+    );
+
+
+    return c;
+
+  }
+
+
+
+  const loader =
+    new GLTFLoader();
+
+
+
+  try {
+
+    const gltf =
+      await loader.loadAsync(
+        path
+      );
+
+
+    modelCache[path] =
+      gltf.scene;
+
+
+
+    const c =
+      gltf.scene
+        .clone(true);
+
+
+    c.scale.setScalar(
+      scale
+    );
+
+
+
+    c.traverse(
+      o => {
+
+        if (
+          o.isMesh
+        ) {
+
+          o.castShadow =
+            true;
+
+          o.receiveShadow =
+            true;
+
         }
-    });
 
-    window.addEventListener('keyup', (e) => {
-        const k = e.key.toLowerCase();
-        if (k in keysPressed) keysPressed[k] = false;
-    });
+      }
+    );
 
-    window.addEventListener('click', () => {
-        fireActiveWeaponRaycast();
-    });
-    
-    window.addEventListener('resize', handleWindowResize);
+
+
+    parent.add(
+      c
+    );
+
+
+    return c;
+
+  }
+
+
+  catch (e) {
+
+    console.warn(
+      'Model not found:',
+      path,
+      'Using procedural placeholder.'
+    );
+
+
+    return null;
+
+  }
+
 }
 
-function processPlayerStealthControls() {
-    if (!playerMesh) return;
 
-    if (keysPressed.w) playerMesh.position.z -= playerSpeed;
-    if (keysPressed.s) playerMesh.position.z += playerSpeed;
-    if (keysPressed.a) playerMesh.position.x -= playerSpeed;
-    if (keysPressed.d) playerMesh.position.x += playerSpeed;
 
-    // Constrain boundaries within visual helper grids
-    playerMesh.position.x = Math.max(Math.min(playerMesh.position.x, 50), -50);
-    playerMesh.position.z = Math.max(Math.min(playerMesh.position.z, 50), -50);
+/*
+=========================================================
+                     EVIDENCE
+=========================================================
+*/
 
-    // Keep isometric rendering camera smoothly tracked to coordinate points
-    camera.position.x += (playerMesh.position.x - camera.position.x) * 0.05;
-    camera.position.z += ((playerMesh.position.z + 32) - camera.position.z) * 0.05;
-    camera.lookAt(playerMesh.position.x, playerMesh.position.y + 2, playerMesh.position.z);
+function addEvidence(
+  x,
+  z
+) {
 
-    // Matrix node proximity evaluations
-    const distToObjective = playerMesh.position.distanceTo(terminalNodeMesh.position);
-    if(distToObjective < 6 && !isTerminalDecrypted) {
-        document.getElementById('action-prompt').classList.remove('hidden');
-    } else {
-        document.getElementById('action-prompt').classList.add('hidden');
+  const g =
+    new THREE.Group();
+
+
+  /*
+  CUSTOM USB
+  */
+
+  if (
+    USE_CUSTOM_MODELS
+  ) {
+
+    loadModel(
+      'usb',
+      MODEL_PATHS.usb,
+      g,
+      .8
+    );
+
+  }
+
+
+  /*
+  TEMPORARY USB
+  */
+
+  else {
+
+    const usb =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .9,
+          .18,
+          .35
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0xb9bec8,
+
+          metalness: .85,
+
+          roughness: .25
+
+        })
+
+      );
+
+
+    usb.rotation.y =
+      .4;
+
+
+    g.add(
+      usb
+    );
+
+
+
+    const tip =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .25,
+          .12,
+          .27
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x30343e,
+
+          metalness: .8
+
+        })
+
+      );
+
+
+    tip.position.x =
+      .55;
+
+
+    g.add(
+      tip
+    );
+
+  }
+
+
+
+  g.position.set(
+    x,
+    .45,
+    z
+  );
+
+
+  scene.add(
+    g
+  );
+
+
+
+  /*
+  GLOW
+  */
+
+  const glow =
+    new THREE.PointLight(
+      0xff003c,
+      3,
+      4
+    );
+
+
+  glow.position.set(
+    x,
+    1,
+    z
+  );
+
+
+  scene.add(
+    glow
+  );
+
+
+
+  world.interactables.push({
+
+    type:
+      'evidence',
+
+    mesh:
+      g,
+
+    x,
+    z,
+
+    used:
+      false,
+
+    glow
+
+  });
+
+
+
+  addObjectiveMarker(
+    x,
+    z
+  );
+
+}
+
+
+
+/*
+=========================================================
+                     TERMINAL
+=========================================================
+*/
+
+function addTerminal(
+  x,
+  z
+) {
+
+  const g =
+    new THREE.Group();
+
+
+
+  /*
+  CUSTOM TERMINAL
+  */
+
+  if (
+    USE_CUSTOM_MODELS
+  ) {
+
+    loadModel(
+      'terminal',
+      MODEL_PATHS.terminal,
+      g,
+      1
+    );
+
+  }
+
+
+
+  /*
+  TEMPORARY TERMINAL
+  */
+
+  else {
+
+    const desk =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          2.8,
+          1.1,
+          1.3
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x171a21,
+
+          metalness: .6
+
+        })
+
+      );
+
+
+    desk.position.y =
+      .55;
+
+
+    g.add(
+      desk
+    );
+
+
+
+    const monitor =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          1.5,
+          1.1,
+          .12
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x171a21,
+
+          emissive: 0x30000d,
+
+          emissiveIntensity: 1
+
+        })
+
+      );
+
+
+    monitor.position.set(
+      0,
+      1.45,
+      -.45
+    );
+
+
+    g.add(
+      monitor
+    );
+
+
+
+    const screen =
+      new THREE.Mesh(
+
+        new THREE.PlaneGeometry(
+          1.2,
+          .75
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0x18000a
+
+        })
+
+      );
+
+
+    screen.position.set(
+      0,
+      1.45,
+      -.52
+    );
+
+
+    g.add(
+      screen
+    );
+
+  }
+
+
+
+  g.position.set(
+    x,
+    0,
+    z
+  );
+
+
+  scene.add(
+    g
+  );
+
+
+
+  world.interactables.push({
+
+    type:
+      'terminal',
+
+    mesh:
+      g,
+
+    x,
+    z,
+
+    used:
+      false
+
+  });
+
+
+
+  addObjectiveMarker(
+    x,
+    z
+  );
+
+}
+
+
+
+/*
+=========================================================
+                     DOOR
+=========================================================
+*/
+
+function addDoor(
+  x,
+  z,
+  status = 'LOCKED'
+) {
+
+  const g =
+    new THREE.Group();
+
+
+
+  /*
+  CUSTOM DOOR
+  */
+
+  if (
+    USE_CUSTOM_MODELS
+  ) {
+
+    loadModel(
+      'door',
+      MODEL_PATHS.door,
+      g,
+      1.4
+    );
+
+  }
+
+
+
+  /*
+  TEMPORARY DOOR
+  */
+
+  else {
+
+    const door =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          4,
+          .3,
+          4.5
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x252a34,
+
+          metalness: .8,
+
+          roughness: .35
+
+        })
+
+      );
+
+
+    door.rotation.x =
+      Math.PI / 2;
+
+
+    door.position.y =
+      2.2;
+
+
+    g.add(
+      door
+    );
+
+
+
+    const panel =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .35,
+          1.2,
+          .08
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0xe4003b
+
+        })
+
+      );
+
+
+    panel.position.set(
+      -2.3,
+      1.4,
+      0
+    );
+
+
+    g.add(
+      panel
+    );
+
+  }
+
+
+
+  g.position.set(
+    x,
+    0,
+    z
+  );
+
+
+  scene.add(
+    g
+  );
+
+
+
+  world.doors.push({
+
+    mesh:
+      g,
+
+    x,
+
+    z,
+
+    locked:
+      true
+
+  });
+
+}
+
+
+
+/*
+=========================================================
+                  OBJECTIVE MARKER
+=========================================================
+*/
+
+function addObjectiveMarker(
+  x,
+  z
+) {
+
+  const marker =
+    new THREE.Mesh(
+
+      new THREE.OctahedronGeometry(
+        .35,
+        .1
+      ),
+
+      new THREE.MeshBasicMaterial({
+
+        color: 0xe4003b,
+
+        wireframe: true
+
+      })
+
+    );
+
+
+  marker.position.set(
+    x,
+    1.8,
+    z
+  );
+
+
+  scene.add(
+    marker
+  );
+
+
+  world.effects.push(
+    marker
+  );
+
+}
+
+
+
+/*
+=========================================================
+                     ENEMIES
+=========================================================
+*/
+
+function spawnEnemies(
+  count
+) {
+
+  const spots = [
+
+    [-21, -14],
+
+    [20, -15],
+
+    [-20, 3],
+
+    [21, 6],
+
+    [-17, 17],
+
+    [17, 17],
+
+    [-2, -15],
+
+    [3, 13]
+
+  ];
+
+
+
+  for (
+    let i = 0;
+    i < count;
+    i++
+  ) {
+
+    const [
+      x,
+      z
+    ] =
+      spots[
+        i %
+        spots.length
+      ];
+
+
+
+    const g =
+      new THREE.Group();
+
+
+
+    /*
+    CUSTOM ENEMY
+    */
+
+    if (
+      USE_CUSTOM_MODELS
+    ) {
+
+      loadModel(
+        'enemy',
+        MODEL_PATHS.enemy,
+        g,
+        .9
+      );
+
     }
+
+
+
+    /*
+    TEMPORARY ENEMY
+    */
+
+    else {
+
+      const body =
+        new THREE.Mesh(
+
+          new THREE.CapsuleGeometry(
+            .5,
+            1,
+            6,
+            8
+          ),
+
+          new THREE.MeshStandardMaterial({
+
+            color: 0x12151d,
+
+            roughness: .55
+
+          })
+
+        );
+
+
+      body.position.y =
+        1;
+
+
+      g.add(
+        body
+      );
+
+
+
+      const head =
+        new THREE.Mesh(
+
+          new THREE.SphereGeometry(
+            .34,
+            14,
+            10
+          ),
+
+          new THREE.MeshStandardMaterial({
+
+            color: 0x252833
+
+          })
+
+        );
+
+
+      head.position.y =
+        2;
+
+
+      g.add(
+        head
+      );
+
+
+
+      const eye =
+        new THREE.Mesh(
+
+          new THREE.BoxGeometry(
+            .35,
+            .08,
+            .08
+          ),
+
+          new THREE.MeshBasicMaterial({
+
+            color: 0xff003c
+
+          })
+
+        );
+
+
+      eye.position.set(
+        0,
+        2.03,
+        .31
+      );
+
+
+      g.add(
+        eye
+      );
+
+    }
+
+
+
+    g.position.set(
+      x,
+      0,
+      z
+    );
+
+
+    g.userData = {
+
+      hp: 2,
+
+      alive: true,
+
+      speed:
+        1.1 +
+        Math.random() *
+        .4
+
+    };
+
+
+    scene.add(
+      g
+    );
+
+
+
+    world.enemies.push({
+
+      group:
+        g,
+
+      hp:
+        2,
+
+      alive:
+        true,
+
+      speed:
+        g.userData.speed
+
+    });
+
+  }
+
 }
 
-function processEnemyAIMatrix() {
-    enemies.forEach(enemy => {
-/ Linear path pacing loop mechanicsenemy.mesh.position.x += 0.08 * enemy.dir;if(Math.abs(enemy.mesh.position.x - enemy.startX) > enemy.range) {enemy.dir *= -1; // Reverse course direction}// Raycast field-of-view alert loop check (Is player spotted?)if(playerMesh) {const dist = enemy.mesh.position.distanceTo(playerMesh.position);if(dist < 8) { // Security Detection Radius limit parametersdeductPlayerHealthPoints(0.5); // Damage tick over tracking updates}}});}function fireActiveWeaponRaycast() {const ammoNode = document.getElementById('current-ammo');let count = parseInt(ammoNode.innerText);if(count <= 0) {console.warn("[WEAPON STACK]: MAG EMPTY. ENGINE REBOOT REQUIRED.");return;}// Decrement valuesammoNode.innerText = count - 1;triggerVFX(); // Expand lens bloom flares momentarily// Core Raycast Calculation Layer: Target nearest enemy guard in front alignment rangeif(enemies.length > 0 && playerMesh) {for(let i = enemies.length - 1; i >= 0; i--) {let enemyDistance = playerMesh.position.distanceTo(enemies[i].mesh.mesh.position);if(enemyDistance < 18) { // Effective shooting radius footprintscene.remove(enemies[i].mesh.mesh);enemies.splice(i, 1);break; // Target single entity per registration frame click}}document.getElementById('guard-status-count').innerText = ${enemies.length} ALIVE;checkLevelProgressionConditions();}}function decryptMatrixObjective() {const btn = document.getElementById('decrypt-btn');btn.innerText = "BYPASSING PROTOCOLS...";btn.style.pointerEvents = "none";composer.passes[1].strength = 4.5; // Flash glow intensity spikessetTimeout(() => {isTerminalDecrypted = true;btn.innerText = "DECRYPT COMPLETE";composer.passes[1].strength = 1.7; // Restore rendering variablesdocument.getElementById('obj-1').className = "completed";document.getElementById('obj-1').querySelector('.status').innerText = "SUCCESS";terminalNodeMesh.material.color.setHex(0xff0055); // Change core to red hacked statecheckLevelProgressionConditions();}, 1500);}function checkLevelProgressionConditions() {// Advancement rule parameters: Decryption complete AND all sector threats dropped to zeroif(isTerminalDecrypted && enemies.length === 0) {if(currentLevel < totalLevels) {currentLevel++;advanceToNextProgressiveSector();} else {alert("✨ OPERATION COMPLETE: STEALTH MASTER SECURED SYSTEM INTEGRITY EXTREME! ✨");resetCurrentSimulation();}}}function advanceToNextProgressiveSector() {isTerminalDecrypted = false;// Manage level visual selectors states dynamically in DOM matrixdocument.getElementById('level-display-tracker').innerText = LEVEL ${currentLevel}/${totalLevels};// Reset buttons configurationsconst btn = document.getElementById('decrypt-btn');btn.innerText = "BYPASS SECURE NODE";btn.style.pointerEvents = "auto";// Reset base structural layout task valuesconst obj1 = document.getElementById('obj-1');obj1.className = "pending";obj1.querySelector('.status').innerText = "PENDING";terminalNodeMesh.material.color.setHex(0x00f5d4);// Relocate interactive targets further down map limits to escalate complexity mapstargetTerminalPos.z -= 5;terminalNodeMesh.position.copy(targetTerminalPos);if(playerMesh) playerMesh.position.set(0, -3, 15); // Return tracking point back safely// Light up progression matrix cards indicatorsif(currentLevel <= 5) {const nextCard = document.getElementById(card-lvl-${currentLevel});if(nextCard) {nextCard.classList.remove('locked');nextCard.classList.add('active');}}spawnLevelThreats();console.log([CORE PROCESSOR]: Shifted operational architecture to Level Block: ${currentLevel});}function deductPlayerHealthPoints(amt) {playerHP = Math.max(playerHP - amt, 0);document.getElementById('hp-bar-element').style.width = ${playerHP}%;document.getElementById('hp-numeric-display').innerText = ${Math.ceil(playerHP)}/100;if(playerHP <= 0) {alert("❌ CRITICAL INTRUSION INTRUPT // STEALTH MASTER DEFEATED. REDEPLOYING. ❌");resetCurrentSimulation();}}function resetCurrentSimulation() {playerHP = 100;currentLevel = 1;isTerminalDecrypted = false;targetTerminalPos.set(0, -3.5, -15);if(playerMesh) playerMesh.position.set(0, -3, 10);if(terminalNodeMesh) {terminalNodeMesh.position.copy(targetTerminalPos);terminalNodeMesh.material.color.setHex(0x00f5d4);}// Reset task interfaces markersdocument.getElementById('level-display-tracker').innerText = LEVEL 1/${totalLevels};document.getElementById('current-ammo').innerText = "15";document.getElementById('hp-bar-element').style.width = "100%";document.getElementById('hp-numeric-display').innerText = "100/100";const obj1 = document.getElementById('obj-1');obj1.className = "pending";obj1.querySelector('.status').innerText = "PENDING";const btn = document.getElementById('decrypt-btn');btn.innerText = "BYPASS SECURE NODE";btn.style.pointerEvents = "auto";// Re-lock progression indicator bars interfacesfor(let i=2; i<=5; i++) {const c = document.getElementById(card-lvl-${i});if(c) { c.className = "level-card locked"; }}spawnLevelThreats();}// ==========================================================================// Phase 4: Ambient Core FX Engineering Mechanics Loops// ==========================================================================function animateMasterEngineLoop() {requestAnimationFrame(animateMasterEngineLoop);// Compute actions frames updatesprocessPlayerStealthControls();processEnemyAIMatrix();// Constant rotation updates on key interactive nodes anchorsif (terminalNodeMesh) {terminalNodeMesh.rotation.x += 0.01;terminalNodeMesh.rotation.y += 0.015;}// Handle downward movement arrays processing inside particle arrays matrixif (particleSystem) {const pts = particleSystem.geometry.attributes.position.array;for (let i = 1; i < pts.length; i += 3) {pts[i] -= 0.2; // Velocity scalar limits matching ambient aestheticsif (pts[i] < -5) pts[i] = 45; // Relocate heights bounds loop thresholds}particleSystem.geometry.attributes.position.needsUpdate = true;}if(gridHelper) gridHelper.rotation.y += 0.0005;// Route rendering output sequence fields out directly via bloom composer paths pipelineif (composer) {composer.render();}}function triggerVFX() {if(!composer) return;composer.passes[1].strength = 3.8;setTimeout(() => { if(composer) composer.passes[1].strength = 1.7; }, 120);}function handleWindowResize() {const c = document.getElementById('threejs-canvas');if (!c) return;const w = c.parentElement.clientWidth;const h = c.parentElement.clientHeight;camera.aspect = w / h;camera.updateProjectionMatrix();renderer.setSize(w, h);composer.setSize(w, h);}
----
 
-### 🕹️ How Your Three.js Character Models Connect:
-To hook your custom **`.gltf`** or **`.glb`** models directly into this engine:
-1. Put your character files inside the same folder as your code (e.g., `character.glb`).
-2. Search for the text `// PLAYER OBJECT GENERATOR CONFIGURATION` inside your **`script.js`**.
-3. Replace that code block with this snippet to substitute the generic capsule with your custom model asset:
 
-```javascript
-const loader = new THREE.GLTFLoader();
-loader.load('character.glb', (gltf) => {
-    playerMesh = gltf.scene;
-    playerMesh.position.set(0, -3, 10);
-    playerMesh.scale.set(2, 2, 2); // Adjust dimensions scale matching grids
-    scene.add(playerMesh);
-});
-                    
+/*
+=========================================================
+                       BOSS
+=========================================================
+*/
+
+function spawnBoss() {
+
+  const g =
+    new THREE.Group();
+
+
+
+  /*
+  CUSTOM BOSS
+  */
+
+  if (
+    USE_CUSTOM_MODELS
+  ) {
+
+    loadModel(
+      'boss',
+      MODEL_PATHS.boss,
+      g,
+      1.25
+    );
+
+  }
+
+
+
+  /*
+  TEMPORARY BOSS
+  */
+
+  else {
+
+    const body =
+      new THREE.Mesh(
+
+        new THREE.CapsuleGeometry(
+          .75,
+          1.8,
+          8,
+          10
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x171922,
+
+          metalness: .7
+
+        })
+
+      );
+
+
+    body.position.y =
+      1.4;
+
+
+    g.add(
+      body
+    );
+
+
+
+    const head =
+      new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+          .5,
+          18,
+          12
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+          color: 0x2d303a
+
+        })
+
+      );
+
+
+    head.position.y =
+      2.8;
+
+
+    g.add(
+      head
+    );
+
+
+
+    const visor =
+      new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+          .75,
+          .13,
+          .14
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0xff003c
+
+        })
+
+      );
+
+
+    visor.position.set(
+      0,
+      2.85,
+      .43
+    );
+
+
+    g.add(
+      visor
+    );
+
+  }
+
+
+
+  g.position.set(
+    0,
+    0,
+    -8
+  );
+
+
+  scene.add(
+    g
+  );
+
+
+  world.enemies.push({
+
+    group:
+      g,
+
+    hp:
+      8,
+
+    alive:
+      true,
+
+    speed:
+      .7,
+
+    boss:
+      true
+
+  });
+
+}
+
+
+
+/*
+=========================================================
+              FIND NEAREST INTERACTION
+=========================================================
+*/
+
+function nearestInteractable() {
+
+  if (!player)
+    return null;
+
+
+  let best =
+    null;
+
+
+  let dist =
+    2.6;
+
+
+
+  for (
+    const o of
+    world.interactables
+  ) {
+
+    if (
+      o.used
+    )
+      continue;
+
+
+
+    const d =
+      player.position
+        .distanceTo(
+
+          new THREE.Vector3(
+            o.x,
+            0,
+            o.z
+          )
+
+        );
+
+
+
+    if (
+      d < dist
+    ) {
+
+      dist =
+        d;
+
+      best =
+        o;
+
+    }
+
+  }
+
+
+
+  return best;
+
+}
+
+
+
+/*
+=========================================================
+                 HANDLE INTERACTION
+=========================================================
+*/
+
+function handleInteraction() {
+
+  if (
+    state.paused ||
+    !gameRunning
+  )
+    return;
+
+
+
+  const o =
+    nearestInteractable();
+
+
+
+  if (!o) {
+
+    toast(
+      'NO INTERACTABLE TARGET IN RANGE'
+    );
+
+    return;
+
+  }
+
+
+
+  state.currentInteractable =
+    o;
+
+
+
+  if (
+    o.type ===
+    'evidence'
+  ) {
+
+    $('evidence-title')
+      .textContent =
+      state.mission.id === 4
+        ? 'CREDENTIAL EVIDENCE'
+        : 'SUSPICIOUS USB DEVICE';
+
+
+
+    $('evidence-text')
+      .textContent =
+
+      `${state.mission.threat} evidence detected. Secure the physical artifact before the hostile process destroys it.`;
+
+
+
+    show(
+      'evidence-screen'
+    );
+
+  }
+
+
+
+  else if (
+    o.type ===
+    'terminal'
+  ) {
+
+    openDecrypt();
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                 COLLECT EVIDENCE
+=========================================================
+*/
+
+function collectEvidence() {
+
+  const o =
+    state.currentInteractable;
+
+
+
+  if (!o)
+    return;
+
+
+
+  o.used =
+    true;
+
+
+  o.mesh.visible =
+    false;
+
+
+
+  if (o.glow)
+    o.glow.visible =
+      false;
+
+
+
+  state.evidenceCollected++;
+
+
+  state.objectiveProgress.evidence =
+    (
+      state.objectiveProgress.evidence ||
+      0
+    ) + 1;
+
+
+
+  hide(
+    'evidence-screen'
+  );
+
+
+  toast(
+    'PHYSICAL EVIDENCE SECURED +75 XP'
+  );
+
+
+  gainXP(
+    75
+  );
+
+
+  updateHUD();
+
+
+  checkMissionComplete();
+
+}
+
+
+
+/*
+=========================================================
+                     DECRYPTION
+=========================================================
+*/
+
+function openDecrypt() {
+
+  show(
+    'decrypt-screen'
+  );
+
+
+  state.decryptInput =
+    '';
+
+
+  renderCodeSlots();
+
+
+  $('decode-message')
+    .textContent =
+    '';
+
+
+  const code =
+    state.mission.code;
+
+
+
+  $('decrypt-hints')
+    .innerHTML =
+
+    `
+      <p>
+        1. Access log:
+        ${code[0]} AM —
+        Maintenance staff.
+      </p>
+
+      <p>
+        2. Badge ID:
+        ${code[1]}F -
+        ${code[2]}A -
+        ${code[3]}C
+      </p>
+
+      <p>
+        3. Use the pattern to recover the 4-digit key.
+      </p>
+    `;
+
+
+
+  $('terminal-log')
+    .innerHTML =
+
+    `
+      <div>
+        [07:41:09]
+        ACCESS ATTEMPT...
+      </div>
+
+      <div>
+        [07:41:11]
+        UNKNOWN PROCESS DETECTED
+      </div>
+
+      <div>
+        [07:41:12]
+        ENCRYPTED FILES MOUNTED
+      </div>
+
+      <div>
+        [07:41:13]
+        LOCKDOWN PROTOCOL ACTIVE
+      </div>
+    `;
+
+
+
+  const keypad =
+    $('code-keypad');
+
+
+  keypad.innerHTML =
+    '';
+
+
+
+  [
+    ...'1234567890'
+  ].forEach(
+    n => {
+
+      const b =
+        document.createElement(
+          'button'
+        );
+
+
+      b.textContent =
+        n;
+
+
+      b.onclick =
+        () => {
+
+          if (
+            state.decryptInput.length <
+            4
+          ) {
+
+            state.decryptInput +=
+              n;
+
+            renderCodeSlots();
+
+          }
+
+        };
+
+
+      keypad.appendChild(
+        b
+      );
+
+    }
+  );
+
+
+
+  const clear =
+    document.createElement(
+      'button'
+    );
+
+
+  clear.textContent =
+    'CLR';
+
+
+  clear.onclick =
+    () => {
+
+      state.decryptInput =
+        '';
+
+      renderCodeSlots();
+
+    };
+
+
+  keypad.appendChild(
+    clear
+  );
+
+}
+
+
+
+/*
+=========================================================
+                  CODE SLOTS
+=========================================================
+*/
+
+function renderCodeSlots() {
+
+  $('code-slots')
+    .innerHTML =
+
+    [0,1,2,3]
+
+      .map(
+        i =>
+
+          `
+          <div class="code-slot">
+            ${state.decryptInput[i] || '_'}
+          </div>
+          `
+
+      )
+
+      .join('');
+
+}
+
+
+
+/*
+=========================================================
+                   CHECK CODE
+=========================================================
+*/
+
+function checkCode() {
+
+  if (
+    state.decryptInput ===
+    state.mission.code
+  ) {
+
+
+    $('decode-message')
+      .textContent =
+      'ACCESS GRANTED — THREAT ISOLATED';
+
+
+    $('decode-message')
+      .style.color =
+      '#e4003b';
+
+
+
+    gainXP(
+      125
+    );
+
+
+
+    state.objectiveProgress.terminal =
+      (
+        state.objectiveProgress.terminal ||
+        0
+      ) + 1;
+
+
+
+    state.objectiveProgress.code =
+      (
+        state.objectiveProgress.code ||
+        0
+      ) + 1;
+
+
+
+    state.objectiveProgress.malware =
+      (
+        state.objectiveProgress.malware ||
+        0
+      ) + 1;
+
+
+
+    unlockDoors();
+
+
+
+    setTimeout(
+      () => {
+
+        hide(
+          'decrypt-screen'
+        );
+
+
+        toast(
+          'SECURITY DOOR UNLOCKED'
+        );
+
+
+        updateHUD();
+
+
+        checkMissionComplete();
+
+      },
+      650
+    );
+
+  }
+
+
+  else {
+
+
+    $('decode-message')
+      .textContent =
+      'ACCESS DENIED — INVALID KEY';
+
+
+    $('decode-message')
+      .style.color =
+      '#ff476d';
+
+
+
+    state.health =
+      Math.max(
+        0,
+        state.health - 5
+      );
+
+
+    updateHUD();
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                  UNLOCK DOORS
+=========================================================
+*/
+
+function unlockDoors() {
+
+  world.doors
+    .forEach(
+      d => {
+
+        d.locked =
+          false;
+
+
+        d.mesh.traverse(
+          o => {
+
+            if (
+              o.material?.color
+            ) {
+
+              o.material.color
+                .set(
+                  0x30343e
+                );
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+}
+
+
+
+/*
+=========================================================
+                     SHOOT
+=========================================================
+*/
+
+function shoot() {
+
+  if (
+    !gameRunning ||
+    state.paused ||
+    !player
+  )
+    return;
+
+
+
+  const now =
+    performance.now();
+
+
+
+  if (
+    now -
+    lastShot <
+    180
+  )
+    return;
+
+
+
+  if (
+    state.ammo <=
+    0
+  ) {
+
+    toast(
+      'MAGAZINE EMPTY'
+    );
+
+    return;
+
+  }
+
+
+
+  lastShot =
+    now;
+
+
+  state.ammo--;
+
+
+  state.accuracyShots++;
+
+
+
+  const target =
+    pickTarget();
+
+
+
+  if (
+    target
+  ) {
+
+    state.accuracyHits++;
+
+
+    target.hp--;
+
+
+    createHitEffect(
+      target.group.position
+    );
+
+
+
+    if (
+      target.hp <=
+      0
+    ) {
+
+      target.alive =
+        false;
+
+
+      target.group.visible =
+        false;
+
+
+      state.guardsDefeated++;
+
+
+
+      state.objectiveProgress.guards =
+        (
+          state.objectiveProgress.guards ||
+          0
+        ) + 1;
+
+
+
+      gainXP(
+        target.boss
+          ? 300
+          : 50
+      );
+
+
+
+      if (
+        target.boss
+      ) {
+
+        state.objectiveProgress.boss =
+          1;
+
+      }
+
+
+
+      toast(
+
+        target.boss
+
+          ? 'NETWORK COMMANDER NEUTRALIZED'
+
+          : 'HOSTILE OPERATIVE ELIMINATED'
+
+      );
+
+
+
+      checkMissionComplete();
+
+    }
+
+  }
+
+
+
+  updateHUD();
+
+}
+
+
+
+/*
+=========================================================
+                  PICK TARGET
+=========================================================
+*/
+
+function pickTarget() {
+
+  let best =
+    null;
+
+
+  let bestDist =
+    10;
+
+
+
+  for (
+    const e of
+    world.enemies
+  ) {
+
+    if (
+      !e.alive
+    )
+      continue;
+
+
+
+    const d =
+      player.position
+        .distanceTo(
+          e.group.position
+        );
+
+
+
+    if (
+      d <
+      bestDist
+    ) {
+
+      const dir =
+        e.group.position
+          .clone()
+          .sub(
+            player.position
+          )
+          .normalize();
+
+
+
+      const forward =
+        new THREE.Vector3(
+          0,
+          0,
+          -1
+        )
+          .applyQuaternion(
+            player.quaternion
+          );
+
+
+
+      if (
+        forward.dot(
+          dir
+        ) >
+        .35
+      ) {
+
+        best =
+          e;
+
+        bestDist =
+          d;
+
+      }
+
+    }
+
+  }
+
+
+
+  return best;
+
+}
+
+
+
+/*
+=========================================================
+                     HIT VFX
+=========================================================
+*/
+
+function createHitEffect(
+  pos
+) {
+
+  const g =
+    new THREE.Group();
+
+
+  g.position.copy(
+    pos
+  );
+
+
+  g.position.y =
+    1.2;
+
+
+
+  for (
+    let i = 0;
+    i < 10;
+    i++
+  ) {
+
+    const p =
+      new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+          .045,
+          5,
+          5
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+          color: 0xff003c
+
+        })
+
+      );
+
+
+    p.position.set(
+
+      (Math.random() -
+        .5) *
+        .5,
+
+      (Math.random() -
+        .5) *
+        .5,
+
+      (Math.random() -
+        .5) *
+        .5
+
+    );
+
+
+    g.add(
+      p
+    );
+
+  }
+
+
+
+  scene.add(
+    g
+  );
+
+
+  world.effects.push(
+    g
+  );
+
+
+  setTimeout(
+    () =>
+      scene.remove(
+        g
+      ),
+    180
+  );
+
+}
+
+
+
+/*
+=========================================================
+                     XP
+=========================================================
+*/
+
+function gainXP(
+  amount
+) {
+
+  state.xp +=
+    amount;
+
+
+
+  while (
+    state.xp >=
+    1000
+  ) {
+
+    state.xp -=
+      1000;
+
+
+    state.level =
+      Math.min(
+        10,
+        state.level + 1
+      );
+
+
+    toast(
+      `LEVEL UP // LV ${state.level}`
+    );
+
+  }
+
+
+
+  updateProfileUI();
+
+}
+
+
+
+/*
+=========================================================
+                PROFILE UI
+=========================================================
+*/
+
+function updateProfileUI() {
+
+  $('menu-level')
+    .textContent =
+    String(
+      state.level
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+
+  $('menu-xp')
+    .textContent =
+    `${state.xp} / 1000`;
+
+
+
+  $('menu-xp-bar')
+    .style.width =
+    `${state.xp / 10}%`;
+
+}
+
+
+
+/*
+=========================================================
+                     HUD
+=========================================================
+*/
+
+function updateHUD() {
+
+  const m =
+    state.mission;
+
+
+  if (!m)
+    return;
+
+
+
+  /*
+  MISSION NAME
+  */
+
+  $('hud-mission-number')
+    .textContent =
+
+    `MISSION ${String(m.id).padStart(2,'0')}`;
+
+
+
+  $('hud-mission-title')
+    .textContent =
+    m.title;
+
+
+
+  /*
+  MAP
+  */
+
+  $('map-level')
+    .textContent =
+    m.zone
+      .split('//')[0]
+      .trim();
+
+
+
+  /*
+  HEALTH
+  */
+
+  $('health-bar')
+    .style.width =
+    `${state.health}%`;
+
+
+  $('health-text')
+    .textContent =
+    `${state.health}/100`;
+
+
+
+  /*
+  AMMO
+  */
+
+  $('ammo-current')
+    .textContent =
+    state.ammo;
+
+
+  $('ammo-reserve')
+    .textContent =
+    state.reserve;
+
+
+
+  /*
+  XP
+  */
+
+  $('game-level')
+    .textContent =
+    String(
+      state.level
+    ).padStart(
+      2,
+      '0'
+    );
+
+
+  $('game-xp')
+    .textContent =
+    `${state.xp} XP`;
+
+
+  $('game-xp-bar')
+    .style.width =
+    `${state.xp / 10}%`;
+
+
+
+  /*
+  OBJECTIVES
+  */
+
+  $('objective-list')
+    .innerHTML =
+
+    m.objectives
+
+      .map(
+        o => {
+
+          let p =
+            state.objectiveProgress[
+              o.id
+            ] || 0;
+
+
+          let done =
+            p >=
+            o.target;
+
+
+
+          return `
+
+            <div class="objective ${done ? 'done' : ''}">
+
+              <b>
+                ${done ? '◆' : '◇'}
+              </b>
+
+              ${o.text}
+
+              (${Math.min(
+                p,
+                o.target
+              )}/${o.target})
+
+            </div>
+
+          `;
+
+        }
+      )
+
+      .join('');
+
+
+
+  /*
+  INTERACTION
+  */
+
+  state.currentInteractable =
+    nearestInteractable();
+
+
+  const near =
+    state.currentInteractable;
+
+
+
+  $('interact-hint')
+    .classList
+    .toggle(
+      'hidden',
+      !near
+    );
+
+
+
+  if (
+    near
+  ) {
+
+    $('interaction-type')
+      .textContent =
+
+      near.type ===
+      'evidence'
+
+        ? 'EVIDENCE FOUND'
+
+        : 'SECURITY TERMINAL';
+
+
+
+    $('interaction-title')
+      .textContent =
+
+      near.type ===
+      'evidence'
+
+        ? 'Suspicious USB Device'
+
+        : 'Encrypted Security Terminal';
+
+  }
+
+
+  else {
+
+    $('interaction-panel')
+      .classList
+      .add(
+        'hidden'
+      );
+
+  }
+
+
+
+  drawMinimap();
+
+}
+
+
+
+/*
+=========================================================
+              CHECK MISSION COMPLETE
+=========================================================
+*/
+
+function checkMissionComplete() {
+
+  const m =
+    state.mission;
+
+
+
+  const ok =
+    m.objectives.every(
+
+      o =>
+
+        (
+          state.objectiveProgress[
+            o.id
+          ] || 0
+        ) >=
+        o.target
+
+    );
+
+
+
+  if (
+    ok
+  ) {
+
+    completeMission();
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                COMPLETE MISSION
+=========================================================
+*/
+
+function completeMission() {
+
+  if (
+    state.completed.has(
+      state.mission.id
+    )
+  )
+    return;
+
+
+
+  state.completed.add(
+    state.mission.id
+  );
+
+
+
+  state.badges.add(
+    state.mission.badge
+  );
+
+
+
+  state.unlockedMissions =
+    Math.max(
+
+      state.unlockedMissions,
+
+      Math.min(
+        5,
+        state.mission.id + 1
+      )
+
+    );
+
+
+
+  gainXP(
+    state.mission.xp
+  );
+
+
+  gameRunning =
+    false;
+
+
+
+  $('complete-title')
+    .textContent =
+
+    `MISSION ${String(state.mission.id).padStart(2,'0')} COMPLETE`;
+
+
+
+  $('complete-subtitle')
+    .textContent =
+
+    'Threat neutralized. Evidence secured. Facility status restored.';
+
+
+
+  $('reward-xp')
+    .textContent =
+    `+${state.mission.xp}`;
+
+
+
+  $('reward-badge')
+    .textContent =
+    'UNLOCKED';
+
+
+
+  $('reward-accuracy')
+    .textContent =
+
+    `${state.accuracyShots ? Math.round(state.accuracyHits / state.accuracyShots * 100) : 100}%`;
+
+
+
+  show(
+    'complete-screen'
+  );
+
+
+  renderMissionGrid();
+
+  renderBadges();
+
+  updateProfileUI();
+
+}
+
+
+
+/*
+=========================================================
+                 MISSION GRID
+=========================================================
+*/
+
+function renderMissionGrid() {
+
+  const grid =
+    $('mission-grid');
+
+
+  if (!grid)
+    return;
+
+
+
+  grid.innerHTML =
+
+    MISSIONS
+
+      .map(
+        m => {
+
+          const locked =
+            m.id >
+            state.unlockedMissions;
+
+
+          const done =
+            state.completed.has(
+              m.id
+            );
+
+
+
+          return `
+
+            <article
+              class="mission-card
+              ${locked ? 'locked' : ''}
+              ${m.id === state.level ? 'active' : ''}"
+              data-level="${m.id}"
+            >
+
+              <div class="mission-num">
+
+                0${m.id}
+
+                ${done ? '◆' : ''}
+
+              </div>
+
+
+              <div class="mission-icon"></div>
+
+
+              <h3>
+                ${m.title}
+              </h3>
+
+
+              <p>
+                ${m.zone}
+              </p>
+
+
+              <small>
+                ${locked
+                  ? 'LOCKED'
+                  : 'AVAILABLE'}
+              </small>
+
+            </article>
+
+          `;
+
+        }
+      )
+
+      .join('');
+
+
+
+  grid
+    .querySelectorAll(
+      '.mission-card'
+    )
+    .forEach(
+      c => {
+
+        c.onclick =
+          () =>
+
+            startMission(
+              Number(
+                c.dataset.level
+              )
+            );
+
+      }
+    );
+
+}
+
+
+
+/*
+=========================================================
+                     BADGES
+=========================================================
+*/
+
+function renderBadges() {
+
+  const grid =
+    $('badge-grid');
+
+
+  if (!grid)
+    return;
+
+
+
+  grid.innerHTML =
+
+    BADGES
+
+      .map(
+        ([name, desc]) => {
+
+
+          const unlocked =
+
+            state.badges.has(
+              name
+            )
+
+            ||
+
+            (
+              name ===
+              'CYBER DETECTIVE'
+              &&
+              state.completed.size >
+              0
+            );
+
+
+
+          return `
+
+            <article
+              class="badge-card
+              ${unlocked ? '' : 'locked'}"
+            >
+
+              <div class="badge-shape">
+
+                <span>
+                  ◆
+                </span>
+
+              </div>
+
+
+              <h3>
+                ${name}
+              </h3>
+
+
+              <p>
+                ${desc}
+              </p>
+
+            </article>
+
+          `;
+
+        }
+      )
+
+      .join('');
+
+}
+
+
+
+/*
+=========================================================
+                     PAUSE
+=========================================================
+*/
+
+function togglePause() {
+
+  if (!gameRunning)
+    return;
+
+
+
+  state.paused =
+    !state.paused;
+
+
+
+  if (
+    state.paused
+  ) {
+
+    show(
+      'pause-screen'
+    );
+
+  }
+
+
+  else {
+
+    hide(
+      'pause-screen'
+    );
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                  PLAYER MOVEMENT
+=========================================================
+*/
+
+function updatePlayer(
+  dt
+) {
+
+  if (
+    !player ||
+    state.paused ||
+    !gameRunning
+  )
+    return;
+
+
+
+  let x =
+
+    (
+      keys.KeyD ||
+      keys.ArrowRight
+        ? 1
+        : 0
+    )
+
+    -
+
+    (
+      keys.KeyA ||
+      keys.ArrowLeft
+        ? 1
+        : 0
+    );
+
+
+
+  let z =
+
+    (
+      keys.KeyS ||
+      keys.ArrowDown
+        ? 1
+        : 0
+    )
+
+    -
+
+    (
+      keys.KeyW ||
+      keys.ArrowUp
+        ? 1
+        : 0
+    );
+
+
+
+  const len =
+    Math.hypot(
+      x,
+      z
+    ) || 1;
+
+
+
+  x /=
+    len;
+
+
+  z /=
+    len;
+
+
+
+  const speed =
+    keys.Shift
+      ? 7
+      : 4;
+
+
+
+  playerVelocity.x +=
+
+    (
+      x * speed -
+      playerVelocity.x
+    )
+
+    *
+
+    Math.min(
+      1,
+      dt * 12
+    );
+
+
+
+  playerVelocity.z +=
+
+    (
+      z * speed -
+      playerVelocity.z
+    )
+
+    *
+
+    Math.min(
+      1,
+      dt * 12
+    );
+
+
+
+  player.position.x +=
+    playerVelocity.x *
+    dt;
+
+
+  player.position.z +=
+    playerVelocity.z *
+    dt;
+
+
+
+  /*
+  BOUNDARIES
+  */
+
+  player.position.x =
+    THREE.MathUtils.clamp(
+      player.position.x,
+      -27,
+      27
+    );
+
+
+  player.position.z =
+    THREE.MathUtils.clamp(
+      player.position.z,
+      -19,
+      19
+    );
+
+
+
+  /*
+  ROTATE PLAYER
+  */
+
+  if (
+    Math.hypot(
+      x,
+      z
+    ) > .1
+  ) {
+
+    player.rotation.y =
+      Math.atan2(
+        x,
+        z
+      );
+
+  }
+
+
+
+  /*
+  THIRD PERSON CAMERA
+  */
+
+  const camTarget =
+    new THREE.Vector3(
+
+      player.position.x,
+
+      0,
+
+      player.position.z
+
+    );
+
+
+
+  camera.position.lerp(
+
+    new THREE.Vector3(
+
+      player.position.x,
+
+      15,
+
+      player.position.z +
+      12
+
+    ),
+
+    dt * 3
+
+  );
+
+
+
+  camera.lookAt(
+    camTarget
+  );
+
+}
+
+
+
+/*
+=========================================================
+                  ENEMY AI
+=========================================================
+*/
+
+function updateEnemies(
+  dt
+) {
+
+  if (
+    !player ||
+    state.paused ||
+    !gameRunning
+  )
+    return;
+
+
+
+  for (
+    const e of
+    world.enemies
+  ) {
+
+    if (
+      !e.alive
+    )
+      continue;
+
+
+
+    const d =
+      e.group.position
+        .distanceTo(
+          player.position
+        );
+
+
+
+    /*
+    ENEMY CHASE RANGE
+    */
+
+    if (
+      d < 9
+    ) {
+
+      const dir =
+        player.position
+          .clone()
+          .sub(
+            e.group.position
+          );
+
+
+      dir.y =
+        0;
+
+
+      dir.normalize();
+
+
+
+      e.group.position
+        .addScaledVector(
+          dir,
+          e.speed * dt
+        );
+
+
+
+      e.group.lookAt(
+
+        player.position.x,
+
+        e.group.position.y,
+
+        player.position.z
+
+      );
+
+
+
+      /*
+      ENEMY DAMAGE
+      */
+
+      if (
+        d < 1.5 &&
+        Math.random() <
+        dt * .8
+      ) {
+
+        state.health =
+          Math.max(
+
+            0,
+
+            state.health - 3
+
+          );
+
+
+        updateHUD();
+
+
+
+        if (
+          state.health <=
+          0
+        ) {
+
+          respawnPlayer();
+
+        }
+
+      }
+
+    }
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                 PLAYER RESPAWN
+=========================================================
+*/
+
+function respawnPlayer() {
+
+  state.health =
+    100;
+
+
+  player.position.set(
+    0,
+    0,
+    16
+  );
+
+
+  toast(
+    'OPERATIVE DOWN — REPOSITIONED'
+  );
+
+
+  updateHUD();
+
+}
+
+
+
+/*
+=========================================================
+                    MINIMAP
+=========================================================
+*/
+
+function drawMinimap() {
+
+  const c =
+    $('minimap-canvas');
+
+
+  if (!c)
+    return;
+
+
+
+  const ctx =
+    c.getContext(
+      '2d'
+    );
+
+
+  const w =
+    c.width;
+
+
+  const h =
+    c.height;
+
+
+
+  ctx.clearRect(
+    0,
+    0,
+    w,
+    h
+  );
+
+
+
+  /*
+  BACKGROUND
+  */
+
+  ctx.fillStyle =
+    '#06080d';
+
+
+  ctx.fillRect(
+    0,
+    0,
+    w,
+    h
+  );
+
+
+
+  /*
+  GRID
+  */
+
+  ctx.strokeStyle =
+    '#4a1a2a';
+
+
+  ctx.lineWidth =
+    1;
+
+
+
+  for (
+    let x = 10;
+    x < w;
+    x += 25
+  ) {
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      x,
+      0
+    );
+
+    ctx.lineTo(
+      x,
+      h
+    );
+
+    ctx.stroke();
+
+  }
+
+
+
+  for (
+    let y = 10;
+    y < h;
+    y += 25
+  ) {
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      0,
+      y
+    );
+
+    ctx.lineTo(
+      w,
+      y
+    );
+
+    ctx.stroke();
+
+  }
+
+
+
+  /*
+  MAP
+  */
+
+  ctx.fillStyle =
+    '#333742';
+
+
+  ctx.fillRect(
+    8,
+    8,
+    w - 16,
+    h - 16
+  );
+
+
+
+  const sx =
+    3.0;
+
+
+  const sz =
+    3.1;
+
+
+  const ox =
+    w / 2;
+
+
+  const oz =
+    h / 2;
+
+
+
+  /*
+  ENEMIES
+  */
+
+  for (
+    const e of
+    world.enemies
+  ) {
+
+    if (
+      !e.alive
+    )
+      continue;
+
+
+
+    const px =
+      ox +
+      e.group.position.x /
+      sx;
+
+
+    const pz =
+      oz +
+      e.group.position.z /
+      sz;
+
+
+
+    ctx.fillStyle =
+      '#e4003b';
+
+
+    ctx.beginPath();
+
+
+    ctx.arc(
+      px,
+      pz,
+      3,
+      0,
+      Math.PI * 2
+    );
+
+
+    ctx.fill();
+
+  }
+
+
+
+  /*
+  PLAYER
+  */
+
+  if (
+    player
+  ) {
+
+    const px =
+      ox +
+      player.position.x /
+      sx;
+
+
+    const pz =
+      oz +
+      player.position.z /
+      sz;
+
+
+
+    ctx.fillStyle =
+      '#ffffff';
+
+
+    ctx.beginPath();
+
+
+    ctx.moveTo(
+      px,
+      pz - 5
+    );
+
+
+    ctx.lineTo(
+      px - 4,
+      pz + 4
+    );
+
+
+    ctx.lineTo(
+      px + 4,
+      pz + 4
+    );
+
+
+    ctx.closePath();
+
+
+    ctx.fill();
+
+  }
+
+}
+
+
+
+/*
+=========================================================
+                     ANIMATION
+=========================================================
+*/
+
+function animate() {
+
+  requestAnimationFrame(
+    animate
+  );
+
+
+
+  const dt =
+    Math.min(
+
+      clock?.getDelta() ||
+      .016,
+
+      .05
+
+    );
+
+
+
+  if (
+    gameRunning
+  ) {
+
+    updatePlayer(
+      dt
+    );
+
+
+    updateEnemies(
+      dt
+    );
+
+  }
+
+
+
+  /*
+  WORLD VFX
+  */
+
+  world.effects
+    .forEach(
+      (o, i) => {
+
+
+        if (
+          o &&
+          o.rotation
+        ) {
+
+          o.rotation.y +=
+
+            dt *
+
+            (
+              .2 +
+              (i % 3) *
+              .05
+            );
+
+        }
+
+
+
+        if (
+          o &&
+          o.material?.emissiveIntensity !==
+          undefined
+        ) {
+
+          o.material.emissiveIntensity =
+
+            .6 +
+
+            Math.sin(
+              performance.now() *
+              .004 +
+              i
+            ) *
+            .4;
+
+        }
+
+      }
+    );
+
+
+
+  /*
+  AUTO SHOOT
+  */
+
+  if (
+    mouse.down &&
+    gameRunning
+  ) {
+
+    shoot();
+
+  }
+
+
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+
+
+/*
+=========================================================
+                    RESIZE
+=========================================================
+*/
+
+function onResize() {
+
+  if (!renderer)
+    return;
+
+
+
+  renderer.setSize(
+    innerWidth,
+    innerHeight
+  );
+
+
+
+  camera.aspect =
+    innerWidth /
+    innerHeight;
+
+
+
+  camera.updateProjectionMatrix();
+
+}
