@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CYBERHUNT</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ INTRO CINEMATIC ============ -->
+  <div id="intro">
+    <div id="intro-dot"></div>
+    <div class="scanline-overlay"></div>
+    <div id="intro-flash-text" class="intro-text"></div>
+    <div id="intro-title">
+      <span id="title-cyber">CYBER</span><span id="title-hunt">HUNT</span>
+    </div>
+    <div id="intro-skip">PRESS ANY KEY TO SKIP</div>
+  </div>
+
+  <!-- ============ MAIN MENU ============ -->
+  <div id="menu" class="hidden">
+    <div class="scanline-overlay"></div>
+    <div id="menu-title">
+      <span id="menu-cyber">CYBER</span><span id="menu-hunt">HUNT</span>
+    </div>
+    <div id="menu-buttons">
+      <button class="menu-btn" id="btn-start">START MISSION</button>
+      <button class="menu-btn" id="btn-operatives">OPERATIVES</button>
+      <button class="menu-btn" id="btn-armory">ARMORY</button>
+      <button class="menu-btn" id="btn-select">MISSION SELECT</button>
+      <button class="menu-btn" id="btn-profile">PROFILE</button>
+      <button class="menu-btn" id="btn-settings">SETTINGS</button>
+    </div>
+    <div id="menu-footer">MISSION 01 // PHISHING BREACH — READY</div>
+  </div>
+
+  <!-- ============ SIMPLE INFO OVERLAYS (Operatives / Armory / etc) ============ -->
+  <div id="info-panel" class="hidden">
+    <div class="scanline-overlay"></div>
+    <div id="info-content"></div>
+    <button class="menu-btn small" id="btn-info-close">BACK</button>
+  </div>
+
+  <!-- ============ GAME CANVAS ============ -->
+  <canvas id="game-canvas" class="hidden"></canvas>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div class="hud-scanlines"></div>
+
+    <div id="hud-top-left">
+      <div class="hud-label">MISSION 01</div>
+      <div class="hud-mission-name">PHISHING BREACH</div>
+      <div class="hud-location">LOCATION: CORPORATE SECURITY OFFICE</div>
+    </div>
+
+    <div id="hud-top-right">
+      <div>LVL <span id="hud-level">4</span></div>
+      <div>XP <span id="hud-xp">1280</span></div>
+      <div>COINS <span id="hud-coins">640</span></div>
+    </div>
+
+    <div id="hud-threat">
+      <div class="hud-label">THREAT LEVEL</div>
+      <div id="threat-bar-outer"><div id="threat-bar-inner"></div></div>
+    </div>
+
+    <div id="crosshair">
+      <div class="ch-line ch-h"></div>
+      <div class="ch-line ch-v"></div>
+    </div>
+
+    <div id="interact-prompt" class="hidden">[E] <span id="interact-label">INTERACT</span></div>
+
+    <div id="hud-objectives">
+      <div class="hud-label">CURRENT OBJECTIVES</div>
+      <ul id="objectives-list"></ul>
+    </div>
+
+    <div id="hud-bottom-left">
+      <div class="stat-row"><span class="stat-tag">HEALTH</span><div class="stat-bar"><div id="health-fill" class="stat-fill health"></div></div></div>
+      <div class="stat-row"><span class="stat-tag">ARMOR</span><div class="stat-bar"><div id="armor-fill" class="stat-fill armor"></div></div></div>
+    </div>
+
+    <div id="hud-bottom-right">
+      <div id="weapon-name">NIGHTFALL</div>
+      <div id="ammo-count"><span id="ammo-current">30</span> / <span id="ammo-reserve">90</span></div>
+    </div>
+
+    <div id="evidence-counter">EVIDENCE <span id="evidence-count">0</span>/<span id="evidence-total">3</span></div>
+
+  </div>
+
+  <!-- ============ PUZZLE MODAL ============ -->
+  <div id="puzzle-modal" class="hidden">
+    <div id="puzzle-box">
+      <div id="puzzle-title">ACCESS TERMINAL — DECODE REQUIRED</div>
+      <div id="puzzle-desc">A partial log fragment was recovered nearby. Reconstruct the access sequence.</div>
+      <div id="puzzle-clue"></div>
+      <div id="puzzle-input-row">
+        <input maxlength="1" class="puzzle-digit" data-i="0" />
+        <span class="puzzle-sep">_</span>
+        <input maxlength="1" class="puzzle-digit" data-i="1" />
+        <span class="puzzle-sep">_</span>
+        <input maxlength="1" class="puzzle-digit" data-i="2" />
+        <span class="puzzle-sep">_</span>
+        <input maxlength="1" class="puzzle-digit" data-i="3" />
+      </div>
+      <div id="puzzle-feedback"></div>
+      <div id="puzzle-buttons">
+        <button class="menu-btn small" id="puzzle-submit">DECODE</button>
+        <button class="menu-btn small ghost" id="puzzle-cancel">ABORT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ EVIDENCE / EMAIL VIEWER ============ -->
+  <div id="doc-modal" class="hidden">
+    <div id="doc-box">
+      <div id="doc-title">EVIDENCE COLLECTED</div>
+      <div id="doc-body"></div>
+      <button class="menu-btn small" id="doc-close">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- ============ ALERT TOASTS ============ -->
+  <div id="alert-toast" class="hidden"></div>
+
+  <!-- ============ MISSION COMPLETE / BADGE REWARD ============ -->
+  <div id="reward-screen" class="hidden">
+    <div id="badge-wrap">
+      <div id="badge-3d"></div>
+    </div>
+    <div id="badge-unlocked-text">BADGE UNLOCKED</div>
+    <div id="badge-name">PHANTOM TRACE</div>
+    <div id="badge-rewards">+500 XP &nbsp;&nbsp;·&nbsp;&nbsp; +250 COINS</div>
+    <div id="mission-complete-text">MISSION COMPLETE</div>
+    <button class="menu-btn" id="btn-return-menu">RETURN TO MENU</button>
+  </div>
+
+  <div id="pointer-lock-hint" class="hidden">CLICK TO ENGAGE TACTICAL VIEW</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
