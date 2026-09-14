@@ -1,152 +1,305 @@
 ```javascript
 /* =========================================================
    CYBERHUNT
-   Main Game Controller
+   MAIN GAME ENGINE
    ========================================================= */
 
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+
+import {
+    GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
+
+import {
+    EffectComposer
+} from "three/addons/postprocessing/EffectComposer.js";
+
+import {
+    RenderPass
+} from "three/addons/postprocessing/RenderPass.js";
+
+import {
+    UnrealBloomPass
+} from "three/addons/postprocessing/UnrealBloomPass.js";
+
+import {
+    createCyberCity,
+    updateCyberCity
+} from "./arena.js";
+
 
 /* =========================================================
-   MODEL PATHS
-   ========================================================= */
+   EXACT PLAYER MODELS
+========================================================= */
 
 const MODEL_PATHS = {
-    vexa: "./assets/models/girl-agent.glb",
-    kai: "./assets/models/boy-agent.glb",
-    enemy: "./assets/models/enemy.glb"
+
+    vexa:
+        "./assets/models/girl-agent.glb",
+
+    kai:
+        "./assets/models/boy-agent.glb",
+
+    enemy:
+        "./assets/models/enemy.glb"
 };
 
+
 /* =========================================================
-   GAME STATE
-   ========================================================= */
+   GAME DATA
+========================================================= */
+
+const LEVEL_DATA = {
+
+    1: {
+        name: "DATA VAULT",
+
+        evidence:
+            "Encrypted USB",
+
+        clue:
+            "2 + 0 + 2 + 6",
+
+        passcode:
+            "10",
+
+        reward:
+            500
+    },
+
+    2: {
+        name: "CYBER BANK",
+
+        evidence:
+            "Authentication Key",
+
+        clue:
+            "5 + 5",
+
+        passcode:
+            "10",
+
+        reward:
+            700
+    },
+
+    3: {
+        name: "NEXUS LAB",
+
+        evidence:
+            "Research Drive",
+
+        clue:
+            "3 + 7",
+
+        passcode:
+            "10",
+
+        reward:
+            900
+    },
+
+    4: {
+        name: "BLACKSITE",
+
+        evidence:
+            "Operation File",
+
+        clue:
+            "8 + 2",
+
+        passcode:
+            "10",
+
+        reward:
+            1200
+    },
+
+    5: {
+        name: "CYBER CORE",
+
+        evidence:
+            "Core Access Key",
+
+        clue:
+            "4 + 6",
+
+        passcode:
+            "10",
+
+        reward:
+            2000
+    }
+
+};
+
+
+/* =========================================================
+   STATE
+========================================================= */
 
 const gameState = {
-    currentPage: "dashboard",
-    currentLevel: 1,
 
-    selectedOperative: "vexa",
+    page:
+        "dashboard",
 
-    xp: 950,
-    level: 1,
+    level:
+        1,
 
-    missionsCompleted: 0,
-    badges: [],
+    operative:
+        "vexa",
 
-    health: 100,
-    missionProgress: 0,
+    xp:
+        950,
 
-    evidenceFound: false,
-    terminalInvestigated: false,
-    puzzleSolved: false,
-    doorUnlocked: false,
-    enemyDefeated: false,
+    missions:
+        0,
 
-    missionComplete: false,
-    gameRunning: false,
-    paused: false,
+    badges:
+        [],
 
-    unlockedLevels: [1]
+    unlocked:
+        [1],
+
+    health:
+        100,
+
+    progress:
+        0,
+
+    evidence:
+        false,
+
+    decoded:
+        false,
+
+    doorUnlocked:
+        false,
+
+    enemyDefeated:
+        false,
+
+    escaped:
+        false,
+
+    paused:
+        false,
+
+    running:
+        false
 };
 
-/* =========================================================
-   DOM HELPERS
-   ========================================================= */
-
-const $ = (id) => document.getElementById(id);
-
-function show(element) {
-    if (element) {
-        element.style.display = "";
-    }
-}
-
-function hide(element) {
-    if (element) {
-        element.style.display = "none";
-    }
-}
-
-function setText(id, value) {
-    const element = $(id);
-    if (element) {
-        element.textContent = value;
-    }
-}
 
 /* =========================================================
-   DOM ELEMENTS
-   ========================================================= */
+   DOM
+========================================================= */
 
-const cinematicIntro = $("cinematicIntro");
-const enterGameBtn = $("enterGameBtn");
-const app = $("app");
+const $ =
+    id =>
+        document.getElementById(id);
 
-const gameScreen = $("gameScreen");
-const gameContainer = $("gameContainer");
-
-const loadingOverlay = $("loadingOverlay");
-
-const puzzleModal = $("puzzleModal");
-const interactionModal = $("interactionModal");
-const missionCompleteModal = $("missionCompleteModal");
-const pauseMenu = $("pauseMenu");
 
 /* =========================================================
-   CINEMATIC INTRO
-   ========================================================= */
+   INTRO
+========================================================= */
 
-function enterCyberHunt() {
+const intro =
+    $("cinematicIntro");
 
-    console.log("CYBERHUNT: ENTER ACTIVATED");
+const enterButton =
+    $("enterGameBtn");
 
-    if (cinematicIntro) {
+const app =
+    $("app");
 
-        cinematicIntro.classList.add("intro-exit");
+const gameScreen =
+    $("gameScreen");
 
-        setTimeout(() => {
-            cinematicIntro.style.display = "none";
-        }, 750);
+const gameContainer =
+    $("gameContainer");
+
+const loading =
+    $("loadingOverlay");
+
+const puzzleModal =
+    $("puzzleModal");
+
+const missionCompleteModal =
+    $("missionCompleteModal");
+
+const pauseMenu =
+    $("pauseMenu");
+
+
+/* =========================================================
+   ENTER GAME
+========================================================= */
+
+function enterGame() {
+
+    console.log(
+        "CYBERHUNT // ENTER"
+    );
+
+    if (intro) {
+
+        intro.classList.add(
+            "intro-exit"
+        );
+
+        setTimeout(
+            () => {
+
+                intro.style.display =
+                    "none";
+
+            },
+            800
+        );
     }
 
     if (app) {
 
-        app.style.display = "block";
-        app.classList.add("dashboard-enter");
+        app.style.display =
+            "block";
 
-        setTimeout(() => {
-            app.classList.remove("dashboard-enter");
-        }, 900);
+        app.classList.add(
+            "dashboard-enter"
+        );
     }
 
-    navigateTo("dashboard");
-
-    updateDashboard();
-}
-
-/* Mouse / Touch */
-
-if (enterGameBtn) {
-
-    enterGameBtn.addEventListener(
-        "click",
-        enterCyberHunt
+    navigate(
+        "dashboard"
     );
 
-    enterGameBtn.addEventListener(
+    updateUI();
+}
+
+
+/* =========================================================
+   BUTTON EVENTS
+========================================================= */
+
+if (enterButton) {
+
+    enterButton.addEventListener(
+        "click",
+        enterGame
+    );
+
+    enterButton.addEventListener(
         "touchend",
-        (event) => {
+        event => {
+
             event.preventDefault();
-            enterCyberHunt();
+
+            enterGame();
         }
     );
 
-    enterGameBtn.addEventListener(
+    enterButton.addEventListener(
         "keydown",
-        (event) => {
+        event => {
 
             if (
                 event.key === "Enter" ||
@@ -154,239 +307,227 @@ if (enterGameBtn) {
             ) {
 
                 event.preventDefault();
-                enterCyberHunt();
+
+                enterGame();
             }
         }
     );
 }
 
+
 /* =========================================================
-   PAGE NAVIGATION
-   ========================================================= */
+   NAVIGATION
+========================================================= */
 
-function navigateTo(pageName) {
+function navigate(
+    page
+) {
 
-    gameState.currentPage = pageName;
+    gameState.page =
+        page;
 
     document
-        .querySelectorAll(".page")
-        .forEach(page => {
+        .querySelectorAll(
+            ".page"
+        )
+        .forEach(
+            element => {
 
-            page.classList.remove("active");
+                element.classList.remove(
+                    "active"
+                );
 
-            page.style.display = "none";
-        });
+                element.style.display =
+                    "none";
+            }
+        );
 
     const target =
-        document.getElementById(
-            `${pageName}Page`
+        $(
+            `${page}Page`
         );
 
     if (target) {
 
-        target.style.display = "block";
+        target.style.display =
+            "block";
 
-        requestAnimationFrame(() => {
-            target.classList.add("active");
-        });
-    }
-
-    document
-        .querySelectorAll("[data-page]")
-        .forEach(button => {
-
-            button.classList.toggle(
-                "active",
-                button.dataset.page === pageName
-            );
-        });
-}
-
-/* Navigation buttons */
-
-document
-    .querySelectorAll("[data-page]")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
+        requestAnimationFrame(
             () => {
 
-                const page =
-                    button.dataset.page;
-
-                navigateTo(page);
-
-                updateDashboard();
-            }
-        );
-    });
-
-/* =========================================================
-   OPERATIVE SELECTION
-   ========================================================= */
-
-document
-    .querySelectorAll(".operative-card")
-    .forEach(card => {
-
-        card.addEventListener(
-            "click",
-            () => {
-
-                const operative =
-                    card.dataset.operative;
-
-                if (
-                    operative !== "vexa" &&
-                    operative !== "kai"
-                ) {
-                    return;
-                }
-
-                gameState.selectedOperative =
-                    operative;
-
-                document
-                    .querySelectorAll(".operative-card")
-                    .forEach(item => {
-                        item.classList.remove("selected");
-                    });
-
-                card.classList.add("selected");
-
-                updateProfile();
-
-                notify(
-                    operative === "vexa"
-                        ? "VEXA selected"
-                        : "KAI selected"
+                target.classList.add(
+                    "active"
                 );
             }
         );
-    });
-
-/* =========================================================
-   LEVEL SELECTION
-   ========================================================= */
-
-document
-    .querySelectorAll("[data-start-level]")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                const level =
-                    Number(
-                        button.dataset.startLevel
-                    );
-
-                if (
-                    !gameState.unlockedLevels.includes(
-                        level
-                    )
-                ) {
-
-                    notify(
-                        "Level locked — complete the previous mission."
-                    );
-
-                    return;
-                }
-
-                startLevel(level);
-            }
-        );
-    });
-
-/* =========================================================
-   START LEVEL
-   ========================================================= */
-
-function startLevel(level) {
-
-    gameState.currentLevel = level;
-
-    resetMissionState();
-
-    hide(app);
-    show(gameScreen);
-
-    if (loadingOverlay) {
-        loadingOverlay.style.display = "flex";
     }
 
-    setTimeout(() => {
+    document
+        .querySelectorAll(
+            ".nav-btn"
+        )
+        .forEach(
+            button => {
 
-        initializeGame();
+                button.classList.toggle(
+                    "active",
+                    button.dataset.page ===
+                    page
+                );
+            }
+        );
+}
 
-        if (loadingOverlay) {
-            loadingOverlay.style.display = "none";
+
+/* =========================================================
+   NAV BUTTONS
+========================================================= */
+
+document
+    .querySelectorAll(
+        "[data-page]"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    navigate(
+                        button.dataset.page
+                    );
+
+                    updateUI();
+                }
+            );
         }
+    );
 
-        gameState.gameRunning = true;
-
-    }, 500);
-}
 
 /* =========================================================
-   RESET MISSION
-   ========================================================= */
+   OPERATIVE SELECTION
+========================================================= */
 
-function resetMissionState() {
+document
+    .querySelectorAll(
+        ".operative-card"
+    )
+    .forEach(
+        card => {
 
-    gameState.health = 100;
+            card.addEventListener(
+                "click",
+                () => {
 
-    gameState.missionProgress = 0;
+                    const selected =
+                        card.dataset.operative;
 
-    gameState.evidenceFound = false;
-    gameState.terminalInvestigated = false;
-    gameState.puzzleSolved = false;
-    gameState.doorUnlocked = false;
-    gameState.enemyDefeated = false;
+                    if (
+                        selected !== "vexa" &&
+                        selected !== "kai"
+                    ) {
+                        return;
+                    }
 
-    gameState.missionComplete = false;
-    gameState.paused = false;
+                    gameState.operative =
+                        selected;
 
-    updateHUD();
-}
+                    document
+                        .querySelectorAll(
+                            ".operative-card"
+                        )
+                        .forEach(
+                            item => {
+
+                                item.classList.remove(
+                                    "selected"
+                                );
+                            }
+                        );
+
+                    card.classList.add(
+                        "selected"
+                    );
+
+                    updateUI();
+
+                    notify(
+                        selected === "vexa"
+                            ? "VEXA SELECTED"
+                            : "KAI SELECTED"
+                    );
+                }
+            );
+        }
+    );
+
 
 /* =========================================================
-   THREE.JS VARIABLES
-   ========================================================= */
+   LEVEL BUTTONS
+========================================================= */
+
+document
+    .querySelectorAll(
+        "[data-start-level]"
+    )
+    .forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const level =
+                        Number(
+                            button.dataset.startLevel
+                        );
+
+                    if (
+                        !gameState.unlocked.includes(
+                            level
+                        )
+                    ) {
+
+                        notify(
+                            "MISSION LOCKED"
+                        );
+
+                        return;
+                    }
+
+                    startMission(
+                        level
+                    );
+                }
+            );
+        }
+    );
+
+
+/* =========================================================
+   THREE VARIABLES
+========================================================= */
 
 let scene;
 let camera;
 let renderer;
 let composer;
 
+let loader;
+let clock;
+
 let player;
 let enemy;
 
-let playerModel;
-let enemyModel;
+let playerMixer;
+let enemyMixer;
 
-let mixerPlayer;
-let mixerEnemy;
+let terminal;
+let evidence;
+let exitDoor;
 
-let clock;
-
-let loader;
-
-let interactables = [];
-
-let terminalObject;
-let evidenceObject;
-let doorObject;
-
-let playerPosition =
-    new THREE.Vector3(
-        0,
-        1,
-        35
-    );
+let bullets = [];
 
 let keys = {};
 
@@ -396,43 +537,138 @@ let mouse = {
     down: false
 };
 
-let shootCooldown = 0;
+let enemyHealth =
+    100;
 
-let enemyHealth = 100;
+let shootCooldown =
+    0;
 
-let gameInitialized = false;
+let initialized =
+    false;
+
 
 /* =========================================================
-   INITIALIZE THREE.JS
-   ========================================================= */
+   START MISSION
+========================================================= */
+
+function startMission(
+    level
+) {
+
+    gameState.level =
+        level;
+
+    resetMission();
+
+    if (app) {
+        app.style.display =
+            "none";
+    }
+
+    if (gameScreen) {
+        gameScreen.style.display =
+            "block";
+    }
+
+    if (loading) {
+
+        loading.style.display =
+            "flex";
+    }
+
+    setTimeout(
+        () => {
+
+            initializeGame();
+
+            if (loading) {
+
+                loading.style.display =
+                    "none";
+            }
+
+            gameState.running =
+                true;
+
+            updateHUD();
+
+        },
+        500
+    );
+}
+
+
+/* =========================================================
+   RESET MISSION
+========================================================= */
+
+function resetMission() {
+
+    gameState.health =
+        100;
+
+    gameState.progress =
+        0;
+
+    gameState.evidence =
+        false;
+
+    gameState.decoded =
+        false;
+
+    gameState.doorUnlocked =
+        false;
+
+    gameState.enemyDefeated =
+        false;
+
+    gameState.escaped =
+        false;
+
+    gameState.paused =
+        false;
+
+    enemyHealth =
+        100;
+}
+
+
+/* =========================================================
+   INITIALIZE GAME
+========================================================= */
 
 function initializeGame() {
 
     if (!gameContainer) {
 
         console.error(
-            "CyberHunt: gameContainer missing."
+            "gameContainer missing"
         );
 
         return;
     }
 
-    gameInitialized = false;
+    /* Clean old canvas */
 
-    interactables = [];
+    gameContainer.innerHTML =
+        "";
 
     /* Scene */
 
-    scene = new THREE.Scene();
+    scene =
+        new THREE.Scene();
 
     scene.background =
-        new THREE.Color(0x020204);
+        new THREE.Color(
+            0x020204
+        );
 
     scene.fog =
         new THREE.FogExp2(
             0x030305,
-            0.012
+            0.013
         );
+
 
     /* Camera */
 
@@ -448,15 +684,17 @@ function initializeGame() {
     camera.position.set(
         0,
         5,
-        42
+        30
     );
+
 
     /* Renderer */
 
     renderer =
         new THREE.WebGLRenderer({
             antialias: true,
-            powerPreference: "high-performance"
+            powerPreference:
+                "high-performance"
         });
 
     renderer.setPixelRatio(
@@ -471,7 +709,8 @@ function initializeGame() {
         window.innerHeight
     );
 
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled =
+        true;
 
     renderer.shadowMap.type =
         THREE.PCFSoftShadowMap;
@@ -485,919 +724,241 @@ function initializeGame() {
     renderer.toneMappingExposure =
         1.15;
 
-    gameContainer.innerHTML = "";
-
     gameContainer.appendChild(
         renderer.domElement
     );
 
+
     /* Clock */
 
-    clock = new THREE.Clock();
+    clock =
+        new THREE.Clock();
+
 
     /* Loader */
 
-    loader = new GLTFLoader();
+    loader =
+        new GLTFLoader();
 
-    /* Lights */
+
+    /* Lighting */
 
     createLighting();
 
-    /* Environment */
 
-    createGameEnvironment();
+    /* City */
+
+    createCyberCity(
+        scene
+    );
+
+
+    /* Escape room */
+
+    createEscapeRoom();
+
 
     /* Player */
 
     loadPlayer();
 
+
     /* Enemy */
 
     loadEnemy();
 
-    /* Post processing */
 
-    createPostProcessing();
+    /* Effects */
+
+    createEffects();
+
 
     /* Controls */
 
     setupControls();
 
-    /* Resize */
 
-    window.addEventListener(
-        "resize",
-        handleResize
-    );
+    initialized =
+        true;
 
-    gameInitialized = true;
+    updateHUD();
 
     animate();
 }
 
+
 /* =========================================================
    LIGHTING
-   ========================================================= */
+========================================================= */
 
 function createLighting() {
 
     const ambient =
         new THREE.AmbientLight(
-            0x555566,
-            1.3
+            0x565665,
+            1.35
         );
 
-    scene.add(ambient);
-
-    const redLight =
-        new THREE.PointLight(
-            0xff1744,
-            7,
-            70
-        );
-
-    redLight.position.set(
-        0,
-        12,
-        5
+    scene.add(
+        ambient
     );
 
-    scene.add(redLight);
 
-    const redLight2 =
+    const red =
         new THREE.PointLight(
-            0x9e1033,
-            5,
-            50
+            0xff1744,
+            8,
+            65
         );
 
-    redLight2.position.set(
-        -25,
-        8,
+    red.position.set(
+        0,
+        14,
+        0
+    );
+
+    scene.add(
+        red
+    );
+
+
+    const red2 =
+        new THREE.PointLight(
+            0x8e102d,
+            6,
+            45
+        );
+
+    red2.position.set(
+        -20,
+        7,
         -20
     );
 
-    scene.add(redLight2);
+    scene.add(
+        red2
+    );
 
-    const whiteLight =
+
+    const white =
         new THREE.DirectionalLight(
-            0xdfe7ff,
-            1.5
+            0xdce5ff,
+            1.6
         );
 
-    whiteLight.position.set(
+    white.position.set(
         20,
         35,
         25
     );
 
-    whiteLight.castShadow = true;
+    white.castShadow =
+        true;
 
-    whiteLight.shadow.mapSize.width =
+    white.shadow.mapSize.width =
         2048;
 
-    whiteLight.shadow.mapSize.height =
+    white.shadow.mapSize.height =
         2048;
 
-    scene.add(whiteLight);
-}
-
-/* =========================================================
-   ENVIRONMENT
-   ========================================================= */
-
-function createGameEnvironment() {
-
-    /* Ground */
-
-    const groundGeometry =
-        new THREE.PlaneGeometry(
-            180,
-            180
-        );
-
-    const groundMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x050508,
-            roughness: 0.85,
-            metalness: 0.35
-        });
-
-    const ground =
-        new THREE.Mesh(
-            groundGeometry,
-            groundMaterial
-        );
-
-    ground.rotation.x =
-        -Math.PI / 2;
-
-    ground.receiveShadow = true;
-
-    scene.add(ground);
-
-    /* Grid */
-
-    const grid =
-        new THREE.GridHelper(
-            180,
-            45,
-            0x8d1230,
-            0x17131a
-        );
-
-    grid.position.y = 0.02;
-
-    grid.material.transparent = true;
-
-    grid.material.opacity = 0.28;
-
-    scene.add(grid);
-
-    /* Road */
-
-    const roadMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x07070b,
-            roughness: 0.65,
-            metalness: 0.55
-        });
-
-    const roadGeometry =
-        new THREE.PlaneGeometry(
-            24,
-            180
-        );
-
-    const road =
-        new THREE.Mesh(
-            roadGeometry,
-            roadMaterial
-        );
-
-    road.rotation.x =
-        -Math.PI / 2;
-
-    road.position.y = 0.04;
-
-    scene.add(road);
-
-    /* Neon road lines */
-
-    for (
-        let z = -85;
-        z <= 85;
-        z += 5
-    ) {
-
-        const lineGeometry =
-            new THREE.PlaneGeometry(
-                0.08,
-                2.5
-            );
-
-        const lineMaterial =
-            new THREE.MeshBasicMaterial({
-                color: 0xff1744
-            });
-
-        const line =
-            new THREE.Mesh(
-                lineGeometry,
-                lineMaterial
-            );
-
-        line.rotation.x =
-            -Math.PI / 2;
-
-        line.position.set(
-            0,
-            0.08,
-            z
-        );
-
-        scene.add(line);
-    }
-
-    createBuildings();
-    createStreetDetails();
-}
-
-/* =========================================================
-   BUILDINGS
-   ========================================================= */
-
-function createBuildings() {
-
-    const buildings = [
-
-        {
-            x: -45,
-            z: -35,
-            w: 25,
-            d: 25,
-            h: 30,
-            name: "DATA VAULT"
-        },
-
-        {
-            x: 45,
-            z: -35,
-            w: 28,
-            d: 25,
-            h: 38,
-            name: "CYBER BANK"
-        },
-
-        {
-            x: -45,
-            z: 40,
-            w: 25,
-            d: 25,
-            h: 34,
-            name: "NEXUS LAB"
-        },
-
-        {
-            x: 45,
-            z: 40,
-            w: 28,
-            d: 25,
-            h: 42,
-            name: "BLACKSITE"
-        },
-
-        {
-            x: 0,
-            z: -60,
-            w: 30,
-            d: 20,
-            h: 46,
-            name: "CYBER CORE"
-        }
-    ];
-
-    buildings.forEach(
-        data => {
-
-            const group =
-                new THREE.Group();
-
-            const geometry =
-                new THREE.BoxGeometry(
-                    data.w,
-                    data.h,
-                    data.d
-                );
-
-            const material =
-                new THREE.MeshStandardMaterial({
-                    color: 0x090a10,
-                    roughness: 0.58,
-                    metalness: 0.72
-                });
-
-            const building =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            building.position.y =
-                data.h / 2;
-
-            building.castShadow = true;
-
-            building.receiveShadow = true;
-
-            group.add(building);
-
-            /* Red edges */
-
-            const edgeMaterial =
-                new THREE.MeshBasicMaterial({
-                    color: 0xff1744
-                });
-
-            const edgeGeometry =
-                new THREE.BoxGeometry(
-                    0.18,
-                    data.h,
-                    0.18
-                );
-
-            const positions = [
-                [-data.w / 2, data.d / 2],
-                [data.w / 2, data.d / 2],
-                [-data.w / 2, -data.d / 2],
-                [data.w / 2, -data.d / 2]
-            ];
-
-            positions.forEach(
-                ([x, z]) => {
-
-                    const edge =
-                        new THREE.Mesh(
-                            edgeGeometry,
-                            edgeMaterial
-                        );
-
-                    edge.position.set(
-                        x,
-                        data.h / 2,
-                        z
-                    );
-
-                    group.add(edge);
-                }
-            );
-
-            /* Windows */
-
-            for (
-                let y = 5;
-                y < data.h - 2;
-                y += 5
-            ) {
-
-                for (
-                    let x = -data.w / 2 + 3;
-                    x < data.w / 2 - 1;
-                    x += 4
-                ) {
-
-                    const windowGeometry =
-                        new THREE.BoxGeometry(
-                            1.4,
-                            1.6,
-                            0.06
-                        );
-
-                    const windowMaterial =
-                        new THREE.MeshBasicMaterial({
-                            color:
-                                0x9e1033
-                        });
-
-                    const window =
-                        new THREE.Mesh(
-                            windowGeometry,
-                            windowMaterial
-                        );
-
-                    window.position.set(
-                        x,
-                        y,
-                        data.d / 2 + 0.05
-                    );
-
-                    group.add(window);
-                }
-            }
-
-            group.position.set(
-                data.x,
-                0,
-                data.z
-            );
-
-            scene.add(group);
-        }
-    );
-}
-
-/* =========================================================
-   STREET DETAILS
-   ========================================================= */
-
-function createStreetDetails() {
-
-    for (
-        let x = -70;
-        x <= 70;
-        x += 14
-    ) {
-
-        createStreetLamp(
-            x,
-            -12
-        );
-
-        createStreetLamp(
-            x,
-            12
-        );
-    }
-
-    /* Crates */
-
-    for (
-        let i = 0;
-        i < 15;
-        i++
-    ) {
-
-        const crateGeometry =
-            new THREE.BoxGeometry(
-                2.5,
-                2.5,
-                2.5
-            );
-
-        const crateMaterial =
-            new THREE.MeshStandardMaterial({
-                color: 0x12131a,
-                metalness: 0.65,
-                roughness: 0.55
-            });
-
-        const crate =
-            new THREE.Mesh(
-                crateGeometry,
-                crateMaterial
-            );
-
-        crate.position.set(
-            -12 +
-            Math.random() * 24,
-            1.25,
-            -25 +
-            Math.random() * 30
-        );
-
-        crate.rotation.y =
-            Math.random() * Math.PI;
-
-        crate.castShadow = true;
-
-        scene.add(crate);
-    }
-}
-
-/* =========================================================
-   STREET LAMP
-   ========================================================= */
-
-function createStreetLamp(
-    x,
-    z
-) {
-
-    const group =
-        new THREE.Group();
-
-    const poleGeometry =
-        new THREE.CylinderGeometry(
-            0.12,
-            0.18,
-            6,
-            8
-        );
-
-    const poleMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x1a1b21,
-            metalness: 0.85,
-            roughness: 0.3
-        });
-
-    const pole =
-        new THREE.Mesh(
-            poleGeometry,
-            poleMaterial
-        );
-
-    pole.position.y = 3;
-
-    group.add(pole);
-
-    const lamp =
-        new THREE.PointLight(
-            0xff1744,
-            1.8,
-            14
-        );
-
-    lamp.position.y = 6;
-
-    group.add(lamp);
-
-    const glowGeometry =
-        new THREE.SphereGeometry(
-            0.24,
-            12,
-            12
-        );
-
-    const glowMaterial =
-        new THREE.MeshBasicMaterial({
-            color: 0xff1744
-        });
-
-    const glow =
-        new THREE.Mesh(
-            glowGeometry,
-            glowMaterial
-        );
-
-    glow.position.y = 6;
-
-    group.add(glow);
-
-    group.position.set(
-        x,
-        0,
-        z
-    );
-
-    scene.add(group);
-}
-
-/* =========================================================
-   POST PROCESSING
-   ========================================================= */
-
-function createPostProcessing() {
-
-    composer =
-        new EffectComposer(
-            renderer
-        );
-
-    const renderPass =
-        new RenderPass(
-            scene,
-            camera
-        );
-
-    composer.addPass(
-        renderPass
-    );
-
-    const bloom =
-        new UnrealBloomPass(
-            new THREE.Vector2(
-                window.innerWidth,
-                window.innerHeight
-            ),
-            0.75,
-            0.65,
-            0.88
-        );
-
-    composer.addPass(
-        bloom
-    );
-}
-
-/* =========================================================
-   LOAD PLAYER
-   ========================================================= */
-
-function loadPlayer() {
-
-    const path =
-        gameState.selectedOperative === "kai"
-            ? MODEL_PATHS.kai
-            : MODEL_PATHS.vexa;
-
-    loader.load(
-        path,
-
-        gltf => {
-
-            playerModel =
-                gltf.scene;
-
-            playerModel.scale.set(
-                1.7,
-                1.7,
-                1.7
-            );
-
-            playerModel.position.copy(
-                playerPosition
-            );
-
-            playerModel.traverse(
-                object => {
-
-                    if (
-                        object.isMesh
-                    ) {
-
-                        object.castShadow = true;
-                        object.receiveShadow = true;
-                    }
-                }
-            );
-
-            scene.add(
-                playerModel
-            );
-
-            player =
-                playerModel;
-
-            if (
-                gltf.animations &&
-                gltf.animations.length
-            ) {
-
-                mixerPlayer =
-                    new THREE.AnimationMixer(
-                        playerModel
-                    );
-
-                mixerPlayer
-                    .clipAction(
-                        gltf.animations[0]
-                    )
-                    .play();
-            }
-
-            notify(
-                gameState.selectedOperative === "kai"
-                    ? "KAI deployed"
-                    : "VEXA deployed"
-            );
-        },
-
-        undefined,
-
-        error => {
-
-            console.error(
-                "Player model failed:",
-                error
-            );
-        }
-    );
-}
-
-/* =========================================================
-   LOAD ENEMY
-   ========================================================= */
-
-function loadEnemy() {
-
-    loader.load(
-        MODEL_PATHS.enemy,
-
-        gltf => {
-
-            enemyModel =
-                gltf.scene;
-
-            enemyModel.scale.set(
-                1.8,
-                1.8,
-                1.8
-            );
-
-            enemyModel.position.set(
-                0,
-                0,
-                -15
-            );
-
-            enemyModel.traverse(
-                object => {
-
-                    if (
-                        object.isMesh
-                    ) {
-
-                        object.castShadow = true;
-                        object.receiveShadow = true;
-                    }
-                }
-            );
-
-            scene.add(
-                enemyModel
-            );
-
-            enemy =
-                enemyModel;
-
-            enemyHealth = 100;
-
-            if (
-                gltf.animations &&
-                gltf.animations.length
-            ) {
-
-                mixerEnemy =
-                    new THREE.AnimationMixer(
-                        enemyModel
-                    );
-
-                mixerEnemy
-                    .clipAction(
-                        gltf.animations[0]
-                    )
-                    .play();
-            }
-        },
-
-        undefined,
-
-        error => {
-
-            console.error(
-                "Enemy model failed:",
-                error
-            );
-        }
-    );
-}
-
-/* =========================================================
-   LEVEL 1 OBJECTS
-   ========================================================= */
-
-function createLevelObjects() {
-
-    if (terminalObject) {
-        scene.remove(
-            terminalObject
-        );
-    }
-
-    if (evidenceObject) {
-        scene.remove(
-            evidenceObject
-        );
-    }
-
-    if (doorObject) {
-        scene.remove(
-            doorObject
-        );
-    }
-
-    /* Terminal */
-
-    terminalObject =
-        createTerminal();
-
-    terminalObject.position.set(
-        -7,
-        1.5,
-        -5
-    );
-
     scene.add(
-        terminalObject
-    );
-
-    interactables.push(
-        terminalObject
-    );
-
-    /* Evidence */
-
-    evidenceObject =
-        createEvidence();
-
-    evidenceObject.position.set(
-        8,
-        0.7,
-        4
-    );
-
-    scene.add(
-        evidenceObject
-    );
-
-    interactables.push(
-        evidenceObject
-    );
-
-    /* Door */
-
-    doorObject =
-        createDoor();
-
-    doorObject.position.set(
-        0,
-        0,
-        -27
-    );
-
-    scene.add(
-        doorObject
-    );
-
-    interactables.push(
-        doorObject
+        white
     );
 }
+
+
+/* =========================================================
+   ESCAPE ROOM
+========================================================= */
+
+function createEscapeRoom() {
+
+    createTerminal();
+
+    createEvidence();
+
+    createExitDoor();
+}
+
 
 /* =========================================================
    TERMINAL
-   ========================================================= */
+========================================================= */
 
 function createTerminal() {
 
-    const group =
+    terminal =
         new THREE.Group();
 
     const body =
         new THREE.Mesh(
             new THREE.BoxGeometry(
-                2.8,
+                3,
                 2.2,
-                1.3
+                1.5
             ),
             new THREE.MeshStandardMaterial({
-                color: 0x101219,
-                metalness: 0.75,
-                roughness: 0.35
+                color: 0x101116,
+                metalness: 0.78,
+                roughness: 0.3
             })
         );
 
-    body.castShadow = true;
+    body.castShadow =
+        true;
 
-    group.add(body);
+    terminal.add(
+        body
+    );
+
 
     const screen =
         new THREE.Mesh(
             new THREE.BoxGeometry(
                 2.2,
-                1.2,
+                1.15,
                 0.08
             ),
             new THREE.MeshBasicMaterial({
-                color: 0x8d1230
+                color: 0x8e102d
             })
         );
 
     screen.position.set(
         0,
-        0.2,
-        0.68
+        0.25,
+        0.78
     );
 
-    group.add(screen);
+    terminal.add(
+        screen
+    );
 
-    group.userData = {
-        type: "terminal",
-        label: "SECURITY TERMINAL"
-    };
 
-    return group;
+    terminal.position.set(
+        -7,
+        1.5,
+        -5
+    );
+
+    terminal.userData.type =
+        "terminal";
+
+    scene.add(
+        terminal
+    );
 }
+
 
 /* =========================================================
    EVIDENCE
-   ========================================================= */
+========================================================= */
 
 function createEvidence() {
 
-    const group =
+    evidence =
         new THREE.Group();
+
 
     const usb =
         new THREE.Mesh(
@@ -1407,59 +968,87 @@ function createEvidence() {
                 0.65
             ),
             new THREE.MeshStandardMaterial({
-                color: 0x17191f,
+                color: 0x18191f,
                 metalness: 0.85,
-                roughness: 0.25,
-                emissive: 0x6e0d25,
-                emissiveIntensity: 0.5
+                roughness: 0.22,
+                emissive: 0x6d0b25,
+                emissiveIntensity: 0.55
             })
         );
 
-    usb.castShadow = true;
+    usb.castShadow =
+        true;
 
-    group.add(usb);
+    evidence.add(
+        usb
+    );
 
-    group.userData = {
-        type: "evidence",
-        label: "ENCRYPTED USB"
-    };
 
-    return group;
+    const glow =
+        new THREE.PointLight(
+            0xff1744,
+            1.2,
+            5
+        );
+
+    evidence.add(
+        glow
+    );
+
+
+    evidence.position.set(
+        8,
+        0.8,
+        4
+    );
+
+    evidence.userData.type =
+        "evidence";
+
+    scene.add(
+        evidence
+    );
 }
 
+
 /* =========================================================
-   DOOR
-   ========================================================= */
+   EXIT DOOR
+========================================================= */
 
-function createDoor() {
+function createExitDoor() {
 
-    const group =
+    exitDoor =
         new THREE.Group();
+
 
     const door =
         new THREE.Mesh(
             new THREE.BoxGeometry(
                 6,
                 8,
-                0.5
+                0.45
             ),
             new THREE.MeshStandardMaterial({
-                color: 0x07080c,
-                metalness: 0.8,
-                roughness: 0.25
+                color: 0x050508,
+                metalness: 0.85,
+                roughness: 0.22
             })
         );
 
-    door.position.y = 4;
+    door.position.y =
+        4;
 
-    group.add(door);
+    exitDoor.add(
+        door
+    );
+
 
     const frame =
         new THREE.Mesh(
             new THREE.BoxGeometry(
-                6.5,
-                8.5,
-                0.25
+                6.6,
+                8.6,
+                0.18
             ),
             new THREE.MeshBasicMaterial({
                 color: 0xff1744,
@@ -1467,21 +1056,241 @@ function createDoor() {
             })
         );
 
-    frame.position.y = 4;
+    frame.position.y =
+        4;
 
-    group.add(frame);
+    exitDoor.add(
+        frame
+    );
 
-    group.userData = {
-        type: "door",
-        label: "RESTRICTED ACCESS"
-    };
 
-    return group;
+    exitDoor.position.set(
+        0,
+        0,
+        -28
+    );
+
+    exitDoor.userData.type =
+        "exit";
+
+    scene.add(
+        exitDoor
+    );
 }
+
+
+/* =========================================================
+   LOAD PLAYER
+========================================================= */
+
+function loadPlayer() {
+
+    const path =
+        gameState.operative ===
+        "kai"
+            ? MODEL_PATHS.kai
+            : MODEL_PATHS.vexa;
+
+
+    loader.load(
+        path,
+
+        gltf => {
+
+            player =
+                gltf.scene;
+
+            player.scale.set(
+                1.65,
+                1.65,
+                1.65
+            );
+
+            player.position.set(
+                0,
+                0,
+                25
+            );
+
+            player.traverse(
+                object => {
+
+                    if (
+                        object.isMesh
+                    ) {
+
+                        object.castShadow =
+                            true;
+
+                        object.receiveShadow =
+                            true;
+                    }
+                }
+            );
+
+            scene.add(
+                player
+            );
+
+
+            if (
+                gltf.animations &&
+                gltf.animations.length
+            ) {
+
+                playerMixer =
+                    new THREE.AnimationMixer(
+                        player
+                    );
+
+                playerMixer
+                    .clipAction(
+                        gltf.animations[0]
+                    )
+                    .play();
+            }
+
+
+            notify(
+                `${gameState.operative.toUpperCase()} DEPLOYED`
+            );
+        },
+
+        undefined,
+
+        error => {
+
+            console.error(
+                "Player GLB error:",
+                error
+            );
+
+            notify(
+                "PLAYER MODEL FAILED TO LOAD"
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   LOAD ENEMY
+========================================================= */
+
+function loadEnemy() {
+
+    loader.load(
+        MODEL_PATHS.enemy,
+
+        gltf => {
+
+            enemy =
+                gltf.scene;
+
+            enemy.scale.set(
+                1.7,
+                1.7,
+                1.7
+            );
+
+            enemy.position.set(
+                0,
+                0,
+                -10
+            );
+
+            enemy.traverse(
+                object => {
+
+                    if (
+                        object.isMesh
+                    ) {
+
+                        object.castShadow =
+                            true;
+
+                        object.receiveShadow =
+                            true;
+                    }
+                }
+            );
+
+            scene.add(
+                enemy
+            );
+
+
+            if (
+                gltf.animations &&
+                gltf.animations.length
+            ) {
+
+                enemyMixer =
+                    new THREE.AnimationMixer(
+                        enemy
+                    );
+
+                enemyMixer
+                    .clipAction(
+                        gltf.animations[0]
+                    )
+                    .play();
+            }
+        },
+
+        undefined,
+
+        error => {
+
+            console.error(
+                "Enemy GLB error:",
+                error
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   POST PROCESSING
+========================================================= */
+
+function createEffects() {
+
+    composer =
+        new EffectComposer(
+            renderer
+        );
+
+
+    composer.addPass(
+        new RenderPass(
+            scene,
+            camera
+        )
+    );
+
+
+    const bloom =
+        new UnrealBloomPass(
+            new THREE.Vector2(
+                window.innerWidth,
+                window.innerHeight
+            ),
+            0.65,
+            0.55,
+            0.86
+        );
+
+    composer.addPass(
+        bloom
+    );
+}
+
 
 /* =========================================================
    CONTROLS
-   ========================================================= */
+========================================================= */
 
 function setupControls() {
 
@@ -1489,37 +1298,41 @@ function setupControls() {
         "keydown",
         event => {
 
-            keys[event.key.toLowerCase()] =
-                true;
+            keys[
+                event.key.toLowerCase()
+            ] = true;
+
 
             if (
-                event.key.toLowerCase() === "e"
+                event.key.toLowerCase() ===
+                "e"
             ) {
+
                 interact();
             }
 
-            if (
-                event.key.toLowerCase() === "r"
-            ) {
-                reloadWeapon();
-            }
 
             if (
-                event.key === "Escape"
+                event.key ===
+                "Escape"
             ) {
+
                 togglePause();
             }
         }
     );
 
+
     window.addEventListener(
         "keyup",
         event => {
 
-            keys[event.key.toLowerCase()] =
-                false;
+            keys[
+                event.key.toLowerCase()
+            ] = false;
         }
     );
+
 
     window.addEventListener(
         "mousemove",
@@ -1537,6 +1350,7 @@ function setupControls() {
         }
     );
 
+
     window.addEventListener(
         "mousedown",
         event => {
@@ -1545,71 +1359,96 @@ function setupControls() {
                 event.button === 0
             ) {
 
-                mouse.down = true;
+                mouse.down =
+                    true;
 
                 shoot();
             }
         }
     );
 
+
     window.addEventListener(
         "mouseup",
         () => {
 
-            mouse.down = false;
+            mouse.down =
+                false;
         }
+    );
+
+
+    window.addEventListener(
+        "resize",
+        resizeGame
     );
 }
 
-/* =========================================================
-   MOVEMENT
-   ========================================================= */
 
-function updatePlayer(delta) {
+/* =========================================================
+   PLAYER MOVEMENT
+========================================================= */
+
+function updatePlayer(
+    delta
+) {
 
     if (
         !player ||
         gameState.paused ||
-        !gameState.gameRunning
+        !gameState.running
     ) {
         return;
     }
 
-    const speed = 9 * delta;
 
-    let direction =
+    const speed =
+        9 * delta;
+
+
+    const direction =
         new THREE.Vector3();
 
+
     if (
-        keys["w"] ||
-        keys["arrowup"]
+        keys.w ||
+        keys.arrowup
     ) {
+
         direction.z -= 1;
     }
 
+
     if (
-        keys["s"] ||
-        keys["arrowdown"]
+        keys.s ||
+        keys.arrowdown
     ) {
+
         direction.z += 1;
     }
 
+
     if (
-        keys["a"] ||
-        keys["arrowleft"]
+        keys.a ||
+        keys.arrowleft
     ) {
+
         direction.x -= 1;
     }
 
+
     if (
-        keys["d"] ||
-        keys["arrowright"]
+        keys.d ||
+        keys.arrowright
     ) {
+
         direction.x += 1;
     }
 
+
     if (
-        direction.lengthSq() > 0
+        direction.lengthSq() >
+        0
     ) {
 
         direction.normalize();
@@ -1627,28 +1466,30 @@ function updatePlayer(delta) {
             );
     }
 
-    /* Keep player inside arena */
 
     player.position.x =
         THREE.MathUtils.clamp(
             player.position.x,
-            -80,
-            80
+            -75,
+            75
         );
+
 
     player.position.z =
         THREE.MathUtils.clamp(
             player.position.z,
-            -80,
-            80
+            -75,
+            75
         );
+
 
     updateCamera();
 }
 
+
 /* =========================================================
    CAMERA
-   ========================================================= */
+========================================================= */
 
 function updateCamera() {
 
@@ -1656,180 +1497,258 @@ function updateCamera() {
         return;
     }
 
-    const desired =
+
+    const target =
         new THREE.Vector3(
             player.position.x,
             player.position.y + 5.5,
             player.position.z + 10
         );
 
+
     camera.position.lerp(
-        desired,
+        target,
         0.08
     );
 
-    const lookAt =
-        new THREE.Vector3(
-            player.position.x,
-            player.position.y + 1.5,
-            player.position.z
-        );
 
     camera.lookAt(
-        lookAt
+        player.position.x,
+        player.position.y + 1.4,
+        player.position.z
     );
 }
 
+
 /* =========================================================
    INTERACTION
-   ========================================================= */
+========================================================= */
 
 function interact() {
 
     if (
         !player ||
-        !gameState.gameRunning
+        !gameState.running
     ) {
         return;
     }
 
-    let closest = null;
-    let closestDistance = 4.5;
 
-    interactables.forEach(
+    let closest =
+        null;
+
+    let distance =
+        5;
+
+
+    const objects = [
+        evidence,
+        terminal,
+        exitDoor
+    ];
+
+
+    objects.forEach(
         object => {
 
-            if (!object) return;
+            if (!object) {
+                return;
+            }
 
-            const distance =
+
+            const d =
                 player.position.distanceTo(
                     object.position
                 );
 
+
             if (
-                distance < closestDistance
+                d < distance
             ) {
 
-                closestDistance =
-                    distance;
+                distance =
+                    d;
 
-                closest = object;
+                closest =
+                    object;
             }
         }
     );
 
+
     if (!closest) {
 
         notify(
-            "Nothing to interact with."
+            "NO INTERACTABLE OBJECT NEARBY"
         );
 
         return;
     }
 
-    const type =
-        closest.userData.type;
 
     if (
-        type === "evidence"
+        closest.userData.type ===
+        "evidence"
     ) {
 
         collectEvidence();
-    }
 
-    else if (
-        type === "terminal"
+    } else if (
+        closest.userData.type ===
+        "terminal"
     ) {
 
-        investigateTerminal();
-    }
+        openPuzzle();
 
-    else if (
-        type === "door"
+    } else if (
+        closest.userData.type ===
+        "exit"
     ) {
 
-        useDoor();
+        attemptEscape();
     }
 }
 
+
 /* =========================================================
    EVIDENCE
-   ========================================================= */
+========================================================= */
 
 function collectEvidence() {
 
     if (
-        gameState.evidenceFound
+        gameState.evidence
     ) {
 
         notify(
-            "Evidence already collected."
+            "EVIDENCE ALREADY RECOVERED"
         );
 
         return;
     }
 
-    gameState.evidenceFound =
+
+    gameState.evidence =
         true;
 
-    gameState.missionProgress =
-        Math.max(
-            gameState.missionProgress,
-            25
-        );
+    gameState.progress =
+        25;
 
-    if (evidenceObject) {
 
-        evidenceObject.visible =
+    if (evidence) {
+
+        evidence.visible =
             false;
     }
 
-    gainXP(100);
+
+    gainXP(
+        100
+    );
+
 
     updateHUD();
 
+
     notify(
-        "Encrypted USB recovered +100 XP"
+        "ENCRYPTED USB RECOVERED +100 XP"
     );
 }
 
+
 /* =========================================================
-   TERMINAL
-   ========================================================= */
+   PUZZLE
+========================================================= */
 
-function investigateTerminal() {
+function openPuzzle() {
 
-    gameState.terminalInvestigated =
-        true;
+    if (
+        !gameState.evidence
+    ) {
 
-    gameState.missionProgress =
-        Math.max(
-            gameState.missionProgress,
-            50
+        notify(
+            "RECOVER THE USB FIRST"
         );
 
-    updateHUD();
+        return;
+    }
+
+
+    if (
+        gameState.decoded
+    ) {
+
+        notify(
+            "TERMINAL ALREADY DECODED"
+        );
+
+        return;
+    }
+
+
+    const level =
+        LEVEL_DATA[
+            gameState.level
+        ];
+
+
+    const question =
+        $("puzzleQuestion");
+
+    const clue =
+        $("puzzleClue");
+
+
+    if (question) {
+
+        question.textContent =
+            `Decode the recovered clue to obtain the exit passcode for ${level.name}.`;
+    }
+
+
+    if (clue) {
+
+        clue.textContent =
+            level.clue;
+    }
+
+
+    const input =
+        $("puzzleAnswer");
+
+    if (input) {
+
+        input.value =
+            "";
+    }
+
 
     if (puzzleModal) {
 
         puzzleModal.style.display =
             "flex";
     }
-
-    setText(
-        "puzzleQuestion",
-        "Decrypt the access key from the clue."
-    );
-
-    setText(
-        "puzzleClue",
-        "USB CLUE: 2 + 0 + 2 + 6"
-    );
 }
 
+
 /* =========================================================
-   PUZZLE
-   ========================================================= */
+   CLOSE PUZZLE
+========================================================= */
+
+window.closePuzzle =
+    function () {
+
+        if (puzzleModal) {
+
+            puzzleModal.style.display =
+                "none";
+        }
+    };
+
+
+/* =========================================================
+   SUBMIT PUZZLE
+========================================================= */
 
 window.submitPuzzle =
     function () {
@@ -1841,117 +1760,150 @@ window.submitPuzzle =
             return;
         }
 
+
         const answer =
             input.value
                 .trim()
                 .toLowerCase();
 
+
+        const level =
+            LEVEL_DATA[
+                gameState.level
+            ];
+
+
         if (
-            answer === "10"
+            answer ===
+            level.passcode
         ) {
 
-            gameState.puzzleSolved =
+            gameState.decoded =
                 true;
 
-            gameState.missionProgress =
-                75;
+            gameState.progress =
+                60;
+
 
             if (puzzleModal) {
+
                 puzzleModal.style.display =
                     "none";
             }
 
-            gainXP(150);
+
+            gainXP(
+                150
+            );
+
 
             updateHUD();
 
+
             notify(
-                "ACCESS KEY ACCEPTED +150 XP"
+                "ENCRYPTION BROKEN — ACCESS KEY ACCEPTED"
             );
 
         } else {
 
-            damagePlayer(5);
+            damagePlayer(
+                5
+            );
 
             notify(
-                "Incorrect code. Security system detected you."
+                "INCORRECT PASSCODE — SECURITY ALERT"
             );
         }
     };
 
+
 /* =========================================================
-   DOOR
-   ========================================================= */
+   DOOR / ESCAPE
+========================================================= */
 
-function useDoor() {
+function attemptEscape() {
 
     if (
-        !gameState.puzzleSolved
+        !gameState.decoded
     ) {
 
         notify(
-            "Door locked. Solve the terminal puzzle first."
+            "EXIT LOCKED — DECODE THE TERMINAL"
         );
 
         return;
     }
 
+
     if (
-        gameState.doorUnlocked
+        !gameState.enemyDefeated
     ) {
 
         notify(
-            "Restricted door already unlocked."
+            "THREAT STILL ACTIVE — ELIMINATE IT"
         );
 
         return;
     }
 
-    gameState.doorUnlocked =
+
+    if (
+        gameState.escaped
+    ) {
+
+        return;
+    }
+
+
+    gameState.escaped =
         true;
 
-    gameState.missionProgress =
-        90;
+    gameState.progress =
+        100;
 
-    if (doorObject) {
 
-        doorObject.position.y =
+    if (exitDoor) {
+
+        exitDoor.position.y =
             -9;
     }
 
-    gainXP(100);
 
-    updateHUD();
-
-    notify(
-        "RESTRICTED ACCESS UNLOCKED"
-    );
+    completeMission();
 }
 
+
 /* =========================================================
-   SHOOTING
-   ========================================================= */
+   SHOOT
+========================================================= */
 
 function shoot() {
 
     if (
-        !gameState.gameRunning ||
+        !gameState.running ||
         gameState.paused ||
-        !enemy
+        !enemy ||
+        gameState.enemyDefeated
     ) {
         return;
     }
+
 
     if (
-        shootCooldown > 0
+        shootCooldown >
+        0
     ) {
         return;
     }
 
-    shootCooldown = 0.35;
+
+    shootCooldown =
+        0.32;
+
 
     const origin =
         camera.position.clone();
+
 
     const direction =
         new THREE.Vector3(
@@ -1960,13 +1912,16 @@ function shoot() {
             0.5
         );
 
+
     direction.unproject(
         camera
     );
 
+
     direction
         .sub(origin)
         .normalize();
+
 
     const raycaster =
         new THREE.Raycaster(
@@ -1974,31 +1929,38 @@ function shoot() {
             direction
         );
 
+
     const hits =
         raycaster.intersectObject(
             enemy,
             true
         );
 
+
     if (
-        hits.length > 0
+        hits.length
     ) {
 
-        enemyHealth -= 25;
+        enemyHealth -=
+            25;
+
 
         createHitEffect(
             hits[0].point
         );
 
+
         notify(
-            `TARGET HIT — ${Math.max(
+            `THREAT HIT — ${Math.max(
                 enemyHealth,
                 0
             )}%`
         );
 
+
         if (
-            enemyHealth <= 0
+            enemyHealth <=
+            0
         ) {
 
             defeatEnemy();
@@ -2006,50 +1968,58 @@ function shoot() {
     }
 }
 
+
 /* =========================================================
    HIT EFFECT
-   ========================================================= */
+========================================================= */
 
 function createHitEffect(
     position
 ) {
 
-    const geometry =
-        new THREE.SphereGeometry(
-            0.15,
-            8,
-            8
-        );
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color: 0xff1744
-        });
-
     const effect =
         new THREE.Mesh(
-            geometry,
-            material
+            new THREE.SphereGeometry(
+                0.18,
+                8,
+                8
+            ),
+            new THREE.MeshBasicMaterial({
+                color: 0xff1744
+            })
         );
+
 
     effect.position.copy(
         position
     );
 
-    scene.add(effect);
 
-    setTimeout(() => {
+    scene.add(
+        effect
+    );
 
-        scene.remove(effect);
 
-    }, 180);
+    setTimeout(
+        () => {
+
+            scene.remove(
+                effect
+            );
+
+        },
+        180
+    );
 }
+
 
 /* =========================================================
    ENEMY AI
-   ========================================================= */
+========================================================= */
 
-function updateEnemy(delta) {
+function updateEnemy(
+    delta
+) {
 
     if (
         !enemy ||
@@ -2060,10 +2030,12 @@ function updateEnemy(delta) {
         return;
     }
 
+
     const distance =
         enemy.position.distanceTo(
             player.position
         );
+
 
     if (
         distance > 4
@@ -2077,11 +2049,13 @@ function updateEnemy(delta) {
                 )
                 .normalize();
 
+
         enemy.position.add(
             direction.multiplyScalar(
-                delta * 2.2
+                delta * 2.0
             )
         );
+
 
         enemy.rotation.y =
             Math.atan2(
@@ -2092,14 +2066,15 @@ function updateEnemy(delta) {
     } else {
 
         damagePlayer(
-            delta * 4
+            delta * 3
         );
     }
 }
 
+
 /* =========================================================
-   ENEMY DEFEATED
-   ========================================================= */
+   DEFEAT ENEMY
+========================================================= */
 
 function defeatEnemy() {
 
@@ -2109,11 +2084,13 @@ function defeatEnemy() {
         return;
     }
 
+
     gameState.enemyDefeated =
         true;
 
-    gameState.missionProgress =
-        100;
+    gameState.progress =
+        85;
+
 
     if (enemy) {
 
@@ -2121,14 +2098,24 @@ function defeatEnemy() {
             false;
     }
 
-    gainXP(250);
 
-    completeMission();
+    gainXP(
+        200
+    );
+
+
+    updateHUD();
+
+
+    notify(
+        "HOSTILE THREAT ELIMINATED +200 XP"
+    );
 }
+
 
 /* =========================================================
    PLAYER DAMAGE
-   ========================================================= */
+========================================================= */
 
 function damagePlayer(
     amount
@@ -2137,41 +2124,52 @@ function damagePlayer(
     gameState.health -=
         amount;
 
+
     gameState.health =
         Math.max(
             0,
             gameState.health
         );
 
+
     updateHUD();
 
+
     if (
-        gameState.health <= 0
+        gameState.health <=
+        0
     ) {
 
-        gameOver();
+        missionFailed();
     }
 }
 
+
 /* =========================================================
-   GAME OVER
-   ========================================================= */
+   MISSION FAILED
+========================================================= */
 
-function gameOver() {
+function missionFailed() {
 
-    gameState.gameRunning =
+    gameState.running =
         false;
+
 
     notify(
         "MISSION FAILED"
     );
 
-    setTimeout(() => {
 
-        restartGame();
+    setTimeout(
+        () => {
 
-    }, 1200);
+            returnToDashboard();
+
+        },
+        1200
+    );
 }
+
 
 /* =========================================================
    COMPLETE MISSION
@@ -2179,49 +2177,79 @@ function gameOver() {
 
 function completeMission() {
 
-    if (
-        gameState.missionComplete
-    ) {
-        return;
-    }
-
-    gameState.missionComplete =
-        true;
-
-    gameState.gameRunning =
+    gameState.running =
         false;
 
-    gameState.missionsCompleted++;
+
+    gameState.missions++;
+
+
+    const level =
+        gameState.level;
+
+
+    const reward =
+        LEVEL_DATA[level].reward;
+
+
+    gainXP(
+        reward
+    );
+
+
+    const badgeNames = [
+        "DATA BREAKER",
+        "BANK BREAKER",
+        "NEXUS SURVIVOR",
+        "CYBER GHOST",
+        "CORE BREAKER"
+    ];
+
+
+    const badge =
+        badgeNames[level - 1];
+
 
     if (
         !gameState.badges.includes(
-            "DATA BREAKER"
+            badge
         )
     ) {
 
         gameState.badges.push(
-            "DATA BREAKER"
+            badge
         );
     }
 
+
     const nextLevel =
-        gameState.currentLevel + 1;
+        level + 1;
+
 
     if (
         nextLevel <= 5 &&
-        !gameState.unlockedLevels.includes(
+        !gameState.unlocked.includes(
             nextLevel
         )
     ) {
 
-        gameState.unlockedLevels.push(
+        gameState.unlocked.push(
             nextLevel
         );
     }
 
-    updateDashboard();
-    updateProfile();
-    updateLevels();
+
+    setText(
+        "missionReward",
+        `+${reward} XP`
+    );
+
+
+    setText(
+        "missionTitle",
+        "MISSION COMPLETE"
+    );
+
 
     if (
         missionCompleteModal
@@ -2231,136 +2259,29 @@ function completeMission() {
             "flex";
     }
 
-    setText(
-        "missionReward",
-        "+250 XP"
-    );
 
-    setText(
-        "missionTitle",
-        "MISSION COMPLETE"
-    );
-
-    notify(
-        "MISSION COMPLETE — DATA VAULT SECURED"
-    );
+    updateUI();
 }
+
 
 /* =========================================================
    XP
-   ========================================================= */
+========================================================= */
 
-function gainXP(amount) {
+function gainXP(
+    amount
+) {
 
     gameState.xp +=
         amount;
 
-    updateDashboard();
-    updateProfile();
+    updateUI();
 }
 
-/* =========================================================
-   DASHBOARD
-   ========================================================= */
-
-function updateDashboard() {
-
-    setText(
-        "xpValue",
-        gameState.xp
-    );
-
-    setText(
-        "levelValue",
-        `LEVEL ${gameState.level}`
-    );
-
-    setText(
-        "missionsValue",
-        gameState.missionsCompleted
-    );
-
-    setText(
-        "badgeValue",
-        gameState.badges.length
-    );
-
-    const xpElements =
-        document.querySelectorAll(
-            "[data-xp]"
-        );
-
-    xpElements.forEach(
-        element => {
-
-            element.textContent =
-                gameState.xp;
-        }
-    );
-}
-
-/* =========================================================
-   PROFILE
-   ========================================================= */
-
-function updateProfile() {
-
-    setText(
-        "profileXP",
-        gameState.xp
-    );
-
-    setText(
-        "profileLevel",
-        `LEVEL ${gameState.level}`
-    );
-
-    setText(
-        "profileMissions",
-        gameState.missionsCompleted
-    );
-
-    setText(
-        "profileBadges",
-        gameState.badges.length
-    );
-}
-
-/* =========================================================
-   LEVELS
-   ========================================================= */
-
-function updateLevels() {
-
-    document
-        .querySelectorAll(
-            "[data-start-level]"
-        )
-        .forEach(button => {
-
-            const level =
-                Number(
-                    button.dataset.startLevel
-                );
-
-            const unlocked =
-                gameState.unlockedLevels.includes(
-                    level
-                );
-
-            button.disabled =
-                !unlocked;
-
-            button.classList.toggle(
-                "locked",
-                !unlocked
-            );
-        });
-}
 
 /* =========================================================
    HUD
-   ========================================================= */
+========================================================= */
 
 function updateHUD() {
 
@@ -2371,97 +2292,178 @@ function updateHUD() {
         )}%`
     );
 
+
     setText(
         "xpHud",
         gameState.xp
     );
 
+
     setText(
         "missionProgress",
         `${Math.round(
-            gameState.missionProgress
+            gameState.progress
         )}%`
     );
 
-    const progress =
+
+    const progressBar =
         $("missionProgressBar");
 
-    if (progress) {
 
-        progress.style.width =
-            `${gameState.missionProgress}%`;
+    if (progressBar) {
+
+        progressBar.style.width =
+            `${gameState.progress}%`;
     }
+
 
     const objective =
         $("objectiveText");
 
-    if (objective) {
 
-        if (
-            !gameState.evidenceFound
-        ) {
+    if (!objective) {
+        return;
+    }
 
-            objective.textContent =
-                "Locate the encrypted evidence.";
 
-        } else if (
-            !gameState.puzzleSolved
-        ) {
+    if (
+        !gameState.evidence
+    ) {
 
-            objective.textContent =
-                "Investigate the security terminal.";
+        objective.textContent =
+            "Locate the encrypted evidence.";
 
-        } else if (
-            !gameState.doorUnlocked
-        ) {
+    } else if (
+        !gameState.decoded
+    ) {
 
-            objective.textContent =
-                "Unlock the restricted door.";
+        objective.textContent =
+            "Investigate the terminal and decode the passcode.";
 
-        } else if (
-            !gameState.enemyDefeated
-        ) {
+    } else if (
+        !gameState.enemyDefeated
+    ) {
 
-            objective.textContent =
-                "Neutralize the hostile target.";
+        objective.textContent =
+            "Eliminate the hostile cyber threat.";
 
-        } else {
+    } else {
 
-            objective.textContent =
-                "Escape the facility.";
-        }
+        objective.textContent =
+            "Reach the exit and escape the facility.";
     }
 }
 
+
 /* =========================================================
-   RELOAD
-   ========================================================= */
+   UI UPDATE
+========================================================= */
 
-function reloadWeapon() {
+function updateUI() {
 
-    notify(
-        "WEAPON SYSTEM READY"
+    setText(
+        "xpValue",
+        gameState.xp
     );
+
+
+    setText(
+        "missionsValue",
+        gameState.missions
+    );
+
+
+    setText(
+        "badgeValue",
+        gameState.badges.length
+    );
+
+
+    setText(
+        "dashboardOperative",
+        gameState.operative.toUpperCase()
+    );
+
+
+    setText(
+        "profileXP",
+        gameState.xp
+    );
+
+
+    setText(
+        "profileMissions",
+        gameState.missions
+    );
+
+
+    setText(
+        "profileBadges",
+        gameState.badges.length
+    );
+
+
+    document
+        .querySelectorAll(
+            "[data-start-level]"
+        )
+        .forEach(
+            button => {
+
+                const level =
+                    Number(
+                        button.dataset.startLevel
+                    );
+
+
+                const unlocked =
+                    gameState.unlocked.includes(
+                        level
+                    );
+
+
+                button.disabled =
+                    !unlocked;
+
+
+                button.textContent =
+                    unlocked
+                        ? "ENTER ROOM"
+                        : "LOCKED";
+
+
+                button
+                    .closest(
+                        ".level-card"
+                    )
+                    ?.classList.toggle(
+                        "locked-level",
+                        !unlocked
+                    );
+            }
+        );
 }
+
 
 /* =========================================================
    PAUSE
-   ========================================================= */
+========================================================= */
 
 function togglePause() {
 
     if (
-        !gameState.gameRunning
+        !gameState.running
     ) {
         return;
     }
 
+
     gameState.paused =
         !gameState.paused;
 
-    if (
-        pauseMenu
-    ) {
+
+    if (pauseMenu) {
 
         pauseMenu.style.display =
             gameState.paused
@@ -2470,119 +2472,143 @@ function togglePause() {
     }
 }
 
-/* =========================================================
-   RESTART
-   ========================================================= */
 
-function restartGame() {
+window.togglePause =
+    togglePause;
 
-    gameState.gameRunning =
-        false;
-
-    if (gameScreen) {
-        gameScreen.style.display =
-            "none";
-    }
-
-    if (app) {
-        app.style.display =
-            "block";
-    }
-
-    navigateTo(
-        "dashboard"
-    );
-
-    updateDashboard();
-}
 
 /* =========================================================
-   RETURN TO DASHBOARD
-   ========================================================= */
+   RETURN DASHBOARD
+========================================================= */
 
 window.returnToDashboard =
     function () {
 
-        gameState.gameRunning =
+        gameState.running =
             false;
 
-        if (missionCompleteModal) {
+        gameState.paused =
+            false;
+
+
+        if (
+            missionCompleteModal
+        ) {
+
             missionCompleteModal.style.display =
                 "none";
         }
 
-        if (pauseMenu) {
+
+        if (
+            pauseMenu
+        ) {
+
             pauseMenu.style.display =
                 "none";
         }
 
-        hide(gameScreen);
-        show(app);
 
-        navigateTo(
+        if (gameScreen) {
+
+            gameScreen.style.display =
+                "none";
+        }
+
+
+        if (app) {
+
+            app.style.display =
+                "block";
+        }
+
+
+        navigate(
             "dashboard"
         );
 
-        updateDashboard();
+
+        updateUI();
     };
 
-/* =========================================================
-   NOTIFICATIONS
-   ========================================================= */
 
-function notify(message) {
+/* =========================================================
+   NOTIFICATION
+========================================================= */
+
+function notify(
+    message
+) {
 
     console.log(
         "CYBERHUNT:",
         message
     );
 
+
     let notification =
-        document.getElementById(
-            "cyberNotification"
-        );
+        $("cyberNotification");
+
 
     if (!notification) {
-
-        notification =
-            document.createElement(
-                "div"
-            );
-
-        notification.id =
-            "cyberNotification";
-
-        document.body.appendChild(
-            notification
-        );
+        return;
     }
+
 
     notification.textContent =
         message;
+
 
     notification.classList.add(
         "show"
     );
 
+
     clearTimeout(
         notification._timer
     );
 
+
     notification._timer =
-        setTimeout(() => {
+        setTimeout(
+            () => {
 
-            notification.classList.remove(
-                "show"
-            );
+                notification.classList.remove(
+                    "show"
+                );
 
-        }, 2500);
+            },
+            2500
+        );
 }
+
+
+/* =========================================================
+   TEXT HELPER
+========================================================= */
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        $(id);
+
+
+    if (element) {
+
+        element.textContent =
+            value;
+    }
+}
+
 
 /* =========================================================
    RESIZE
-   ========================================================= */
+========================================================= */
 
-function handleResize() {
+function resizeGame() {
 
     if (
         !camera ||
@@ -2591,16 +2617,20 @@ function handleResize() {
         return;
     }
 
+
     camera.aspect =
         window.innerWidth /
         window.innerHeight;
 
+
     camera.updateProjectionMatrix();
+
 
     renderer.setSize(
         window.innerWidth,
         window.innerHeight
     );
+
 
     if (composer) {
 
@@ -2611,9 +2641,10 @@ function handleResize() {
     }
 }
 
+
 /* =========================================================
    ANIMATION
-   ========================================================= */
+========================================================= */
 
 function animate() {
 
@@ -2621,9 +2652,13 @@ function animate() {
         animate
     );
 
-    if (!gameInitialized) {
+
+    if (
+        !initialized
+    ) {
         return;
     }
+
 
     const delta =
         Math.min(
@@ -2631,60 +2666,71 @@ function animate() {
             0.05
         );
 
+
     const elapsed =
         clock.elapsedTime;
 
+
     if (
-        gameState.gameRunning &&
+        gameState.running &&
         !gameState.paused
     ) {
 
-        updatePlayer(delta);
-        updateEnemy(delta);
+        updatePlayer(
+            delta
+        );
+
+        updateEnemy(
+            delta
+        );
+
 
         shootCooldown =
             Math.max(
                 0,
                 shootCooldown - delta
             );
-    }
 
-    if (mixerPlayer) {
-        mixerPlayer.update(delta);
-    }
 
-    if (mixerEnemy) {
-        mixerEnemy.update(delta);
-    }
+        /* Continuous firing */
 
-    /* Subtle cyber lighting pulse */
+        if (
+            mouse.down &&
+            shootCooldown <= 0
+        ) {
 
-    scene.traverse(
-        object => {
-
-            if (
-                object.isPointLight &&
-                object.color
-            ) {
-
-                if (
-                    object.color.r > 0.5 &&
-                    object.color.g < 0.2
-                ) {
-
-                    object.intensity =
-                        1.5 +
-                        Math.sin(
-                            elapsed * 2
-                        ) * 0.3;
-                }
-            }
+            shoot();
         }
+    }
+
+
+    if (playerMixer) {
+
+        playerMixer.update(
+            delta
+        );
+    }
+
+
+    if (enemyMixer) {
+
+        enemyMixer.update(
+            delta
+        );
+    }
+
+
+    updateCyberCity(
+        elapsed
     );
 
+
     if (composer) {
+
         composer.render();
+
     } else {
+
         renderer.render(
             scene,
             camera
@@ -2692,19 +2738,21 @@ function animate() {
     }
 }
 
+
 /* =========================================================
-   INITIAL STATE
-   ========================================================= */
+   INITIAL PAGE STATE
+========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
     () => {
 
-        if (cinematicIntro) {
+        if (intro) {
 
-            cinematicIntro.style.display =
+            intro.style.display =
                 "flex";
         }
+
 
         if (app) {
 
@@ -2712,19 +2760,33 @@ document.addEventListener(
                 "none";
         }
 
+
         if (gameScreen) {
 
             gameScreen.style.display =
                 "none";
         }
 
-        updateDashboard();
-        updateProfile();
-        updateLevels();
+
+        updateUI();
+
         updateHUD();
 
+
         console.log(
-            "CYBERHUNT SYSTEM ONLINE"
+            "================================"
+        );
+
+        console.log(
+            " CYBERHUNT SYSTEM ONLINE"
+        );
+
+        console.log(
+            " ESCAPE PROTOCOL READY"
+        );
+
+        console.log(
+            "================================"
         );
     }
 );
