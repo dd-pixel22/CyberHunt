@@ -2153,69 +2153,68 @@ function addCrate(
                      PLAYER
 =========================================================
 */
-
 function createPlayer() {
 
   const g =
     new THREE.Group();
 
-
   /*
   CUSTOM GLB
   */
 
- /*
-CUSTOM GLB PLAYER
-*/
-
-if (USE_CUSTOM_MODELS) {
-
-    const selectedModel =
-        selectedOperative === 'boy'
-            ? MODEL_PATHS.boyAgent
-            : MODEL_PATHS.girlAgent;
+  if (
+    USE_CUSTOM_MODELS
+  ) {
 
     loadModel(
-        'player',
-        selectedModel,
-        g
+      'player',
+      MODEL_PATHS.player,
+      g
     );
 
-}
+  }
+
   /*
   TEMPORARY PROCEDURAL PLAYER
   */
 
-  else{
+  else {
 
-     // KEEP ALL YOUR EXISTING
-    // PROCEDURAL PLAYER CODE HERE
+    const body =
+      new THREE.Mesh(
 
-        const body =
-            new THREE.Mesh(
+        new THREE.CapsuleGeometry(
+          .65,
+          1.35,
+          6,
+          10
+        ),
 
-                new THREE.CapsuleGeometry(
-                    0.65,
-                    1.35,
-                    6,
-                    10
-                ),
+        new THREE.MeshStandardMaterial({
 
-                new THREE.MeshStandardMaterial({
+          color: 0x1a1c25,
 
-                    color: 0x1a1c25,
-                    roughness: .55,
-                    metalness: .4
+          roughness: .55,
 
-                })
+          metalness: .4
 
-            );
+        })
 
-        body.position.y = 1.2;
+      );
 
-        body.castShadow = true;
+    body.position.y =
+      1.2;
 
-        g.add(body);
+    body.castShadow =
+      true;
+
+    g.add(
+      body
+    );
+
+    // KEEP EVERYTHING ELSE
+    // THAT ALREADY EXISTS
+    // INSIDE YOUR createPlayer()
 
         // KEEP THE REST OF YOUR EXISTING
         // HEAD / BODY / WEAPON CODE
