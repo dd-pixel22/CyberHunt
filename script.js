@@ -1,23 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-const MODEL_PATHS = {
-    girlAgent: 'assets/models/girl-agent.glb',
-    boyAgent: 'assets/models/boy-agent.glb',
-    enemy: 'assets/models/enemy.glb'
-};
-
-const USE_CUSTOM_MODELS = true;
-
-const CYBERHUNT_THEME = {
-    black: 0x050507,
-    dark: 0x0b0b0f,
-    crimson: 0x8f1028,
-    brightCrimson: 0xff1744,
-    neonRed: 0xff3155,
-    steel: 0x555862
-};
-
 /*
 =========================================================
                     CYBERHUNT
@@ -47,33 +29,31 @@ FEATURES
 =========================================================
 */
 
+// ============================================================
+// CYBERHUNT — MODEL SETTINGS
+// ============================================================
 
-/*
-=========================================================
-              CUSTOM MODEL SETTINGS
-=========================================================
-*/
-
-/*
-KEEP FALSE FOR NOW.
-
-When you upload your .glb models:
-
-assets/models/
-
-change this to:
+const MODEL_PATHS = {
+    girlAgent: 'assets/models/girl-agent.glb',
+    boyAgent: 'assets/models/boy-agent.glb',
+    enemy: 'assets/models/enemy.glb'
+};
 
 const USE_CUSTOM_MODELS = true;
-*/
 
 
-/*
-=========================================================
-                  MODEL PATHS
-=========================================================
-*/
+// ============================================================
+// CYBERHUNT — THEME
+// ============================================================
 
-
+const CYBERHUNT_THEME = {
+    black: 0x050507,
+    dark: 0x0b0b0f,
+    crimson: 0x8f1028,
+    brightCrimson: 0xff1744,
+    neonRed: 0xff3155,
+    steel: 0x555862
+};
 /*
 =========================================================
                      MISSIONS
