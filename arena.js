@@ -4,32 +4,36 @@ let roomObjects = [];
 let passcodeTarget = "4821";
 let gatheredDigits = ["_", "_", "_", "_"];
 
+// Character Models
+let playerBoy, playerGirl, enemyModel;
+
 function init3DArena() {
     const canvas = document.getElementById('game-canvas');
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x050002, 0.05);
+    scene.fog = new THREE.FogExp2(0x050002, 0.04);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 1.6, 5); // Eye level position
+    camera.position.set(0, 2, 6); // Eye-level view
 
     renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
 
-    // Dynamic Crimson/Neon Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    // Cyberpunk Neon Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambientLight);
 
-    const redLight = new THREE.PointLight(0xff003c, 2, 20);
-    redLight.position.set(0, 4, 0);
+    const redLight = new THREE.PointLight(0xff003c, 3, 25);
+    redLight.position.set(0, 5, 0);
+    redLight.castShadow = true;
     scene.add(redLight);
 
-    // Environment Construction (Escape Room Base)
-    buildRoomFrame();
-    populateInteractiveObjects();
+    // Build Room & Load Models
+    buildProceduralRoom();
     loadCharacterModels();
 
-    // Event Listeners for Raycasting (Interactivity)
+    // Interactivity Controls
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
     window.addEventListener('click', onObjectClick);
@@ -38,80 +42,113 @@ function init3DArena() {
     animate();
 }
 
-function buildRoomFrame() {
+// 1. DYNAMICALLY BUILD 3D ESCAPE ROOM (No room .glb needed)
+function buildProceduralRoom() {
     // Cyber Grid Floor
-    const gridHelper = new THREE.GridHelper(20, 20, 0xff003c, 0x220008);
+    const gridHelper = new THREE.GridHelper(30, 30, 0xff003c, 0x220008);
+    gridHelper.position.y = 0;
     scene.add(gridHelper);
 
-    // Room Walls
-    const wallGeo = new THREE.BoxGeometry(20, 10, 0.5);
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
+    // Dark Metallic Walls
+    const wallMat = new THREE.MeshStandardMaterial({ 
+        color: 0x0a0a10, 
+        roughness: 0.6,
+        metalness: 0.8 
+    });
 
-    const backWall = new THREE.Mesh(wallGeo, wallMat);
-    backWall.position.set(0, 5, -10);
+    // Back Wall
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 0.5), wallMat);
+    backWall.position.set(0, 5, -15);
     scene.add(backWall);
-}
 
-function populateInteractiveObjects() {
-    // 1. USB Drive Clue Object
-    const usbGeo = new THREE.BoxGeometry(0.4, 0.2, 0.8);
-    const usbMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5 });
-    const usb = new THREE.Mesh(usbGeo, usbMat);
-    usb.position.set(-3, 1, -4);
-    usb.userData = { type: 'clue', digit: '4', index: 0, text: 'Decrypted Malware log: First passcode digit is 4' };
-    scene.add(usb);
-    roomObjects.push(usb);
+    // Left Wall
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.5, 10, 30), wallMat);
+    leftWall.position.set(-15, 5, 0);
+    scene.add(leftWall);
 
-    // 2. Cyber Threat Terminal
-    const termGeo = new THREE.BoxGeometry(1.5, 2, 0.5);
-    const termMat = new THREE.MeshStandardMaterial({ color: 0xff003c, emissive: 0x5a0016 });
-    const terminal = new THREE.Mesh(termGeo, termMat);
-    terminal.position.set(3, 1.5, -6);
-    terminal.userData = { type: 'threat', digit: '8', index: 1, text: 'Ransomware Purged! Recovered passcode digit: 8' };
-    scene.add(terminal);
-    roomObjects.push(terminal);
+    // Right Wall
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.5, 10, 30), wallMat);
+    rightWall.position.set(15, 5, 0);
+    scene.add(rightWall);
 
-    // 3. Exit Door with Keypad
-    const doorGeo = new THREE.BoxGeometry(3, 6, 0.2);
+    // Interactive Workstation Desk (Contains USB Clue)
+    const deskMat = new THREE.MeshStandardMaterial({ color: 0xff003c, emissive: 0x33000f });
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 1.5), deskMat);
+    desk.position.set(-6, 0.6, -8);
+    desk.userData = { 
+        type: 'clue', 
+        digit: '4', 
+        index: 0, 
+        text: 'Decrypted Workstation! Passcode Digit 1 is 4' 
+    };
+    scene.add(desk);
+    roomObjects.push(desk);
+
+    // Exit Door with Keypad Access
     const doorMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 });
-    const exitDoor = new THREE.Mesh(doorGeo, doorMat);
-    exitDoor.position.set(0, 3, -9.8);
+    const exitDoor = new THREE.Mesh(new THREE.BoxGeometry(4, 7, 0.3), doorMat);
+    exitDoor.position.set(0, 3.5, -14.8);
     exitDoor.userData = { type: 'exit' };
     scene.add(exitDoor);
     roomObjects.push(exitDoor);
 }
 
+// 2. LOAD YOUR EXACT GITHUB 3D MODELS
 function loadCharacterModels() {
     const loader = new THREE.GLTFLoader();
 
-    /* 
-       Replace placeholder paths with your actual 3D model files (.gltf or .glb)
-       Example: loader.load('assets/agent_boy.glb', (gltf) => { scene.add(gltf.scene); });
-    */
-    
-    // Placeholder Mesh Visualizers for Boy/Girl/Enemy until models load
-    const agentBoy = createPlaceholderCapsule(0x00f0ff, -1, 1, -2); // Player Boy Agent
-    const enemy = createPlaceholderCapsule(0xff003c, 2, 1, -5);     // Enemy Threat
+    // Load Boy Agent
+    loader.load('assets/boy-agent.glb', (gltf) => {
+        playerBoy = gltf.scene;
+        playerBoy.position.set(-2, 0, -3);
+        playerBoy.scale.set(1, 1, 1);
+        scene.add(playerBoy);
+    }, undefined, (err) => console.log("Make sure assets/boy-agent.glb exists on GitHub"));
+
+    // Load Girl Agent
+    loader.load('assets/girl-agent.glb', (gltf) => {
+        playerGirl = gltf.scene;
+        playerGirl.position.set(2, 0, -3);
+        playerGirl.scale.set(1, 1, 1);
+        scene.add(playerGirl);
+    }, undefined, (err) => console.log("Make sure assets/girl-agent.glb exists on GitHub"));
+
+    // Load Enemy Model
+    loader.load('assets/enemy.glb', (gltf) => {
+        enemyModel = gltf.scene;
+        enemyModel.position.set(0, 0, -9);
+        enemyModel.scale.set(1, 1, 1);
+
+        // Make Enemy interactive for threat elimination
+        enemyModel.traverse((child) => {
+            if (child.isMesh) {
+                child.userData = { 
+                    type: 'threat', 
+                    digit: '8', 
+                    index: 1, 
+                    text: 'Enemy Threat Eliminated! Passcode Digit 2 unlocked: 8' 
+                };
+                roomObjects.push(child);
+            }
+        });
+
+        scene.add(enemyModel);
+    }, undefined, (err) => console.log("Make sure assets/enemy.glb exists on GitHub"));
 }
 
-function createPlaceholderCapsule(color, x, y, z) {
-    const geo = new THREE.CylinderGeometry(0.4, 0.4, 1.8, 16);
-    const mat = new THREE.MeshStandardMaterial({ color: color, wireframe: true });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y, z);
-    scene.add(mesh);
-    return mesh;
-}
-
+// 3. RAYCASTING (CLICK TO INTERACT WITH MODELS & OBJECTS)
 function onObjectClick(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(roomObjects);
+    const intersects = raycaster.intersectObjects(roomObjects, true);
 
     if (intersects.length > 0) {
-        const obj = intersects[0].object;
+        let obj = intersects[0].object;
+        while (obj.parent && !obj.userData.type && obj.parent.type !== "Scene") {
+            obj = obj.parent;
+        }
 
         if (obj.userData.type === 'clue' || obj.userData.type === 'threat') {
             triggerClue(obj.userData.text, obj.userData.digit, obj.userData.index);
@@ -121,12 +158,15 @@ function onObjectClick(event) {
     }
 }
 
+// 4. ANIMATION LOOP
 function animate() {
     requestAnimationFrame(animate);
-    // Subtle rotation animations for objects to heighten AAA effect
-    roomObjects.forEach(obj => {
-        if(obj.userData.type === 'clue') obj.rotation.y += 0.02;
-    });
+
+    // Rotate enemy model slightly for visual aura effect
+    if (enemyModel) {
+        enemyModel.rotation.y += 0.005;
+    }
+
     renderer.render(scene, camera);
 }
 
