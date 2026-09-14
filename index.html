@@ -1,75 +1,554 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBERHUNT // Cyber City Escape</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- Three.js and GLTFLoader -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBERHUNT // Forensics & Threat Investigation Console</title>
+  <style>
+    :root {
+      --bg: #030306;
+      --panel: #0a0a12;
+      --panel-border: rgba(255, 0, 60, 0.3);
+      --red: #ff003c;
+      --red-glow: rgba(255, 0, 60, 0.6);
+      --cyan: #00f0ff;
+      --text: #d0d0e0;
+      --text-dim: #707085;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(255,0,60,0.05) 0%, transparent 70%),
+        linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+    }
+
+    /* TYPOGRAPHY & GLOWS */
+    .neon-text {
+      color: var(--red);
+      text-shadow: 0 0 10px var(--red-glow), 0 0 20px var(--red-glow);
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+    }
+
+    /* VIEW SCREENS MANAGER */
+    .screen {
+      display: none;
+      min-height: 100vh;
+      width: 100vw;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      padding: 20px;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* 1. CINEMATIC INTRO SCREEN */
+    #intro-screen {
+      text-align: center;
+      background: radial-gradient(circle, #0f0206 0%, #030306 100%);
+    }
+
+    .intro-title {
+      font-size: 4rem;
+      letter-spacing: 12px;
+      margin-bottom: 10px;
+      animation: pulse 2s infinite alternate;
+    }
+
+    .intro-sub {
+      color: var(--cyan);
+      font-family: 'Courier New', Courier, monospace;
+      letter-spacing: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 40px;
+      text-shadow: 0 0 8px rgba(0,240,255,0.5);
+    }
+
+    .vfx-btn {
+      background: transparent;
+      color: var(--red);
+      border: 2px solid var(--red);
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      letter-spacing: 3px;
+      cursor: pointer;
+      box-shadow: 0 0 15px var(--panel-border);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .vfx-btn:hover {
+      background: var(--red);
+      color: #fff;
+      box-shadow: 0 0 30px var(--red);
+    }
+
+    /* 2. LOGIN PORTAL */
+    .login-box {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 0 30px rgba(255, 0, 60, 0.15);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      font-family: monospace;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px;
+      background: #05050a;
+      border: 1px solid #222233;
+      color: var(--cyan);
+      font-family: monospace;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .input-group input:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 8px var(--panel-border);
+    }
+
+    /* 3. MAIN DASHBOARD */
+    #dashboard-screen {
+      justify-content: flex-start;
+      padding-top: 80px;
+    }
+
+    .header-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: rgba(10, 10, 18, 0.9);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+      z-index: 100;
+      backdrop-filter: blur(5px);
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 300px;
+      gap: 20px;
+      width: 100%;
+      max-width: 1400px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 20px;
+    }
+
+    /* LEVEL MAP */
+    .level-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .level-item {
+      padding: 12px;
+      background: #05050a;
+      border: 1px solid #1a1a2e;
+      border-left: 3px solid #333;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .level-item:hover, .level-item.active {
+      border-left-color: var(--red);
+      background: #10050a;
+    }
+
+    /* CASE STUDY VIEWER */
+    .case-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: #05050a;
+      border: 1px solid #222;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: monospace;
+    }
+
+    .tab-btn.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: #02121a;
+    }
+
+    .brief-box {
+      background: #020206;
+      border: 1px dashed #222;
+      padding: 15px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    /* HANDS-ON TERMINAL */
+    .terminal {
+      background: #000;
+      border: 1px solid #1a1a2e;
+      border-radius: 4px;
+      padding: 15px;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 180px;
+    }
+
+    .terminal-output {
+      color: var(--cyan);
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .terminal-input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .terminal-input-row input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--red);
+      color: #fff;
+      font-family: monospace;
+      outline: none;
+    }
+
+    /* SLIDE-OUT CLUE DRAWER */
+    .clue-drawer {
+      position: fixed;
+      right: -350px;
+      top: 60px;
+      bottom: 0;
+      width: 320px;
+      background: #070710;
+      border-left: 2px solid var(--red);
+      padding: 20px;
+      transition: right 0.3s ease;
+      z-index: 90;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.8);
+    }
+
+    .clue-drawer.open {
+      right: 0;
+    }
+
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .badge-icon {
+      aspect-ratio: 1;
+      background: #05050a;
+      border: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      border-radius: 4px;
+      opacity: 0.3;
+    }
+
+    .badge-icon.unlocked {
+      opacity: 1;
+      border-color: var(--red);
+      box-shadow: 0 0 10px var(--red-glow);
+    }
+
+    @keyframes pulse {
+      0% { text-shadow: 0 0 10px var(--red-glow); }
+      100% { text-shadow: 0 0 25px var(--red), 0 0 40px var(--red); }
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Cinematic Intro -->
-    <div id="intro-screen" class="overlay flex-center">
-        <div class="intro-content">
-            <h1 class="glitch-title" data-text="CYBERHUNT">CYBERHUNT</h1>
-            <p class="subtitle">ESCAPE THE CYBER CITY // ELIMINATE THE THREAT</p>
-            <div id="enter-btn" class="neon-btn">ENTER GAMING ARENA</div>
-        </div>
+  <!-- HEADER BAR -->
+  <div class="header-bar">
+    <div class="neon-text" style="font-size: 1.2rem;">CYBERHUNT // FORENSICS</div>
+    <div style="display: flex; gap: 20px; align-items: center;">
+      <span id="user-display" style="font-family: monospace; font-size: 0.85rem; color: var(--cyan);">AGENT: UNKNOWN</span>
+      <button class="vfx-btn" style="padding: 5px 15px; font-size: 0.8rem;" onclick="toggleClues()">SIDE PANEL [HINTS]</button>
     </div>
+  </div>
 
-    <!-- Cyber City Dashboard -->
-    <div id="dashboard" class="overlay hidden">
-        <div class="dash-header">
-            <h2>CYBER CITY MAP</h2>
-            <div id="badge-container">
-                <span class="badge locked" id="b1">BLDG 1</span>
-                <span class="badge locked" id="b2">BLDG 2</span>
-                <span class="badge locked" id="b3">BLDG 3</span>
-                <span class="badge locked" id="b4">BLDG 4</span>
-                <span class="badge locked" id="b5">BLDG 5</span>
-            </div>
+  <!-- 1. CINEMATIC INTRO SCREEN -->
+  <div id="intro-screen" class="screen active">
+    <div class="neon-text intro-title">CYBERHUNT</div>
+    <div class="intro-sub">enter // investigate // defend</div>
+    <button class="vfx-btn" onclick="showScreen('login-screen')">INITIALIZE SYSTEM</button>
+  </div>
+
+  <!-- 2. LOGIN AUTHENTICATION PORTAL -->
+  <div id="login-screen" class="screen">
+    <div class="login-box">
+      <div class="neon-text" style="text-align: center; margin-bottom: 25px; font-size: 1.3rem;">AGENT AUTHENTICATION</div>
+      <form onsubmit="handleLogin(event)">
+        <div class="input-group">
+          <label>DETECTIVE USERNAME</label>
+          <input type="text" id="username" required placeholder="e.g. Agent_Zero">
         </div>
+        <div class="input-group">
+          <label>SECURITY PASSCODE</label>
+          <input type="password" id="password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="vfx-btn" style="width: 100%; margin-top: 10px;">ACCESS CONSOLE</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. DASHBOARD (15 LEVELS / 3 CASE STUDIES EACH) -->
+  <div id="dashboard-screen" class="screen">
+    <div class="dashboard-grid">
+      
+      <!-- LEVEL MAP -->
+      <div class="card">
+        <div class="neon-text" style="margin-bottom: 15px; font-size: 0.9rem;">INVESTIGATION LEVELS</div>
+        <div class="level-list" id="level-list"></div>
+      </div>
+
+      <!-- ACTIVE CASE WORKSPACE -->
+      <div class="card">
+        <div class="case-selector">
+          <button class="tab-btn active" onclick="selectCase(0)">CASE STUDY A</button>
+          <button class="tab-btn" onclick="selectCase(1)">CASE STUDY B</button>
+          <button class="tab-btn" onclick="selectCase(2)">CASE STUDY C</button>
+        </div>
+
+        <div id="case-title" class="neon-text" style="font-size: 1.1rem; margin-bottom: 10px;"></div>
         
-        <div id="building-grid" class="grid-container"></div>
+        <!-- PRE-LEARNING BRIEF -->
+        <div class="brief-box">
+          <div style="color: var(--cyan); font-family: monospace; font-size: 0.75rem; margin-bottom: 5px;">PRE-LEARNING BRIEFING:</div>
+          <div id="pre-learning-text"></div>
+        </div>
+
+        <!-- SITUATION / OBJECTIVE -->
+        <div style="font-size: 0.85rem; margin-bottom: 15px; color: #aaa;" id="situation-text"></div>
+
+        <!-- HANDS-ON TERMINAL -->
+        <div class="terminal">
+          <div class="terminal-output" id="term-output">CYBERHUNT Forensic Shell v2.4 initialized.<br>Type your decoded answer below to solve the case study.</div>
+          <div class="terminal-input-row">
+            <span style="color: var(--red); font-family: monospace;">&gt;</span>
+            <input type="text" id="term-input" placeholder="Enter solution hash / answer..." onkeydown="handleTerminalSubmit(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- BADGES & PROGRESS -->
+      <div class="card">
+        <div class="neon-text" style="margin-bottom: 15px; font-size: 0.9rem;">UNLOCKED BADGES</div>
+        <div class="badge-grid" id="badge-grid"></div>
+      </div>
+
     </div>
+  </div>
 
-    <!-- 3D Game UI Overlay -->
-    <div id="game-ui" class="hidden">
-        <div class="hud-header">
-            <div id="current-mission">MISSION: ROOM 1.1 - PURGE THREATS</div>
-            <div id="digit-tracker">PASSCODE CLUES: <span id="code-digits">_ _ _ _</span></div>
-        </div>
-
-        <!-- Clue Decryption Panel -->
-        <div id="clue-panel" class="modal hidden">
-            <h3 id="clue-title">SYSTEM INTERCEPTED</h3>
-            <p id="clue-body">Decoding packet...</p>
-            <div class="neon-btn small" onclick="closeClue()">CLOSE PANEL</div>
-        </div>
-
-        <!-- Exit Keypad Modal -->
-        <div id="keypad-panel" class="modal hidden">
-            <h3>TERMINAL ACCESS KEYPAD</h3>
-            <input type="password" id="keypad-input" maxlength="4" placeholder="____" readonly>
-            <div class="keypad-grid">
-                <button onclick="pressKey('1')">1</button><button onclick="pressKey('2')">2</button><button onclick="pressKey('3')">3</button>
-                <button onclick="pressKey('4')">4</button><button onclick="pressKey('5')">5</button><button onclick="pressKey('6')">6</button>
-                <button onclick="pressKey('7')">7</button><button onclick="pressKey('8')">8</button><button onclick="pressKey('9')">9</button>
-                <button onclick="clearKeypad()" class="danger">C</button>
-                <button onclick="pressKey('0')">0</button>
-                <button onclick="submitKeypad()" class="success">OK</button>
-            </div>
-            <div class="neon-btn small danger" onclick="closeKeypad()">ABORT</div>
-        </div>
+  <!-- SLIDE-OUT CLUE & HINT DRAWER -->
+  <div class="clue-drawer" id="clue-drawer">
+    <div class="neon-text" style="font-size: 1rem; margin-bottom: 15px; border-bottom: 1px solid var(--red); padding-bottom: 8px;">INVESTIGATION DOSSIER</div>
+    <div style="font-size: 0.85rem; line-height: 1.6;">
+      <div style="color: var(--cyan); font-family: monospace; margin-bottom: 5px;">INTERCEPTED HINT:</div>
+      <div id="hint-text" style="color: #bbb; background: #000; padding: 10px; border: 1px solid #222; border-radius: 4px;">Select a level to view dossier hints.</div>
     </div>
+  </div>
 
-    <!-- 3D Canvas -->
-    <canvas id="game-canvas"></canvas>
+  <script>
+    // 15 LEVELS x 3 CASE STUDIES DATA STRUCTURE
+    const levelsData = Array.from({ length: 15 }, (_, lIdx) => ({
+      levelNumber: lIdx + 1,
+      title: `LEVEL ${lIdx + 1}: ${['Digital Footprints', 'Network Intrusions', 'Phishing Vectors', 'Malware Triage', 'Memory Forensics', 'Log Analysis', 'Encryption Breaking', 'Ransomware Tracing', 'Insider Threats', 'Cloud Espionage', 'Mobile Exploits', 'IoT Vulnerabilities', 'Identity Theft', 'Darknet Tracking', 'Incident Response'][lIdx]}`,
+      badgeIcon: ['🔍', '📡', '✉️', '🦠', '🧠', '📜', '🔐', '☣️', '👤', '☁️', '📱', '📟', '🆔', '🌐', '🛡️'][lIdx],
+      cases: [
+        {
+          title: `Case Study ${lIdx + 1}-A: Initial Vector`,
+          preLearning: "Pre-Learning: Cyber investigators analyze metadata and header fields to identify suspicious origins before proceeding to deep payload analysis.",
+          situation: "Situation: Intercepted payload header contains an encoded Base64 string. Decode the string to reveal the attacker's server key.",
+          hint: "Hint: Use standard Base64 decoding logic on the string 'Q1lCRVIyMDI2'.",
+          solution: "CYBER2026"
+        },
+        {
+          title: `Case Study ${lIdx + 1}-B: Anomaly Scan`,
+          preLearning: "Pre-Learning: Port scanning logs reveal unauthorized Reconnaissance activity across internal subnet ranges.",
+          situation: "Situation: Inspect the access log. Identify the suspicious port number associated with unencrypted FTP intrusions.",
+          hint: "Hint: Standard FTP control connections run on Port 21.",
+          solution: "21"
+        },
+        {
+          title: `Case Study ${lIdx + 1}-C: Threat Mitigation`,
+          preLearning: "Pre-Learning: Threat containment requires revoking compromised session tokens immediately upon detection.",
+          situation: "Situation: Input the command to terminate suspicious PID 8942.",
+          hint: "Hint: Type 'kill 8942' to terminate the malicious process.",
+          solution: "kill 8942"
+        }
+      ]
+    }));
 
-    <script src="arena.js"></script>
-    <script src="script.js"></script>
+    let currentLevel = 0;
+    let currentCase = 0;
+    let unlockedBadges = new Set();
+
+    // VIEW SCREEN SWITCHER
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // LOGIN SYSTEM
+    function handleLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById('username').value;
+      document.getElementById('user-display').innerText = `AGENT: ${user.toUpperCase()}`;
+      showScreen('dashboard-screen');
+      initDashboard();
+    }
+
+    // DASHBOARD INITIALIZATION
+    function initDashboard() {
+      const levelList = document.getElementById('level-list');
+      levelList.innerHTML = '';
+
+      levelsData.forEach((lvl, idx) => {
+        const item = document.createElement('div');
+        item.className = `level-item ${idx === 0 ? 'active' : ''}`;
+        item.innerText = lvl.title;
+        item.onclick = () => loadLevel(idx);
+        levelList.appendChild(item);
+      });
+
+      initBadges();
+      loadLevel(0);
+    }
+
+    function initBadges() {
+      const grid = document.getElementById('badge-grid');
+      grid.innerHTML = '';
+      levelsData.forEach((lvl, idx) => {
+        const badge = document.createElement('div');
+        badge.id = `badge-${idx}`;
+        badge.className = 'badge-icon';
+        badge.innerText = lvl.badgeIcon;
+        badge.title = lvl.title;
+        grid.appendChild(badge);
+      });
+    }
+
+    // LOAD SELECTED LEVEL AND CASE
+    function loadLevel(idx) {
+      currentLevel = idx;
+      currentCase = 0;
+
+      const items = document.querySelectorAll('.level-item');
+      items.forEach((item, i) => item.classList.toggle('active', i === idx));
+
+      updateCaseView();
+    }
+
+    function selectCase(caseIdx) {
+      currentCase = caseIdx;
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach((tab, i) => tab.classList.toggle('active', i === caseIdx));
+      updateCaseView();
+    }
+
+    function updateCaseView() {
+      const caseData = levelsData[currentLevel].cases[currentCase];
+      document.getElementById('case-title').innerText = caseData.title;
+      document.getElementById('pre-learning-text').innerText = caseData.preLearning;
+      document.getElementById('situation-text').innerText = caseData.situation;
+      document.getElementById('hint-text').innerText = caseData.hint;
+      
+      const termOut = document.getElementById('term-output');
+      termOut.innerHTML = `CYBERHUNT Forensic Shell v2.4 initialized.<br>Awaiting input for ${caseData.title}...`;
+    }
+
+    // TERMINAL INPUT HANDLER
+    function handleTerminalSubmit(e) {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('term-input');
+        const val = input.value.trim();
+        const caseData = levelsData[currentLevel].cases[currentCase];
+        const termOut = document.getElementById('term-output');
+
+        if (val.toLowerCase() === caseData.solution.toLowerCase()) {
+          termOut.innerHTML += `<br><span style="color: var(--green);">[SUCCESS] Threat resolved! Passcode matched.</span>`;
+          unlockedBadges.add(currentLevel);
+          document.getElementById(`badge-${currentLevel}`).classList.add('unlocked');
+        } else {
+          termOut.innerHTML += `<br><span style="color: var(--red);">[ERROR] Solution incorrect. Check clues dossier.</span>`;
+        }
+        input.value = '';
+      }
+    }
+
+    // TOGGLE CLUE DRAWER
+    function toggleClues() {
+      document.getElementById('clue-drawer').classList.toggle('open');
+    }
+  </script>
 </body>
 </html>
