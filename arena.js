@@ -1,401 +1,394 @@
 ```javascript
-/*
-=========================================================
- CYBERHUNT — 3D CYBER CITY ARENA
- arena.js
-=========================================================
- Handles:
- - CyberCity
- - 5 futuristic buildings
- - Roads and neon paths
- - Level buildings
- - Cyberpunk environment
- - Decorative holograms
- - Lighting
- - Building interaction points
-=========================================================
-*/
+/* =========================================================
+   CYBERHUNT
+   3D CYBER CITY / ESCAPE ROOM ARENA
+   ========================================================= */
 
 import * as THREE from "three";
 
-/* ======================================================
-   ARENA CONFIGURATION
-====================================================== */
-
-const ARENA_CONFIG = {
-    citySize: 180,
-    roadWidth: 14,
-    buildingSpacing: 34,
+const CITY = {
+    size: 180,
 
     colors: {
-        black: 0x030305,
-        dark: 0x08090d,
+        ground: 0x030305,
+        road: 0x07070b,
+        building: 0x08090d,
         red: 0xff1744,
-        crimson: 0x9e1033,
-        neonRed: 0xff3155,
-        white: 0xf2f2f2,
-        blue: 0x244cff,
-        purple: 0x8c2cff
+        darkRed: 0x7e0d29,
+        window: 0x8e102d
     }
 };
-
-/* ======================================================
-   ARENA STATE
-====================================================== */
 
 const arenaState = {
     scene: null,
-    cityGroup: null,
+    city: null,
     buildings: [],
-    roads: [],
-    lights: [],
+    neonLights: [],
     initialized: false
 };
 
-/* ======================================================
-   PUBLIC INITIALIZER
-====================================================== */
+/* =========================================================
+   CREATE CITY
+========================================================= */
 
 export function createCyberCity(scene) {
 
-    if (!scene) {
-        console.error("CyberHunt Arena: Scene not provided.");
-        return null;
-    }
-
     arenaState.scene = scene;
 
-    // Remove previous city if one exists
-    if (arenaState.cityGroup) {
-        scene.remove(arenaState.cityGroup);
+    if (arenaState.city) {
+        scene.remove(arenaState.city);
     }
 
-    arenaState.cityGroup = new THREE.Group();
-    arenaState.cityGroup.name = "CyberCity";
+    arenaState.city =
+        new THREE.Group();
+
+    arenaState.city.name =
+        "CYBER_CITY";
 
     arenaState.buildings = [];
-    arenaState.roads = [];
-    arenaState.lights = [];
+    arenaState.neonLights = [];
 
-    scene.add(arenaState.cityGroup);
+    scene.add(
+        arenaState.city
+    );
 
     createGround();
-    createRoadNetwork();
+    createRoads();
     createBuildings();
     createStreetLights();
-    createNeonSigns();
     createCityDetails();
-    createHologramStructures();
-    createSkyline();
 
     arenaState.initialized = true;
 
-    return arenaState.cityGroup;
+    return arenaState.city;
 }
 
-/* ======================================================
+/* =========================================================
    GROUND
-====================================================== */
+========================================================= */
 
 function createGround() {
 
-    const size = ARENA_CONFIG.citySize;
-
-    const groundGeometry = new THREE.PlaneGeometry(size, size);
-
-    const groundMaterial = new THREE.MeshStandardMaterial({
-        color: ARENA_CONFIG.colors.black,
-        roughness: 0.92,
-        metalness: 0.35
-    });
-
-    const ground = new THREE.Mesh(
-        groundGeometry,
-        groundMaterial
-    );
-
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.15;
-    ground.receiveShadow = true;
-
-    ground.name = "CityGround";
-
-    arenaState.cityGroup.add(ground);
-
-    createGrid();
-}
-
-/* ======================================================
-   CYBER GRID
-====================================================== */
-
-function createGrid() {
-
-    const gridSize = ARENA_CONFIG.citySize;
-    const divisions = 36;
-
-    const grid = new THREE.GridHelper(
-        gridSize,
-        divisions,
-        ARENA_CONFIG.colors.crimson,
-        0x15151c
-    );
-
-    grid.position.y = 0.02;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.25;
-
-    arenaState.cityGroup.add(grid);
-}
-
-/* ======================================================
-   ROAD NETWORK
-====================================================== */
-
-function createRoadNetwork() {
-
-    const roadPositions = [
-        {
-            x: 0,
-            z: 0,
-            width: ARENA_CONFIG.citySize,
-            depth: ARENA_CONFIG.roadWidth
-        },
-        {
-            x: 0,
-            z: 0,
-            width: ARENA_CONFIG.roadWidth,
-            depth: ARENA_CONFIG.citySize
-        },
-
-        {
-            x: 0,
-            z: -48,
-            width: ARENA_CONFIG.citySize,
-            depth: 9
-        },
-
-        {
-            x: 0,
-            z: 48,
-            width: ARENA_CONFIG.citySize,
-            depth: 9
-        },
-
-        {
-            x: -48,
-            z: 0,
-            width: 9,
-            depth: ARENA_CONFIG.citySize
-        },
-
-        {
-            x: 48,
-            z: 0,
-            width: 9,
-            depth: ARENA_CONFIG.citySize
-        }
-    ];
-
-    roadPositions.forEach((road, index) => {
-
-        const geometry = new THREE.PlaneGeometry(
-            road.width,
-            road.depth
+    const geometry =
+        new THREE.PlaneGeometry(
+            CITY.size,
+            CITY.size
         );
 
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x07070b,
-            roughness: 0.75,
-            metalness: 0.5
+    const material =
+        new THREE.MeshStandardMaterial({
+            color: CITY.colors.ground,
+            roughness: 0.88,
+            metalness: 0.3
         });
 
-        const mesh = new THREE.Mesh(
+    const ground =
+        new THREE.Mesh(
             geometry,
             material
         );
 
-        mesh.rotation.x = -Math.PI / 2;
+    ground.rotation.x =
+        -Math.PI / 2;
 
-        mesh.position.set(
-            road.x,
-            0.01,
-            road.z
+    ground.position.y =
+        -0.05;
+
+    ground.receiveShadow = true;
+
+    arenaState.city.add(
+        ground
+    );
+
+    const grid =
+        new THREE.GridHelper(
+            CITY.size,
+            45,
+            CITY.colors.darkRed,
+            0x15151a
         );
 
-        mesh.name = `CyberRoad_${index}`;
+    grid.position.y =
+        0.01;
 
-        arenaState.cityGroup.add(mesh);
-        arenaState.roads.push(mesh);
+    grid.material.transparent = true;
 
-        createRoadNeonLines(
-            road.x,
-            road.z,
-            road.width,
-            road.depth
-        );
-    });
+    grid.material.opacity = 0.24;
+
+    arenaState.city.add(
+        grid
+    );
 }
 
-/* ======================================================
-   ROAD NEON
-====================================================== */
+/* =========================================================
+   ROADS
+========================================================= */
 
-function createRoadNeonLines(
+function createRoads() {
+
+    createRoad(
+        0,
+        0,
+        CITY.size,
+        18
+    );
+
+    createRoad(
+        0,
+        0,
+        18,
+        CITY.size
+    );
+
+    createRoad(
+        0,
+        -45,
+        CITY.size,
+        9
+    );
+
+    createRoad(
+        0,
+        45,
+        CITY.size,
+        9
+    );
+
+    createRoad(
+        -45,
+        0,
+        9,
+        CITY.size
+    );
+
+    createRoad(
+        45,
+        0,
+        9,
+        CITY.size
+    );
+}
+
+function createRoad(
     x,
     z,
     width,
     depth
 ) {
 
-    const material = new THREE.MeshBasicMaterial({
-        color: ARENA_CONFIG.colors.red
-    });
+    const geometry =
+        new THREE.PlaneGeometry(
+            width,
+            depth
+        );
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color: CITY.colors.road,
+            roughness: 0.72,
+            metalness: 0.5
+        });
+
+    const road =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+    road.rotation.x =
+        -Math.PI / 2;
+
+    road.position.set(
+        x,
+        0.015,
+        z
+    );
+
+    arenaState.city.add(
+        road
+    );
+
+    createRoadLines(
+        x,
+        z,
+        width,
+        depth
+    );
+}
+
+/* =========================================================
+   ROAD NEON
+========================================================= */
+
+function createRoadLines(
+    x,
+    z,
+    width,
+    depth
+) {
+
+    const material =
+        new THREE.MeshBasicMaterial({
+            color: CITY.colors.red
+        });
 
     if (width > depth) {
 
-        for (let offset = -depth / 2 + 1.5;
-             offset <= depth / 2 - 1.5;
-             offset += 3) {
+        const geometry =
+            new THREE.PlaneGeometry(
+                width,
+                0.08
+            );
 
-            const geometry =
-                new THREE.PlaneGeometry(width, 0.12);
-
-            const line = new THREE.Mesh(
+        const line =
+            new THREE.Mesh(
                 geometry,
                 material
             );
 
-            line.rotation.x = -Math.PI / 2;
+        line.rotation.x =
+            -Math.PI / 2;
 
-            line.position.set(
-                x,
-                0.06,
-                z + offset
-            );
+        line.position.set(
+            x,
+            0.055,
+            z
+        );
 
-            arenaState.cityGroup.add(line);
-        }
+        arenaState.city.add(
+            line
+        );
 
     } else {
 
-        for (let offset = -width / 2 + 1.5;
-             offset <= width / 2 - 1.5;
-             offset += 3) {
+        const geometry =
+            new THREE.PlaneGeometry(
+                0.08,
+                depth
+            );
 
-            const geometry =
-                new THREE.PlaneGeometry(0.12, depth);
-
-            const line = new THREE.Mesh(
+        const line =
+            new THREE.Mesh(
                 geometry,
                 material
             );
 
-            line.rotation.x = -Math.PI / 2;
+        line.rotation.x =
+            -Math.PI / 2;
 
-            line.position.set(
-                x + offset,
-                0.06,
-                z
-            );
+        line.position.set(
+            x,
+            0.055,
+            z
+        );
 
-            arenaState.cityGroup.add(line);
-        }
+        arenaState.city.add(
+            line
+        );
     }
 }
 
-/* ======================================================
-   BUILDINGS
-====================================================== */
+/* =========================================================
+   FIVE BUILDINGS
+========================================================= */
 
 function createBuildings() {
 
-    const buildingData = [
+    const data = [
 
         {
-            id: 1,
+            level: 1,
             name: "DATA VAULT",
-            x: -43,
-            z: -43,
-            width: 27,
-            depth: 27,
-            height: 32,
-            color: 0xff1744
+            x: -48,
+            z: -42,
+            width: 28,
+            depth: 28,
+            height: 30
         },
 
         {
-            id: 2,
+            level: 2,
             name: "CYBER BANK",
-            x: 43,
-            z: -43,
+            x: 48,
+            z: -42,
             width: 30,
-            depth: 27,
-            height: 40,
-            color: 0xff244f
+            depth: 28,
+            height: 38
         },
 
         {
-            id: 3,
+            level: 3,
             name: "NEXUS LAB",
-            x: -43,
-            z: 43,
-            width: 27,
-            depth: 27,
-            height: 36,
-            color: 0x8c2cff
+            x: -48,
+            z: 42,
+            width: 28,
+            depth: 28,
+            height: 34
         },
 
         {
-            id: 4,
+            level: 4,
             name: "BLACKSITE",
-            x: 43,
-            z: 43,
+            x: 48,
+            z: 42,
             width: 30,
-            depth: 27,
-            height: 45,
-            color: 0xff1744
+            depth: 28,
+            height: 43
         },
 
         {
-            id: 5,
+            level: 5,
             name: "CYBER CORE",
             x: 0,
-            z: 0,
-            width: 23,
-            depth: 23,
-            height: 52,
-            color: 0xff0033
+            z: -67,
+            width: 32,
+            depth: 22,
+            height: 50
         }
+
     ];
 
-    buildingData.forEach(data => {
+    data.forEach(
+        buildingData => {
 
-        const building =
-            createBuilding(data);
+            const building =
+                createBuilding(
+                    buildingData
+                );
 
-        arenaState.cityGroup.add(building);
+            arenaState.city.add(
+                building
+            );
 
-        arenaState.buildings.push({
-            ...data,
-            object: building
-        });
-    });
+            arenaState.buildings.push(
+                {
+                    ...buildingData,
+                    object: building
+                }
+            );
+        }
+    );
 }
 
-/* ======================================================
-   BUILDING CREATOR
-====================================================== */
+/* =========================================================
+   BUILDING
+========================================================= */
 
 function createBuilding(data) {
 
-    const group = new THREE.Group();
+    const group =
+        new THREE.Group();
+
+    group.position.set(
+        data.x,
+        0,
+        data.z
+    );
 
     group.name =
-        `Level_${data.id}_${data.name.replaceAll(" ", "_")}`;
+        `BUILDING_${data.level}`;
 
-    /* ----------------------------------------------
-       Main structure
-    ---------------------------------------------- */
+    /* Main body */
 
     const bodyGeometry =
         new THREE.BoxGeometry(
@@ -406,8 +399,8 @@ function createBuilding(data) {
 
     const bodyMaterial =
         new THREE.MeshStandardMaterial({
-            color: 0x08090e,
-            roughness: 0.55,
+            color: CITY.colors.building,
+            roughness: 0.62,
             metalness: 0.78
         });
 
@@ -425,1244 +418,582 @@ function createBuilding(data) {
 
     group.add(body);
 
-    /* ----------------------------------------------
-       Roof
-    ---------------------------------------------- */
-
-    const roofGeometry =
-        new THREE.BoxGeometry(
-            data.width + 2,
-            1,
-            data.depth + 2
-        );
-
-    const roofMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x11131a,
-            metalness: 0.85,
-            roughness: 0.35
-        });
+    /* Roof */
 
     const roof =
         new THREE.Mesh(
-            roofGeometry,
-            roofMaterial
+            new THREE.BoxGeometry(
+                data.width + 1,
+                0.8,
+                data.depth + 1
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x111218,
+                roughness: 0.35,
+                metalness: 0.85
+            })
         );
 
     roof.position.y =
-        data.height + 0.5;
+        data.height + 0.4;
 
     group.add(roof);
 
-    /* ----------------------------------------------
-       Vertical neon edges
-    ---------------------------------------------- */
+    /* Red vertical edges */
 
-    createBuildingEdge(
-        group,
-        data.width / 2,
-        data.depth / 2,
-        data.height,
-        data.color
+    const edgeMaterial =
+        new THREE.MeshBasicMaterial({
+            color: CITY.colors.red
+        });
+
+    const edgeGeometry =
+        new THREE.BoxGeometry(
+            0.15,
+            data.height,
+            0.15
+        );
+
+    const corners = [
+        [-data.width / 2, -data.depth / 2],
+        [data.width / 2, -data.depth / 2],
+        [-data.width / 2, data.depth / 2],
+        [data.width / 2, data.depth / 2]
+    ];
+
+    corners.forEach(
+        ([x, z]) => {
+
+            const edge =
+                new THREE.Mesh(
+                    edgeGeometry,
+                    edgeMaterial
+                );
+
+            edge.position.set(
+                x,
+                data.height / 2,
+                z
+            );
+
+            group.add(edge);
+        }
     );
-
-    createBuildingEdge(
-        group,
-        -data.width / 2,
-        data.depth / 2,
-        data.height,
-        data.color
-    );
-
-    createBuildingEdge(
-        group,
-        data.width / 2,
-        -data.depth / 2,
-        data.height,
-        data.color
-    );
-
-    createBuildingEdge(
-        group,
-        -data.width / 2,
-        -data.depth / 2,
-        data.height,
-        data.color
-    );
-
-    /* ----------------------------------------------
-       Windows
-    ---------------------------------------------- */
 
     createWindows(
         group,
-        data.width,
-        data.depth,
-        data.height,
-        data.color
+        data
     );
 
-    /* ----------------------------------------------
-       Entrance
-    ---------------------------------------------- */
-
-    createEntrance(
+    createBuildingEntrance(
         group,
-        data.width,
-        data.height,
-        data.color,
-        data.id
+        data
     );
-
-    /* ----------------------------------------------
-       Building sign
-    ---------------------------------------------- */
 
     createBuildingSign(
         group,
-        data.name,
-        data.height,
-        data.color
-    );
-
-    group.position.set(
-        data.x,
-        0,
-        data.z
+        data
     );
 
     group.userData = {
-        level: data.id,
-        buildingName: data.name
+        level: data.level,
+        name: data.name
     };
 
     return group;
 }
 
-/* ======================================================
-   BUILDING EDGE
-====================================================== */
-
-function createBuildingEdge(
-    group,
-    x,
-    z,
-    height,
-    color
-) {
-
-    const geometry =
-        new THREE.BoxGeometry(
-            0.18,
-            height,
-            0.18
-        );
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color: color
-        });
-
-    const edge =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-    edge.position.set(
-        x,
-        height / 2,
-        z
-    );
-
-    group.add(edge);
-}
-
-/* ======================================================
+/* =========================================================
    WINDOWS
-====================================================== */
+========================================================= */
 
 function createWindows(
     group,
-    width,
-    depth,
-    height,
-    color
+    data
 ) {
 
-    const windowMaterial =
+    const material =
         new THREE.MeshBasicMaterial({
-            color: color,
+            color: CITY.colors.window,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.52
         });
 
-    const floors =
-        Math.max(2, Math.floor(height / 6));
-
-    const columns =
-        Math.max(3, Math.floor(width / 4));
-
     for (
-        let floor = 0;
-        floor < floors;
-        floor++
+        let y = 5;
+        y < data.height - 2;
+        y += 5
     ) {
 
-        const y =
-            4 + floor * 5.2;
-
         for (
-            let column = 0;
-            column < columns;
-            column++
+            let x = -data.width / 2 + 3;
+            x < data.width / 2 - 2;
+            x += 4
         ) {
 
-            const x =
-                -width / 2 +
-                2.5 +
-                column *
-                ((width - 5) / Math.max(1, columns - 1));
-
-            /* Front window */
-
-            const frontGeometry =
-                new THREE.BoxGeometry(
-                    1.1,
-                    1.7,
-                    0.08
-                );
-
-            const front =
+            const window =
                 new THREE.Mesh(
-                    frontGeometry,
-                    windowMaterial
+                    new THREE.BoxGeometry(
+                        1.35,
+                        1.6,
+                        0.05
+                    ),
+                    material
                 );
 
-            front.position.set(
+            window.position.set(
                 x,
                 y,
-                depth / 2 + 0.05
+                data.depth / 2 + 0.05
             );
 
-            group.add(front);
-
-            /* Back window */
-
-            const back =
-                front.clone();
-
-            back.position.z =
-                -depth / 2 - 0.05;
-
-            group.add(back);
+            group.add(
+                window
+            );
         }
     }
 }
 
-/* ======================================================
-   BUILDING ENTRANCE
-====================================================== */
+/* =========================================================
+   ENTRANCE
+========================================================= */
 
-function createEntrance(
+function createBuildingEntrance(
     group,
-    width,
-    height,
-    color,
-    level
+    data
 ) {
-
-    const doorGeometry =
-        new THREE.BoxGeometry(
-            4,
-            5.5,
-            0.25
-        );
-
-    const doorMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x020204,
-            metalness: 0.9,
-            roughness: 0.2,
-            emissive: color,
-            emissiveIntensity: 0.12
-        });
 
     const door =
         new THREE.Mesh(
-            doorGeometry,
-            doorMaterial
+            new THREE.BoxGeometry(
+                5,
+                6,
+                0.3
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x020204,
+                metalness: 0.9,
+                roughness: 0.2
+            })
         );
 
     door.position.set(
         0,
-        2.75,
-        width * 0.0 + 13.6
+        3,
+        data.depth / 2 + 0.2
     );
 
-    group.add(door);
-
-    /* Door frame */
-
-    const frameGeometry =
-        new THREE.BoxGeometry(
-            4.8,
-            6.2,
-            0.18
-        );
-
-    const frameMaterial =
-        new THREE.MeshBasicMaterial({
-            color: color
-        });
+    group.add(
+        door
+    );
 
     const frame =
         new THREE.Mesh(
-            frameGeometry,
-            frameMaterial
+            new THREE.BoxGeometry(
+                5.5,
+                6.5,
+                0.15
+            ),
+            new THREE.MeshBasicMaterial({
+                color: CITY.colors.red,
+                wireframe: true
+            })
         );
 
     frame.position.set(
         0,
-        3.1,
-        13.75
+        3,
+        data.depth / 2 + 0.4
     );
 
-    group.add(frame);
-
-    door.userData = {
-        level,
-        type: "buildingEntrance"
-    };
+    group.add(
+        frame
+    );
 }
 
-/* ======================================================
+/* =========================================================
    BUILDING SIGN
-====================================================== */
+========================================================= */
 
 function createBuildingSign(
     group,
-    text,
-    height,
-    color
+    data
 ) {
 
     const canvas =
-        document.createElement("canvas");
+        document.createElement(
+            "canvas"
+        );
 
-    canvas.width = 1024;
-    canvas.height = 256;
+    canvas.width = 900;
+    canvas.height = 220;
 
-    const ctx =
+    const context =
         canvas.getContext("2d");
 
-    ctx.clearRect(
+    context.clearRect(
         0,
         0,
         canvas.width,
         canvas.height
     );
 
-    ctx.font =
-        "bold 78px Arial";
+    context.font =
+        "bold 68px Arial";
 
-    ctx.textAlign =
+    context.textAlign =
         "center";
 
-    ctx.textBaseline =
+    context.textBaseline =
         "middle";
 
-    ctx.shadowBlur = 25;
-    ctx.shadowColor =
-        `#${color.toString(16).padStart(6, "0")}`;
+    context.fillStyle =
+        "#ffffff";
 
-    ctx.fillStyle = "#ffffff";
+    context.shadowColor =
+        "#ff1744";
 
-    ctx.fillText(
-        text,
-        canvas.width / 2,
-        canvas.height / 2
+    context.shadowBlur =
+        22;
+
+    context.fillText(
+        data.name,
+        450,
+        110
     );
 
     const texture =
-        new THREE.CanvasTexture(canvas);
-
-    const material =
-        new THREE.SpriteMaterial({
-            map: texture,
-            transparent: true
-        });
+        new THREE.CanvasTexture(
+            canvas
+        );
 
     const sprite =
-        new THREE.Sprite(material);
+        new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map: texture,
+                transparent: true
+            })
+        );
 
     sprite.scale.set(
-        12,
-        3,
+        11,
+        2.7,
         1
     );
 
     sprite.position.set(
         0,
-        height * 0.65,
-        14
+        data.height * 0.68,
+        data.depth / 2 + 0.8
     );
 
-    group.add(sprite);
+    group.add(
+        sprite
+    );
 }
 
-/* ======================================================
+/* =========================================================
    STREET LIGHTS
-====================================================== */
+========================================================= */
 
 function createStreetLights() {
 
     const positions = [
-        [-18, -7],
-        [18, -7],
-        [-18, 7],
-        [18, 7],
 
-        [-68, -10],
-        [-68, 10],
-        [68, -10],
-        [68, 10],
+        [-20, -12],
+        [20, -12],
 
-        [-10, -68],
-        [10, -68],
-        [-10, 68],
-        [10, 68]
+        [-20, 12],
+        [20, 12],
+
+        [-67, 0],
+        [67, 0],
+
+        [-12, -67],
+        [12, -67]
+
     ];
 
     positions.forEach(
         ([x, z]) => {
 
-            const pole =
+            const light =
                 createStreetLight();
 
-            pole.position.set(
+            light.position.set(
                 x,
                 0,
                 z
             );
 
-            arenaState.cityGroup.add(pole);
+            arenaState.city.add(
+                light
+            );
         }
     );
 }
-
-/* ======================================================
-   STREET LIGHT
-====================================================== */
 
 function createStreetLight() {
 
     const group =
         new THREE.Group();
 
-    const poleGeometry =
-        new THREE.CylinderGeometry(
-            0.12,
-            0.18,
-            6,
-            8
-        );
-
-    const poleMaterial =
-        new THREE.MeshStandardMaterial({
-            color: 0x22242c,
-            metalness: 0.8,
-            roughness: 0.3
-        });
-
     const pole =
         new THREE.Mesh(
-            poleGeometry,
-            poleMaterial
+            new THREE.CylinderGeometry(
+                0.1,
+                0.16,
+                6,
+                8
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x1b1c22,
+                metalness: 0.85,
+                roughness: 0.3
+            })
         );
 
     pole.position.y = 3;
 
-    group.add(pole);
+    group.add(
+        pole
+    );
 
-    const lampGeometry =
-        new THREE.SphereGeometry(
-            0.25,
-            12,
-            12
-        );
-
-    const lampMaterial =
-        new THREE.MeshBasicMaterial({
-            color: ARENA_CONFIG.colors.red
-        });
-
-    const lamp =
+    const bulb =
         new THREE.Mesh(
-            lampGeometry,
-            lampMaterial
+            new THREE.SphereGeometry(
+                0.23,
+                12,
+                12
+            ),
+            new THREE.MeshBasicMaterial({
+                color: CITY.colors.red
+            })
         );
 
-    lamp.position.y = 6;
+    bulb.position.y = 6;
 
-    group.add(lamp);
+    group.add(
+        bulb
+    );
 
     const light =
         new THREE.PointLight(
-            ARENA_CONFIG.colors.red,
-            1.5,
-            13
+            CITY.colors.red,
+            1.7,
+            15
         );
 
     light.position.y = 6;
 
-    group.add(light);
+    group.add(
+        light
+    );
 
-    arenaState.lights.push(light);
+    arenaState.neonLights.push(
+        light
+    );
 
     return group;
 }
 
-/* ======================================================
-   NEON SIGNS
-====================================================== */
-
-function createNeonSigns() {
-
-    const signs = [
-        {
-            text: "CYBERHUNT",
-            x: 0,
-            y: 16,
-            z: -18
-        },
-        {
-            text: "SECURITY",
-            x: -18,
-            y: 11,
-            z: 18
-        },
-        {
-            text: "SYSTEM ONLINE",
-            x: 18,
-            y: 11,
-            z: 18
-        }
-    ];
-
-    signs.forEach(sign => {
-
-        const canvas =
-            document.createElement("canvas");
-
-        canvas.width = 800;
-        canvas.height = 180;
-
-        const ctx =
-            canvas.getContext("2d");
-
-        ctx.font =
-            "bold 64px Arial";
-
-        ctx.textAlign =
-            "center";
-
-        ctx.textBaseline =
-            "middle";
-
-        ctx.shadowBlur = 35;
-        ctx.shadowColor = "#ff1744";
-
-        ctx.fillStyle = "#ffffff";
-
-        ctx.fillText(
-            sign.text,
-            400,
-            90
-        );
-
-        const texture =
-            new THREE.CanvasTexture(canvas);
-
-        const material =
-            new THREE.SpriteMaterial({
-                map: texture,
-                transparent: true
-            });
-
-        const sprite =
-            new THREE.Sprite(material);
-
-        sprite.scale.set(
-            10,
-            2.3,
-            1
-        );
-
-        sprite.position.set(
-            sign.x,
-            sign.y,
-            sign.z
-        );
-
-        arenaState.cityGroup.add(sprite);
-    });
-}
-
-/* ======================================================
+/* =========================================================
    CITY DETAILS
-====================================================== */
+========================================================= */
 
 function createCityDetails() {
 
-    createCrates();
-    createContainers();
-    createDataPylons();
-    createRoadBarriers();
-}
-
-/* ======================================================
-   CRATES
-====================================================== */
-
-function createCrates() {
-
-    const positions = [
-        [-10, -20],
-        [-13, -22],
-        [10, -20],
-        [13, -22],
-        [-20, 10],
-        [20, 10]
-    ];
-
-    positions.forEach(
-        ([x, z]) => {
-
-            const geometry =
-                new THREE.BoxGeometry(
-                    2.5,
-                    2.5,
-                    2.5
-                );
-
-            const material =
-                new THREE.MeshStandardMaterial({
-                    color: 0x12141a,
-                    metalness: 0.6,
-                    roughness: 0.6
-                });
-
-            const crate =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            crate.position.set(
-                x,
-                1.25,
-                z
-            );
-
-            crate.rotation.y =
-                Math.random() * Math.PI;
-
-            crate.castShadow = true;
-
-            arenaState.cityGroup.add(crate);
-        }
-    );
-}
-
-/* ======================================================
-   CONTAINERS
-====================================================== */
-
-function createContainers() {
-
-    const positions = [
-        [-25, -7],
-        [-25, -11],
-        [25, 7],
-        [25, 11]
-    ];
-
-    positions.forEach(
-        ([x, z], index) => {
-
-            const geometry =
-                new THREE.BoxGeometry(
-                    9,
-                    3.5,
-                    3
-                );
-
-            const material =
-                new THREE.MeshStandardMaterial({
-                    color:
-                        index % 2 === 0
-                            ? 0x11131b
-                            : 0x181019,
-
-                    metalness: 0.65,
-                    roughness: 0.55
-                });
-
-            const container =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            container.position.set(
-                x,
-                1.75,
-                z
-            );
-
-            container.castShadow = true;
-
-            arenaState.cityGroup.add(container);
-
-            createContainerLines(
-                container
-            );
-        }
-    );
-}
-
-/* ======================================================
-   CONTAINER NEON LINES
-====================================================== */
-
-function createContainerLines(
-    container
-) {
-
-    const geometry =
-        new THREE.BoxGeometry(
-            9.1,
-            0.06,
-            0.08
-        );
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color: ARENA_CONFIG.colors.red
-        });
-
-    const line =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-    line.position.y =
-        1.0;
-
-    container.add(line);
-}
-
-/* ======================================================
-   DATA PYLONS
-====================================================== */
-
-function createDataPylons() {
-
-    const positions = [
-        [-8, -8],
-        [8, -8],
-        [-8, 8],
-        [8, 8]
-    ];
-
-    positions.forEach(
-        ([x, z]) => {
-
-            const group =
-                new THREE.Group();
-
-            const baseGeometry =
-                new THREE.CylinderGeometry(
-                    0.8,
-                    1,
-                    0.4,
-                    12
-                );
-
-            const baseMaterial =
-                new THREE.MeshStandardMaterial({
-                    color: 0x151820,
-                    metalness: 0.8,
-                    roughness: 0.3
-                });
-
-            const base =
-                new THREE.Mesh(
-                    baseGeometry,
-                    baseMaterial
-                );
-
-            base.position.y =
-                0.2;
-
-            group.add(base);
-
-            const coreGeometry =
-                new THREE.CylinderGeometry(
-                    0.22,
-                    0.22,
-                    3,
-                    12
-                );
-
-            const coreMaterial =
-                new THREE.MeshBasicMaterial({
-                    color:
-                        ARENA_CONFIG.colors.red
-                });
-
-            const core =
-                new THREE.Mesh(
-                    coreGeometry,
-                    coreMaterial
-                );
-
-            core.position.y =
-                1.8;
-
-            group.add(core);
-
-            group.position.set(
-                x,
-                0,
-                z
-            );
-
-            arenaState.cityGroup.add(group);
-        }
-    );
-}
-
-/* ======================================================
-   ROAD BARRIERS
-====================================================== */
-
-function createRoadBarriers() {
-
-    const positions = [
-        [-16, 15],
-        [16, -15],
-        [-15, -16],
-        [15, 16]
-    ];
-
-    positions.forEach(
-        ([x, z]) => {
-
-            const geometry =
-                new THREE.BoxGeometry(
-                    4,
-                    0.8,
-                    0.5
-                );
-
-            const material =
-                new THREE.MeshStandardMaterial({
-                    color: 0x15161c,
-                    metalness: 0.7
-                });
-
-            const barrier =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            barrier.position.set(
-                x,
-                0.4,
-                z
-            );
-
-            arenaState.cityGroup.add(
-                barrier
-            );
-
-            createBarrierLight(
-                barrier
-            );
-        }
-    );
-}
-
-/* ======================================================
-   BARRIER LIGHT
-====================================================== */
-
-function createBarrierLight(
-    barrier
-) {
-
-    const geometry =
-        new THREE.BoxGeometry(
-            0.15,
-            0.15,
-            0.15
-        );
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color:
-                ARENA_CONFIG.colors.red
-        });
-
     for (
-        let x = -1.5;
-        x <= 1.5;
-        x += 1
+        let i = 0;
+        i < 18;
+        i++
     ) {
 
-        const light =
+        const crate =
             new THREE.Mesh(
-                geometry,
-                material
+                new THREE.BoxGeometry(
+                    2.3,
+                    2.3,
+                    2.3
+                ),
+                new THREE.MeshStandardMaterial({
+                    color: 0x101117,
+                    metalness: 0.7,
+                    roughness: 0.55
+                })
             );
 
-        light.position.x = x;
+        crate.position.set(
+            THREE.MathUtils.randFloat(
+                -25,
+                25
+            ),
+            1.15,
+            THREE.MathUtils.randFloat(
+                -25,
+                25
+            )
+        );
 
-        barrier.add(light);
+        crate.rotation.y =
+            Math.random() *
+            Math.PI;
+
+        crate.castShadow = true;
+
+        arenaState.city.add(
+            crate
+        );
     }
-}
 
-/* ======================================================
-   HOLOGRAM STRUCTURES
-====================================================== */
+    createHologram(
+        -70,
+        -70
+    );
 
-function createHologramStructures() {
+    createHologram(
+        70,
+        -70
+    );
 
-    const positions = [
-        [-65, -65],
-        [65, -65],
-        [-65, 65],
-        [65, 65]
-    ];
+    createHologram(
+        -70,
+        70
+    );
 
-    positions.forEach(
-        ([x, z]) => {
-
-            const geometry =
-                new THREE.CylinderGeometry(
-                    3,
-                    3,
-                    0.2,
-                    32
-                );
-
-            const material =
-                new THREE.MeshBasicMaterial({
-                    color: ARENA_CONFIG.colors.red,
-                    transparent: true,
-                    opacity: 0.45
-                });
-
-            const platform =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            platform.position.set(
-                x,
-                0.15,
-                z
-            );
-
-            arenaState.cityGroup.add(
-                platform
-            );
-
-            createHologramRing(
-                x,
-                z
-            );
-        }
+    createHologram(
+        70,
+        70
     );
 }
 
-/* ======================================================
-   HOLOGRAM RING
-====================================================== */
+/* =========================================================
+   HOLOGRAM
+========================================================= */
 
-function createHologramRing(
+function createHologram(
     x,
     z
 ) {
 
-    const geometry =
-        new THREE.TorusGeometry(
-            3.2,
-            0.08,
-            8,
-            32
+    const group =
+        new THREE.Group();
+
+    const platform =
+        new THREE.Mesh(
+            new THREE.CylinderGeometry(
+                3,
+                3,
+                0.2,
+                32
+            ),
+            new THREE.MeshBasicMaterial({
+                color: CITY.colors.red,
+                transparent: true,
+                opacity: 0.4
+            })
         );
 
-    const material =
-        new THREE.MeshBasicMaterial({
-            color: ARENA_CONFIG.colors.red
-        });
+    platform.position.y =
+        0.15;
+
+    group.add(
+        platform
+    );
 
     const ring =
         new THREE.Mesh(
-            geometry,
-            material
+            new THREE.TorusGeometry(
+                3.3,
+                0.08,
+                8,
+                32
+            ),
+            new THREE.MeshBasicMaterial({
+                color: CITY.colors.red
+            })
         );
-
-    ring.position.set(
-        x,
-        0.4,
-        z
-    );
 
     ring.rotation.x =
         Math.PI / 2;
 
-    arenaState.cityGroup.add(
+    ring.position.y =
+        0.4;
+
+    group.add(
         ring
     );
-}
 
-/* ======================================================
-   SKYLINE
-====================================================== */
+    group.position.set(
+        x,
+        0,
+        z
+    );
 
-function createSkyline() {
-
-    const positions = [
-        [-82, -75],
-        [-70, -78],
-        [72, -80],
-        [83, -70],
-        [-80, 75],
-        [-68, 82],
-        [70, 78],
-        [82, 70]
-    ];
-
-    positions.forEach(
-        ([x, z], index) => {
-
-            const width =
-                8 + Math.random() * 8;
-
-            const depth =
-                8 + Math.random() * 8;
-
-            const height =
-                15 + Math.random() * 35;
-
-            const geometry =
-                new THREE.BoxGeometry(
-                    width,
-                    height,
-                    depth
-                );
-
-            const material =
-                new THREE.MeshStandardMaterial({
-                    color: 0x080a10,
-                    metalness: 0.65,
-                    roughness: 0.6
-                });
-
-            const building =
-                new THREE.Mesh(
-                    geometry,
-                    material
-                );
-
-            building.position.set(
-                x,
-                height / 2,
-                z
-            );
-
-            arenaState.cityGroup.add(
-                building
-            );
-
-            createSkylineLights(
-                building,
-                width,
-                height,
-                depth,
-                index
-            );
-        }
+    arenaState.city.add(
+        group
     );
 }
 
-/* ======================================================
-   SKYLINE LIGHTS
-====================================================== */
+/* =========================================================
+   GET BUILDING
+========================================================= */
 
-function createSkylineLights(
-    building,
-    width,
-    height,
-    depth,
-    index
-) {
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color:
-                index % 2 === 0
-                    ? ARENA_CONFIG.colors.red
-                    : 0x9e1033
-        });
-
-    const floors =
-        Math.max(
-            2,
-            Math.floor(height / 5)
-        );
-
-    for (
-        let i = 0;
-        i < floors;
-        i++
-    ) {
-
-        const geometry =
-            new THREE.BoxGeometry(
-                width * 0.6,
-                0.08,
-                0.08
-            );
-
-        const line =
-            new THREE.Mesh(
-                geometry,
-                material
-            );
-
-        line.position.set(
-            0,
-            -height / 2 + 3 + i * 5,
-            depth / 2 + 0.05
-        );
-
-        building.add(line);
-    }
-}
-
-/* ======================================================
-   FIND BUILDING
-====================================================== */
-
-export function getBuildingByLevel(
+export function getBuilding(
     level
 ) {
 
     return arenaState.buildings.find(
         building =>
-            building.id === level
+            building.level === level
     );
 }
 
-/* ======================================================
-   SET BUILDING VISIBILITY
-====================================================== */
-
-export function setBuildingUnlocked(
-    level,
-    unlocked
-) {
-
-    const building =
-        getBuildingByLevel(level);
-
-    if (!building) return;
-
-    building.object.userData.unlocked =
-        unlocked;
-
-    building.object.traverse(
-        object => {
-
-            if (!object.material) return;
-
-            if (
-                object.material.emissive
-            ) {
-
-                object.material.emissiveIntensity =
-                    unlocked ? 0.3 : 0.05;
-            }
-        }
-    );
-}
-
-/* ======================================================
-   ARENA UPDATE
-====================================================== */
+/* =========================================================
+   UPDATE CITY
+========================================================= */
 
 export function updateCyberCity(
-    delta,
     elapsed
 ) {
 
-    if (!arenaState.initialized) {
+    if (
+        !arenaState.initialized
+    ) {
         return;
     }
 
-    /*
-       Subtle pulsing neon effect
-    */
-
-    arenaState.lights.forEach(
+    arenaState.neonLights.forEach(
         (light, index) => {
 
             light.intensity =
-                1.2 +
+                1.5 +
                 Math.sin(
-                    elapsed * 2 + index
-                ) * 0.35;
+                    elapsed * 2 +
+                    index
+                ) * 0.3;
         }
     );
 }
 
-/* ======================================================
-   CLEANUP
-====================================================== */
+/* =========================================================
+   DESTROY
+========================================================= */
 
 export function destroyCyberCity() {
 
     if (
         arenaState.scene &&
-        arenaState.cityGroup
+        arenaState.city
     ) {
 
         arenaState.scene.remove(
-            arenaState.cityGroup
+            arenaState.city
         );
     }
 
-    arenaState.cityGroup = null;
+    arenaState.city = null;
     arenaState.buildings = [];
-    arenaState.roads = [];
-    arenaState.lights = [];
+    arenaState.neonLights = [];
     arenaState.initialized = false;
 }
-
-/* ======================================================
-   EXPORT STATE
-====================================================== */
-
-export {
-    arenaState,
-    ARENA_CONFIG
-};
 ```
