@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-import {
-  GLTFLoader
-} from 'three/addons/loaders/GLTFLoader.js';
-
+const MODEL_PATHS = {
+    girlAgent: 'assets/models/girl-agent.glb',
+    boyAgent: 'assets/models/boy-agent.glb',
+    enemy: 'assets/models/enemy.glb'
+};
 
 /*
 =========================================================
