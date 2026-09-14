@@ -1,260 +1,133 @@
 ```javascript
 /* =========================================================
    CYBERHUNT
-   MAIN GAME CONTROLLER
-   VEXA + KAI + ENEMY
-   LEVEL 1 DATA VAULT
-========================================================= */
+   Main Game Controller
+   ========================================================= */
 
 import * as THREE from "three";
-
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 
-
 /* =========================================================
    MODEL PATHS
-========================================================= */
+   ========================================================= */
 
 const MODEL_PATHS = {
-
-    vexa:
-        "./assets/models/girl-agent.glb",
-
-    kai:
-        "./assets/models/boy-agent.glb",
-
-    enemy:
-        "./assets/models/enemy.glb"
-
+    vexa: "./assets/models/girl-agent.glb",
+    kai: "./assets/models/boy-agent.glb",
+    enemy: "./assets/models/enemy.glb"
 };
-
 
 /* =========================================================
    GAME STATE
-========================================================= */
+   ========================================================= */
 
 const gameState = {
-
-    currentPage: "dashboardPage",
-
+    currentPage: "dashboard",
     currentLevel: 1,
 
     selectedOperative: "vexa",
 
-    xp: 0,
-
+    xp: 950,
     level: 1,
 
     missionsCompleted: 0,
-
-    badges: 0,
+    badges: [],
 
     health: 100,
-
     missionProgress: 0,
 
     evidenceFound: false,
-
     terminalInvestigated: false,
-
     puzzleSolved: false,
-
     doorUnlocked: false,
-
     enemyDefeated: false,
 
     missionComplete: false,
-
     gameRunning: false,
+    paused: false,
 
-    paused: false
-
+    unlockedLevels: [1]
 };
-
 
 /* =========================================================
    DOM HELPERS
-========================================================= */
+   ========================================================= */
 
 const $ = (id) => document.getElementById(id);
 
-const qs = (selector) =>
-    document.querySelector(selector);
-
-const qsa = (selector) =>
-    document.querySelectorAll(selector);
-
-
-/* =========================================================
-   DOM REFERENCES
-========================================================= */
-
-const cinematicIntro = $("cinematicIntro");
-const app = $("app");
-const gameScreen = $("gameScreen");
-
-const enterGameBtn = $("enterGameBtn");
-
-const continueMissionBtn =
-    $("continueMissionBtn");
-
-const startLevel1Btn =
-    $("startLevel1Btn");
-
-const returnDashboardBtn =
-    $("returnDashboardBtn");
-
-const exitGameBtn =
-    $("exitGameBtn");
-
-const pauseGameBtn =
-    $("pauseGameBtn");
-
-const resumeGameBtn =
-    $("resumeGameBtn");
-
-const pauseExitBtn =
-    $("pauseExitBtn");
-
-const pauseMenu =
-    $("pauseMenu");
-
-const interactionModal =
-    $("interactionModal");
-
-const closeInteractionBtn =
-    $("closeInteractionBtn");
-
-const puzzleModal =
-    $("puzzleModal");
-
-const puzzleSubmitBtn =
-    $("puzzleSubmitBtn");
-
-const puzzleCancelBtn =
-    $("puzzleCancelBtn");
-
-const puzzleInput =
-    $("puzzleInput");
-
-const missionComplete =
-    $("missionComplete");
-
-const loadingOverlay =
-    $("loadingOverlay");
-
-const loadingFill =
-    $("loadingFill");
-
-const loadingText =
-    $("loadingText");
-
-
-/* =========================================================
-   THREE.JS VARIABLES
-========================================================= */
-
-let scene = null;
-
-let camera = null;
-
-let renderer = null;
-
-let composer = null;
-
-let clock = null;
-
-let animationFrame = null;
-
-let gltfLoader = null;
-
-let player = null;
-
-let enemy = null;
-
-let currentWeapon = null;
-
-let environmentGroup = null;
-
-let interactables = [];
-
-let bullets = [];
-
-let enemyProjectiles = [];
-
-let keys = {};
-
-let mouse = {
-
-    x: 0,
-
-    y: 0,
-
-    down: false
-
-};
-
-let playerVelocity = new THREE.Vector3();
-
-let cameraTarget =
-    new THREE.Vector3();
-
-let raycaster =
-    new THREE.Raycaster();
-
-let centerScreen =
-    new THREE.Vector2(0, 0);
-
-let gameInitialized = false;
-
-
-/* =========================================================
-   INTRO
-========================================================= */
-
-function startIntro() {
-
-    if (!cinematicIntro) return;
-
-    cinematicIntro.classList.add("active");
-
-    setTimeout(() => {
-
-        const title =
-            qs(".intro-title");
-
-        if (title) {
-
-            title.classList.add("glitch");
-
-            setTimeout(() => {
-
-                title.classList.remove("glitch");
-
-            }, 300);
-
-        }
-
-    }, 1600);
-
+function show(element) {
+    if (element) {
+        element.style.display = "";
+    }
 }
 
+function hide(element) {
+    if (element) {
+        element.style.display = "none";
+    }
+}
+
+function setText(id, value) {
+    const element = $(id);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+/* =========================================================
+   DOM ELEMENTS
+   ========================================================= */
+
+const cinematicIntro = $("cinematicIntro");
+const enterGameBtn = $("enterGameBtn");
+const app = $("app");
+
+const gameScreen = $("gameScreen");
+const gameContainer = $("gameContainer");
+
+const loadingOverlay = $("loadingOverlay");
+
+const puzzleModal = $("puzzleModal");
+const interactionModal = $("interactionModal");
+const missionCompleteModal = $("missionCompleteModal");
+const pauseMenu = $("pauseMenu");
+
+/* =========================================================
+   CINEMATIC INTRO
+   ========================================================= */
 
 function enterCyberHunt() {
 
-    cinematicIntro.classList.add("hidden");
+    console.log("CYBERHUNT: ENTER ACTIVATED");
 
-    app.classList.remove("hidden");
+    if (cinematicIntro) {
 
-    showPage("dashboardPage");
+        cinematicIntro.classList.add("intro-exit");
+
+        setTimeout(() => {
+            cinematicIntro.style.display = "none";
+        }, 750);
+    }
+
+    if (app) {
+
+        app.style.display = "block";
+        app.classList.add("dashboard-enter");
+
+        setTimeout(() => {
+            app.classList.remove("dashboard-enter");
+        }, 900);
+    }
+
+    navigateTo("dashboard");
 
     updateDashboard();
-
 }
 
+/* Mouse / Touch */
 
 if (enterGameBtn) {
 
@@ -263,114 +136,99 @@ if (enterGameBtn) {
         enterCyberHunt
     );
 
-}
-
-
-/* =========================================================
-   PAGE NAVIGATION
-========================================================= */
-
-function showPage(pageId) {
-
-    qsa(".page").forEach((page) => {
-
-        page.classList.remove(
-            "active-page"
-        );
-
-    });
-
-
-    const page =
-        $(pageId);
-
-    if (page) {
-
-        page.classList.add(
-            "active-page"
-        );
-
-    }
-
-
-    qsa(".nav-btn").forEach((button) => {
-
-        button.classList.remove("active");
-
-        if (
-            button.dataset.page ===
-            pageId
-        ) {
-
-            button.classList.add(
-                "active"
-            );
-
-        }
-
-    });
-
-
-    gameState.currentPage =
-        pageId;
-
-}
-
-
-/* Navigation buttons */
-
-qsa(".nav-btn").forEach((button) => {
-
-    button.addEventListener(
-        "click",
-        () => {
-
-            const page =
-                button.dataset.page;
-
-            if (!page) return;
-
-            showPage(page);
-
-            updateDashboard();
-
+    enterGameBtn.addEventListener(
+        "touchend",
+        (event) => {
+            event.preventDefault();
+            enterCyberHunt();
         }
     );
 
-});
+    enterGameBtn.addEventListener(
+        "keydown",
+        (event) => {
 
+            if (
+                event.key === "Enter" ||
+                event.key === " "
+            ) {
 
-/* Dashboard cards */
+                event.preventDefault();
+                enterCyberHunt();
+            }
+        }
+    );
+}
 
-qsa(".dashboard-card").forEach(
-    (card) => {
+/* =========================================================
+   PAGE NAVIGATION
+   ========================================================= */
 
-        card.addEventListener(
+function navigateTo(pageName) {
+
+    gameState.currentPage = pageName;
+
+    document
+        .querySelectorAll(".page")
+        .forEach(page => {
+
+            page.classList.remove("active");
+
+            page.style.display = "none";
+        });
+
+    const target =
+        document.getElementById(
+            `${pageName}Page`
+        );
+
+    if (target) {
+
+        target.style.display = "block";
+
+        requestAnimationFrame(() => {
+            target.classList.add("active");
+        });
+    }
+
+    document
+        .querySelectorAll("[data-page]")
+        .forEach(button => {
+
+            button.classList.toggle(
+                "active",
+                button.dataset.page === pageName
+            );
+        });
+}
+
+/* Navigation buttons */
+
+document
+    .querySelectorAll("[data-page]")
+    .forEach(button => {
+
+        button.addEventListener(
             "click",
             () => {
 
-                const target =
-                    card.dataset.pageTarget;
+                const page =
+                    button.dataset.page;
 
-                if (target) {
+                navigateTo(page);
 
-                    showPage(target);
-
-                }
-
+                updateDashboard();
             }
         );
-
-    }
-);
-
+    });
 
 /* =========================================================
    OPERATIVE SELECTION
-========================================================= */
+   ========================================================= */
 
-qsa(".operative-card").forEach(
-    (card) => {
+document
+    .querySelectorAll(".operative-card")
+    .forEach(card => {
 
         card.addEventListener(
             "click",
@@ -379,107 +237,42 @@ qsa(".operative-card").forEach(
                 const operative =
                     card.dataset.operative;
 
-                if (!operative) return;
+                if (
+                    operative !== "vexa" &&
+                    operative !== "kai"
+                ) {
+                    return;
+                }
 
-                selectOperative(
-                    operative
+                gameState.selectedOperative =
+                    operative;
+
+                document
+                    .querySelectorAll(".operative-card")
+                    .forEach(item => {
+                        item.classList.remove("selected");
+                    });
+
+                card.classList.add("selected");
+
+                updateProfile();
+
+                notify(
+                    operative === "vexa"
+                        ? "VEXA selected"
+                        : "KAI selected"
                 );
-
             }
         );
-
-    }
-);
-
-
-function selectOperative(
-    operative
-) {
-
-    if (
-        operative !== "vexa" &&
-        operative !== "kai"
-    ) {
-
-        return;
-
-    }
-
-
-    gameState.selectedOperative =
-        operative;
-
-
-    qsa(".operative-card")
-        .forEach((card) => {
-
-            card.classList.remove(
-                "selected"
-            );
-
-            const label =
-                card.querySelector(
-                    ".operative-selected"
-                );
-
-            if (label) {
-
-                label.textContent =
-                    "SELECT";
-
-            }
-
-        });
-
-
-    const selected =
-        qs(
-            `[data-operative="${operative}"]`
-        );
-
-
-    if (selected) {
-
-        selected.classList.add(
-            "selected"
-        );
-
-        const label =
-            selected.querySelector(
-                ".operative-selected"
-            );
-
-        if (label) {
-
-            label.textContent =
-                "SELECTED";
-
-        }
-
-    }
-
-
-    const profileName =
-        qs(".profile-card h3");
-
-    if (profileName) {
-
-        profileName.textContent =
-            operative === "vexa"
-                ? "VEXA"
-                : "KAI";
-
-    }
-
-}
-
+    });
 
 /* =========================================================
-   LEVEL BUTTONS
-========================================================= */
+   LEVEL SELECTION
+   ========================================================= */
 
-qsa("[data-start-level]").forEach(
-    (button) => {
+document
+    .querySelectorAll("[data-start-level]")
+    .forEach(button => {
 
         button.addEventListener(
             "click",
@@ -491,93 +284,56 @@ qsa("[data-start-level]").forEach(
                     );
 
                 if (
-                    level === 1
+                    !gameState.unlockedLevels.includes(
+                        level
+                    )
                 ) {
 
-                    startLevel(1);
+                    notify(
+                        "Level locked — complete the previous mission."
+                    );
 
+                    return;
                 }
 
+                startLevel(level);
             }
         );
-
-    }
-);
-
+    });
 
 /* =========================================================
    START LEVEL
-========================================================= */
+   ========================================================= */
 
 function startLevel(level) {
 
-    if (level !== 1) {
-
-        return;
-
-    }
-
-
-    gameState.currentLevel =
-        level;
+    gameState.currentLevel = level;
 
     resetMissionState();
 
-    showLoading(
-        "Loading Data Vault..."
-    );
+    hide(app);
+    show(gameScreen);
 
+    if (loadingOverlay) {
+        loadingOverlay.style.display = "flex";
+    }
 
     setTimeout(() => {
 
-        hideLoading();
-
-        app.classList.add(
-            "hidden"
-        );
-
-        gameScreen.classList.remove(
-            "hidden"
-        );
-
         initializeGame();
 
-    }, 900);
-
-}
-
-
-if (continueMissionBtn) {
-
-    continueMissionBtn.addEventListener(
-        "click",
-        () => {
-
-            startLevel(1);
-
+        if (loadingOverlay) {
+            loadingOverlay.style.display = "none";
         }
-    );
 
+        gameState.gameRunning = true;
+
+    }, 500);
 }
-
-
-if (startLevel1Btn) {
-
-    startLevel1Btn.addEventListener(
-        "click",
-        () => {
-
-            startLevel(1);
-
-        }
-    );
-
-}
-
 
 /* =========================================================
-   MISSION RESET
-========================================================= */
+   RESET MISSION
+   ========================================================= */
 
 function resetMissionState() {
 
@@ -586,153 +342,122 @@ function resetMissionState() {
     gameState.missionProgress = 0;
 
     gameState.evidenceFound = false;
-
     gameState.terminalInvestigated = false;
-
     gameState.puzzleSolved = false;
-
     gameState.doorUnlocked = false;
-
     gameState.enemyDefeated = false;
 
     gameState.missionComplete = false;
-
-    gameState.gameRunning = false;
-
     gameState.paused = false;
 
-    updateGameHUD();
-
+    updateHUD();
 }
 
-
 /* =========================================================
-   LOADING
-========================================================= */
+   THREE.JS VARIABLES
+   ========================================================= */
 
-function showLoading(
-    message = "Loading..."
-) {
+let scene;
+let camera;
+let renderer;
+let composer;
 
-    if (!loadingOverlay) return;
+let player;
+let enemy;
 
-    loadingOverlay.classList.remove(
-        "hidden"
+let playerModel;
+let enemyModel;
+
+let mixerPlayer;
+let mixerEnemy;
+
+let clock;
+
+let loader;
+
+let interactables = [];
+
+let terminalObject;
+let evidenceObject;
+let doorObject;
+
+let playerPosition =
+    new THREE.Vector3(
+        0,
+        1,
+        35
     );
 
-    loadingText.textContent =
-        message;
+let keys = {};
 
-    loadingFill.style.width =
-        "15%";
+let mouse = {
+    x: 0,
+    y: 0,
+    down: false
+};
 
+let shootCooldown = 0;
 
-    setTimeout(() => {
+let enemyHealth = 100;
 
-        loadingFill.style.width =
-            "45%";
-
-    }, 150);
-
-
-    setTimeout(() => {
-
-        loadingFill.style.width =
-            "75%";
-
-    }, 350);
-
-
-    setTimeout(() => {
-
-        loadingFill.style.width =
-            "100%";
-
-    }, 600);
-
-}
-
-
-function hideLoading() {
-
-    if (!loadingOverlay) return;
-
-    setTimeout(() => {
-
-        loadingOverlay.classList.add(
-            "hidden"
-        );
-
-    }, 150);
-
-}
-
+let gameInitialized = false;
 
 /* =========================================================
-   THREE.JS GAME INITIALIZATION
-========================================================= */
+   INITIALIZE THREE.JS
+   ========================================================= */
 
 function initializeGame() {
 
-    if (gameInitialized) {
+    if (!gameContainer) {
 
-        restartGameScene();
-
-        return;
-
-    }
-
-
-    gameInitialized = true;
-
-    clock =
-        new THREE.Clock();
-
-    scene =
-        new THREE.Scene();
-
-
-    scene.background =
-        new THREE.Color(
-            0x030303
+        console.error(
+            "CyberHunt: gameContainer missing."
         );
 
+        return;
+    }
+
+    gameInitialized = false;
+
+    interactables = [];
+
+    /* Scene */
+
+    scene = new THREE.Scene();
+
+    scene.background =
+        new THREE.Color(0x020204);
 
     scene.fog =
         new THREE.FogExp2(
-            0x030303,
-            0.018
+            0x030305,
+            0.012
         );
-
 
     /* Camera */
 
     camera =
         new THREE.PerspectiveCamera(
-            65,
+            70,
             window.innerWidth /
-                window.innerHeight,
+            window.innerHeight,
             0.1,
             1000
         );
 
-
     camera.position.set(
         0,
-        4.5,
-        13
+        5,
+        42
     );
-
 
     /* Renderer */
 
     renderer =
         new THREE.WebGLRenderer({
             antialias: true,
-            powerPreference:
-                "high-performance"
+            powerPreference: "high-performance"
         });
-
 
     renderer.setPixelRatio(
         Math.min(
@@ -741,343 +466,208 @@ function initializeGame() {
         )
     );
 
-
     renderer.setSize(
         window.innerWidth,
         window.innerHeight
     );
 
-
-    renderer.shadowMap.enabled =
-        true;
-
+    renderer.shadowMap.enabled = true;
 
     renderer.shadowMap.type =
         THREE.PCFSoftShadowMap;
 
-
     renderer.outputColorSpace =
         THREE.SRGBColorSpace;
 
+    renderer.toneMapping =
+        THREE.ACESFilmicToneMapping;
 
-    $("gameContainer")
-        .appendChild(
-            renderer.domElement
-        );
+    renderer.toneMappingExposure =
+        1.15;
 
+    gameContainer.innerHTML = "";
 
-    /* Lighting */
+    gameContainer.appendChild(
+        renderer.domElement
+    );
+
+    /* Clock */
+
+    clock = new THREE.Clock();
+
+    /* Loader */
+
+    loader = new GLTFLoader();
+
+    /* Lights */
 
     createLighting();
 
-
     /* Environment */
 
-    createDataVault();
-
-
-    /* Post-processing */
-
-    createPostProcessing();
-
+    createGameEnvironment();
 
     /* Player */
 
-    loadSelectedPlayer();
-
+    loadPlayer();
 
     /* Enemy */
 
     loadEnemy();
 
+    /* Post processing */
+
+    createPostProcessing();
 
     /* Controls */
 
-    setupGameControls();
-
+    setupControls();
 
     /* Resize */
 
     window.addEventListener(
         "resize",
-        onWindowResize
+        handleResize
     );
 
+    gameInitialized = true;
 
-    gameState.gameRunning =
-        true;
-
-
-    updateGameHUD();
-
-    animateGame();
-
+    animate();
 }
-
 
 /* =========================================================
    LIGHTING
-========================================================= */
+   ========================================================= */
 
 function createLighting() {
 
     const ambient =
         new THREE.AmbientLight(
-            0xffffff,
-            0.35
+            0x555566,
+            1.3
         );
 
-    scene.add(
-        ambient
-    );
-
+    scene.add(ambient);
 
     const redLight =
         new THREE.PointLight(
-            0xe5092f,
-            15,
-            35
+            0xff1744,
+            7,
+            70
         );
 
     redLight.position.set(
         0,
-        8,
-        0
+        12,
+        5
     );
 
-    scene.add(
-        redLight
-    );
+    scene.add(redLight);
 
-
-    const redLightTwo =
+    const redLight2 =
         new THREE.PointLight(
-            0x8f061e,
-            10,
-            25
+            0x9e1033,
+            5,
+            50
         );
 
-    redLightTwo.position.set(
-        -15,
-        4,
-        -10
+    redLight2.position.set(
+        -25,
+        8,
+        -20
     );
 
-    scene.add(
-        redLightTwo
-    );
-
+    scene.add(redLight2);
 
     const whiteLight =
         new THREE.DirectionalLight(
-            0xffffff,
-            1.2
+            0xdfe7ff,
+            1.5
         );
 
     whiteLight.position.set(
-        10,
-        18,
-        10
+        20,
+        35,
+        25
     );
 
-    whiteLight.castShadow =
-        true;
-
+    whiteLight.castShadow = true;
 
     whiteLight.shadow.mapSize.width =
-        1024;
+        2048;
 
     whiteLight.shadow.mapSize.height =
-        1024;
+        2048;
 
-    scene.add(
-        whiteLight
-    );
-
+    scene.add(whiteLight);
 }
 
-
 /* =========================================================
-   POST PROCESSING
-========================================================= */
+   ENVIRONMENT
+   ========================================================= */
 
-function createPostProcessing() {
+function createGameEnvironment() {
 
-    const renderPass =
-        new RenderPass(
-            scene,
-            camera
-        );
+    /* Ground */
 
-
-    const bloom =
-        new UnrealBloomPass(
-            new THREE.Vector2(
-                window.innerWidth,
-                window.innerHeight
-            ),
-            0.65,
-            0.55,
-            0.8
-        );
-
-
-    composer =
-        new EffectComposer(
-            renderer
-        );
-
-
-    composer.addPass(
-        renderPass
-    );
-
-    composer.addPass(
-        bloom
-    );
-
-}
-
-
-/* =========================================================
-   CYBERCITY / DATA VAULT
-========================================================= */
-
-function createDataVault() {
-
-    environmentGroup =
-        new THREE.Group();
-
-
-    scene.add(
-        environmentGroup
-    );
-
-
-    /* Floor */
-
-    const floorGeometry =
+    const groundGeometry =
         new THREE.PlaneGeometry(
-            90,
-            90
+            180,
+            180
         );
 
-
-    const floorMaterial =
+    const groundMaterial =
         new THREE.MeshStandardMaterial({
-            color: 0x070707,
-            metalness: 0.75,
-            roughness: 0.32
+            color: 0x050508,
+            roughness: 0.85,
+            metalness: 0.35
         });
 
-
-    const floor =
+    const ground =
         new THREE.Mesh(
-            floorGeometry,
-            floorMaterial
+            groundGeometry,
+            groundMaterial
         );
 
-
-    floor.rotation.x =
+    ground.rotation.x =
         -Math.PI / 2;
 
+    ground.receiveShadow = true;
 
-    floor.receiveShadow =
-        true;
-
-
-    environmentGroup.add(
-        floor
-    );
-
+    scene.add(ground);
 
     /* Grid */
 
     const grid =
         new THREE.GridHelper(
-            90,
-            90,
-            0x650719,
-            0x26040a
+            180,
+            45,
+            0x8d1230,
+            0x17131a
         );
 
+    grid.position.y = 0.02;
 
-    grid.position.y =
-        0.02;
+    grid.material.transparent = true;
 
+    grid.material.opacity = 0.28;
 
-    environmentGroup.add(
-        grid
-    );
-
-
-    /* Main building */
-
-    createBuilding(
-        0,
-        6,
-        -12,
-        26,
-        13,
-        2
-    );
-
-
-    /* Side structures */
-
-    createBuilding(
-        -22,
-        4,
-        -18,
-        15,
-        9,
-        1
-    );
-
-
-    createBuilding(
-        22,
-        4,
-        -18,
-        15,
-        9,
-        1
-    );
-
-
-    /* Neon pillars */
-
-    for (
-        let i = -3;
-        i <= 3;
-        i++
-    ) {
-
-        createNeonPillar(
-            i * 5,
-            0,
-            2
-        );
-
-    }
-
+    scene.add(grid);
 
     /* Road */
 
-    const roadGeometry =
-        new THREE.PlaneGeometry(
-            9,
-            60
-        );
-
-
     const roadMaterial =
         new THREE.MeshStandardMaterial({
-            color: 0x030303,
-            roughness: 0.8,
-            metalness: 0.2
+            color: 0x07070b,
+            roughness: 0.65,
+            metalness: 0.55
         });
 
+    const roadGeometry =
+        new THREE.PlaneGeometry(
+            24,
+            180
+        );
 
     const road =
         new THREE.Mesh(
@@ -1085,44 +675,31 @@ function createDataVault() {
             roadMaterial
         );
 
-
     road.rotation.x =
         -Math.PI / 2;
 
+    road.position.y = 0.04;
 
-    road.position.set(
-        0,
-        0.04,
-        2
-    );
+    scene.add(road);
 
-
-    environmentGroup.add(
-        road
-    );
-
-
-    /* Cyber lines */
+    /* Neon road lines */
 
     for (
-        let z = -25;
-        z <= 25;
+        let z = -85;
+        z <= 85;
         z += 5
     ) {
 
         const lineGeometry =
-            new THREE.BoxGeometry(
+            new THREE.PlaneGeometry(
                 0.08,
-                0.03,
-                3
+                2.5
             );
-
 
         const lineMaterial =
             new THREE.MeshBasicMaterial({
-                color: 0xe5092f
+                color: 0xff1744
             });
-
 
         const line =
             new THREE.Mesh(
@@ -1130,6 +707,8 @@ function createDataVault() {
                 lineMaterial
             );
 
+        line.rotation.x =
+            -Math.PI / 2;
 
         line.position.set(
             0,
@@ -1137,303 +716,333 @@ function createDataVault() {
             z
         );
 
-
-        environmentGroup.add(
-            line
-        );
-
+        scene.add(line);
     }
 
+    createBuildings();
+    createStreetDetails();
+}
 
-    /* Terminal */
+/* =========================================================
+   BUILDINGS
+   ========================================================= */
 
-    createTerminal(
-        0,
-        1.6,
-        -2
+function createBuildings() {
+
+    const buildings = [
+
+        {
+            x: -45,
+            z: -35,
+            w: 25,
+            d: 25,
+            h: 30,
+            name: "DATA VAULT"
+        },
+
+        {
+            x: 45,
+            z: -35,
+            w: 28,
+            d: 25,
+            h: 38,
+            name: "CYBER BANK"
+        },
+
+        {
+            x: -45,
+            z: 40,
+            w: 25,
+            d: 25,
+            h: 34,
+            name: "NEXUS LAB"
+        },
+
+        {
+            x: 45,
+            z: 40,
+            w: 28,
+            d: 25,
+            h: 42,
+            name: "BLACKSITE"
+        },
+
+        {
+            x: 0,
+            z: -60,
+            w: 30,
+            d: 20,
+            h: 46,
+            name: "CYBER CORE"
+        }
+    ];
+
+    buildings.forEach(
+        data => {
+
+            const group =
+                new THREE.Group();
+
+            const geometry =
+                new THREE.BoxGeometry(
+                    data.w,
+                    data.h,
+                    data.d
+                );
+
+            const material =
+                new THREE.MeshStandardMaterial({
+                    color: 0x090a10,
+                    roughness: 0.58,
+                    metalness: 0.72
+                });
+
+            const building =
+                new THREE.Mesh(
+                    geometry,
+                    material
+                );
+
+            building.position.y =
+                data.h / 2;
+
+            building.castShadow = true;
+
+            building.receiveShadow = true;
+
+            group.add(building);
+
+            /* Red edges */
+
+            const edgeMaterial =
+                new THREE.MeshBasicMaterial({
+                    color: 0xff1744
+                });
+
+            const edgeGeometry =
+                new THREE.BoxGeometry(
+                    0.18,
+                    data.h,
+                    0.18
+                );
+
+            const positions = [
+                [-data.w / 2, data.d / 2],
+                [data.w / 2, data.d / 2],
+                [-data.w / 2, -data.d / 2],
+                [data.w / 2, -data.d / 2]
+            ];
+
+            positions.forEach(
+                ([x, z]) => {
+
+                    const edge =
+                        new THREE.Mesh(
+                            edgeGeometry,
+                            edgeMaterial
+                        );
+
+                    edge.position.set(
+                        x,
+                        data.h / 2,
+                        z
+                    );
+
+                    group.add(edge);
+                }
+            );
+
+            /* Windows */
+
+            for (
+                let y = 5;
+                y < data.h - 2;
+                y += 5
+            ) {
+
+                for (
+                    let x = -data.w / 2 + 3;
+                    x < data.w / 2 - 1;
+                    x += 4
+                ) {
+
+                    const windowGeometry =
+                        new THREE.BoxGeometry(
+                            1.4,
+                            1.6,
+                            0.06
+                        );
+
+                    const windowMaterial =
+                        new THREE.MeshBasicMaterial({
+                            color:
+                                0x9e1033
+                        });
+
+                    const window =
+                        new THREE.Mesh(
+                            windowGeometry,
+                            windowMaterial
+                        );
+
+                    window.position.set(
+                        x,
+                        y,
+                        data.d / 2 + 0.05
+                    );
+
+                    group.add(window);
+                }
+            }
+
+            group.position.set(
+                data.x,
+                0,
+                data.z
+            );
+
+            scene.add(group);
+        }
     );
+}
 
+/* =========================================================
+   STREET DETAILS
+   ========================================================= */
 
-    /* Evidence */
+function createStreetDetails() {
 
-    createEvidence(
-        -5,
-        1,
-        -7
-    );
+    for (
+        let x = -70;
+        x <= 70;
+        x += 14
+    ) {
 
+        createStreetLamp(
+            x,
+            -12
+        );
 
-    /* Locked door */
+        createStreetLamp(
+            x,
+            12
+        );
+    }
 
-    createLockedDoor(
-        0,
-        2.8,
-        -22
-    );
-
-
-    /* Decorative crates */
+    /* Crates */
 
     for (
         let i = 0;
-        i < 12;
+        i < 15;
         i++
     ) {
 
-        createCrate(
-            THREE.MathUtils.randFloat(
-                -13,
-                13
-            ),
-            THREE.MathUtils.randFloat(
-                -17,
-                -5
-            )
+        const crateGeometry =
+            new THREE.BoxGeometry(
+                2.5,
+                2.5,
+                2.5
+            );
+
+        const crateMaterial =
+            new THREE.MeshStandardMaterial({
+                color: 0x12131a,
+                metalness: 0.65,
+                roughness: 0.55
+            });
+
+        const crate =
+            new THREE.Mesh(
+                crateGeometry,
+                crateMaterial
+            );
+
+        crate.position.set(
+            -12 +
+            Math.random() * 24,
+            1.25,
+            -25 +
+            Math.random() * 30
         );
 
-    }
+        crate.rotation.y =
+            Math.random() * Math.PI;
 
+        crate.castShadow = true;
+
+        scene.add(crate);
+    }
 }
 
-
 /* =========================================================
-   BUILDING
-========================================================= */
+   STREET LAMP
+   ========================================================= */
 
-function createBuilding(
+function createStreetLamp(
     x,
-    width,
-    z,
-    height,
-    depth,
-    floors
+    z
 ) {
 
-    const buildingGeometry =
-        new THREE.BoxGeometry(
-            width,
-            height,
-            depth
+    const group =
+        new THREE.Group();
+
+    const poleGeometry =
+        new THREE.CylinderGeometry(
+            0.12,
+            0.18,
+            6,
+            8
         );
 
-
-    const buildingMaterial =
+    const poleMaterial =
         new THREE.MeshStandardMaterial({
-            color: 0x0b0b0c,
-            metalness: 0.75,
+            color: 0x1a1b21,
+            metalness: 0.85,
             roughness: 0.3
         });
 
-
-    const building =
+    const pole =
         new THREE.Mesh(
-            buildingGeometry,
-            buildingMaterial
+            poleGeometry,
+            poleMaterial
         );
 
+    pole.position.y = 3;
 
-    building.position.set(
-        x,
-        height / 2,
-        z
-    );
+    group.add(pole);
 
-
-    building.castShadow =
-        true;
-
-    building.receiveShadow =
-        true;
-
-
-    environmentGroup.add(
-        building
-    );
-
-
-    /* Red windows */
-
-    for (
-        let floorIndex = 0;
-        floorIndex < floors + 4;
-        floorIndex++
-    ) {
-
-        const y =
-            2 +
-            floorIndex *
-            Math.max(
-                1.6,
-                height / 7
-            );
-
-
-        if (
-            y >= height - 0.5
-        ) continue;
-
-
-        for (
-            let wx = -width / 2 + 1.5;
-            wx < width / 2 - 0.5;
-            wx += 2
-        ) {
-
-            const windowGeometry =
-                new THREE.BoxGeometry(
-                    0.7,
-                    0.35,
-                    0.06
-                );
-
-
-            const windowMaterial =
-                new THREE.MeshBasicMaterial({
-                    color:
-                        Math.random() > 0.45
-                            ? 0xe5092f
-                            : 0x251014
-                });
-
-
-            const windowMesh =
-                new THREE.Mesh(
-                    windowGeometry,
-                    windowMaterial
-                );
-
-
-            windowMesh.position.set(
-                x + wx,
-                y,
-                z - depth / 2 - 0.04
-            );
-
-
-            environmentGroup.add(
-                windowMesh
-            );
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   NEON PILLAR
-========================================================= */
-
-function createNeonPillar(
-    x,
-    y,
-    z
-) {
-
-    const geometry =
-        new THREE.BoxGeometry(
-            0.3,
-            5,
-            0.3
+    const lamp =
+        new THREE.PointLight(
+            0xff1744,
+            1.8,
+            14
         );
 
+    lamp.position.y = 6;
 
-    const material =
+    group.add(lamp);
+
+    const glowGeometry =
+        new THREE.SphereGeometry(
+            0.24,
+            12,
+            12
+        );
+
+    const glowMaterial =
         new THREE.MeshBasicMaterial({
-            color: 0xe5092f
+            color: 0xff1744
         });
 
-
-    const pillar =
+    const glow =
         new THREE.Mesh(
-            geometry,
-            material
+            glowGeometry,
+            glowMaterial
         );
 
+    glow.position.y = 6;
 
-    pillar.position.set(
-        x,
-        2.5,
-        z
-    );
-
-
-    environmentGroup.add(
-        pillar
-    );
-
-}
-
-
-/* =========================================================
-   CRATE
-========================================================= */
-
-function createCrate(
-    x,
-    z
-) {
-
-    const geometry =
-        new THREE.BoxGeometry(
-            1.4,
-            1.2,
-            1.4
-        );
-
-
-    const material =
-        new THREE.MeshStandardMaterial({
-            color: 0x101010,
-            metalness: 0.45,
-            roughness: 0.6
-        });
-
-
-    const crate =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-
-    crate.position.set(
-        x,
-        0.6,
-        z
-    );
-
-
-    crate.rotation.y =
-        Math.random() *
-        Math.PI;
-
-
-    crate.castShadow =
-        true;
-
-
-    environmentGroup.add(
-        crate
-    );
-
-}
-
-
-/* =========================================================
-   TERMINAL
-========================================================= */
-
-function createTerminal(
-    x,
-    y,
-    z
-) {
-
-    const group =
-        new THREE.Group();
-
+    group.add(glow);
 
     group.position.set(
         x,
@@ -1441,987 +1050,727 @@ function createTerminal(
         z
     );
 
-
-    const base =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                2.5,
-                2,
-                1.3
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x090909,
-                metalness: 0.8,
-                roughness: 0.3
-            })
-        );
-
-
-    base.position.y =
-        1;
-
-
-    base.castShadow =
-        true;
-
-
-    group.add(
-        base
-    );
-
-
-    const screen =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                1.8,
-                1.1,
-                0.08
-            ),
-            new THREE.MeshBasicMaterial({
-                color: 0xe5092f
-            })
-        );
-
-
-    screen.position.set(
-        0,
-        1.4,
-        -0.68
-    );
-
-
-    group.add(
-        screen
-    );
-
-
-    group.userData = {
-
-        type:
-            "terminal",
-
-        label:
-            "COMPROMISED TERMINAL"
-
-    };
-
-
-    environmentGroup.add(
-        group
-    );
-
-
-    interactables.push(
-        group
-    );
-
+    scene.add(group);
 }
-
 
 /* =========================================================
-   EVIDENCE
-========================================================= */
+   POST PROCESSING
+   ========================================================= */
 
-function createEvidence(
-    x,
-    y,
-    z
-) {
+function createPostProcessing() {
 
-    const group =
-        new THREE.Group();
-
-
-    group.position.set(
-        x,
-        y,
-        z
-    );
-
-
-    const device =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                0.9,
-                0.18,
-                0.35
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x151515,
-                metalness: 0.85,
-                roughness: 0.25
-            })
+    composer =
+        new EffectComposer(
+            renderer
         );
 
-
-    group.add(
-        device
-    );
-
-
-    const light =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                0.15,
-                0.04,
-                0.04
-            ),
-            new THREE.MeshBasicMaterial({
-                color: 0xe5092f
-            })
+    const renderPass =
+        new RenderPass(
+            scene,
+            camera
         );
 
-
-    light.position.x =
-        0.2;
-
-
-    light.position.y =
-        0.11;
-
-
-    group.add(
-        light
+    composer.addPass(
+        renderPass
     );
 
+    const bloom =
+        new UnrealBloomPass(
+            new THREE.Vector2(
+                window.innerWidth,
+                window.innerHeight
+            ),
+            0.75,
+            0.65,
+            0.88
+        );
 
-    group.userData = {
-
-        type:
-            "evidence",
-
-        label:
-            "UNKNOWN USB DEVICE"
-
-    };
-
-
-    environmentGroup.add(
-        group
+    composer.addPass(
+        bloom
     );
-
-
-    interactables.push(
-        group
-    );
-
 }
-
-
-/* =========================================================
-   LOCKED DOOR
-========================================================= */
-
-function createLockedDoor(
-    x,
-    y,
-    z
-) {
-
-    const group =
-        new THREE.Group();
-
-
-    group.position.set(
-        x,
-        0,
-        z
-    );
-
-
-    const frame =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                6,
-                6,
-                0.5
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x090909,
-                metalness: 0.8,
-                roughness: 0.3
-            })
-        );
-
-
-    frame.position.y =
-        3;
-
-
-    group.add(
-        frame
-    );
-
-
-    const door =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                3.5,
-                5.2,
-                0.25
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x16070a,
-                metalness: 0.75,
-                roughness: 0.25
-            })
-        );
-
-
-    door.position.set(
-        0,
-        2.6,
-        -0.3
-    );
-
-
-    group.add(
-        door
-    );
-
-
-    const lockLight =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                0.25,
-                0.25,
-                0.1
-            ),
-            new THREE.MeshBasicMaterial({
-                color: 0xe5092f
-            })
-        );
-
-
-    lockLight.position.set(
-        2,
-        2.8,
-        -0.5
-    );
-
-
-    group.add(
-        lockLight
-    );
-
-
-    group.userData = {
-
-        type:
-            "door",
-
-        label:
-            "RESTRICTED ACCESS"
-
-    };
-
-
-    environmentGroup.add(
-        group
-    );
-
-
-    interactables.push(
-        group
-    );
-
-}
-
 
 /* =========================================================
    LOAD PLAYER
-========================================================= */
+   ========================================================= */
 
-function loadSelectedPlayer() {
-
-    if (player) {
-
-        scene.remove(
-            player
-        );
-
-        player = null;
-
-    }
-
+function loadPlayer() {
 
     const path =
-        gameState.selectedOperative ===
-        "kai"
+        gameState.selectedOperative === "kai"
             ? MODEL_PATHS.kai
             : MODEL_PATHS.vexa;
 
-
-    gltfLoader =
-        gltfLoader ||
-        new GLTFLoader();
-
-
-    gltfLoader.load(
-
+    loader.load(
         path,
 
-        (gltf) => {
+        gltf => {
+
+            playerModel =
+                gltf.scene;
+
+            playerModel.scale.set(
+                1.7,
+                1.7,
+                1.7
+            );
+
+            playerModel.position.copy(
+                playerPosition
+            );
+
+            playerModel.traverse(
+                object => {
+
+                    if (
+                        object.isMesh
+                    ) {
+
+                        object.castShadow = true;
+                        object.receiveShadow = true;
+                    }
+                }
+            );
+
+            scene.add(
+                playerModel
+            );
 
             player =
-                gltf.scene;
-
-
-            player.scale.set(
-                2.2,
-                2.2,
-                2.2
-            );
-
-
-            player.position.set(
-                0,
-                0,
-                8
-            );
-
-
-            player.rotation.y =
-                Math.PI;
-
-
-            player.traverse(
-                (object) => {
-
-                    if (
-                        object.isMesh
-                    ) {
-
-                        object.castShadow =
-                            true;
-
-                        object.receiveShadow =
-                            true;
-
-                    }
-
-                }
-            );
-
-
-            scene.add(
-                player
-            );
-
-
-            camera.position.set(
-                0,
-                5,
-                15
-            );
-
-
-            cameraTarget.copy(
-                player.position
-            );
-
-
-            updateLoadingMessage(
-                "OPERATIVE READY"
-            );
-
-        },
-
-        (progress) => {
+                playerModel;
 
             if (
-                progress.total
+                gltf.animations &&
+                gltf.animations.length
             ) {
 
-                const percent =
-                    Math.round(
-                        progress.loaded /
-                        progress.total *
-                        100
+                mixerPlayer =
+                    new THREE.AnimationMixer(
+                        playerModel
                     );
 
-                updateLoadingMessage(
-                    `Loading operative ${percent}%`
-                );
-
+                mixerPlayer
+                    .clipAction(
+                        gltf.animations[0]
+                    )
+                    .play();
             }
 
-        },
-
-        (error) => {
-
-            console.error(
-                "VEXA/KAI model loading error:",
-                error
+            notify(
+                gameState.selectedOperative === "kai"
+                    ? "KAI deployed"
+                    : "VEXA deployed"
             );
-
-
-            updateLoadingMessage(
-                "Operative model unavailable"
-            );
-
-        }
-
-    );
-
-}
-
-
-/* =========================================================
-   LOAD ENEMY
-========================================================= */
-
-function loadEnemy() {
-
-    if (enemy) {
-
-        scene.remove(
-            enemy
-        );
-
-        enemy = null;
-
-    }
-
-
-    gltfLoader =
-        gltfLoader ||
-        new GLTFLoader();
-
-
-    gltfLoader.load(
-
-        MODEL_PATHS.enemy,
-
-        (gltf) => {
-
-            enemy =
-                gltf.scene;
-
-
-            enemy.scale.set(
-                2.1,
-                2.1,
-                2.1
-            );
-
-
-            enemy.position.set(
-                5,
-                0,
-                -10
-            );
-
-
-            enemy.rotation.y =
-                Math.PI;
-
-
-            enemy.userData = {
-
-                health: 100,
-
-                active: true
-
-            };
-
-
-            enemy.traverse(
-                (object) => {
-
-                    if (
-                        object.isMesh
-                    ) {
-
-                        object.castShadow =
-                            true;
-
-                        object.receiveShadow =
-                            true;
-
-                    }
-
-                }
-            );
-
-
-            scene.add(
-                enemy
-            );
-
         },
 
         undefined,
 
-        (error) => {
+        error => {
 
             console.error(
-                "Enemy model loading error:",
+                "Player model failed:",
                 error
             );
-
         }
-
     );
-
 }
 
+/* =========================================================
+   LOAD ENEMY
+   ========================================================= */
+
+function loadEnemy() {
+
+    loader.load(
+        MODEL_PATHS.enemy,
+
+        gltf => {
+
+            enemyModel =
+                gltf.scene;
+
+            enemyModel.scale.set(
+                1.8,
+                1.8,
+                1.8
+            );
+
+            enemyModel.position.set(
+                0,
+                0,
+                -15
+            );
+
+            enemyModel.traverse(
+                object => {
+
+                    if (
+                        object.isMesh
+                    ) {
+
+                        object.castShadow = true;
+                        object.receiveShadow = true;
+                    }
+                }
+            );
+
+            scene.add(
+                enemyModel
+            );
+
+            enemy =
+                enemyModel;
+
+            enemyHealth = 100;
+
+            if (
+                gltf.animations &&
+                gltf.animations.length
+            ) {
+
+                mixerEnemy =
+                    new THREE.AnimationMixer(
+                        enemyModel
+                    );
+
+                mixerEnemy
+                    .clipAction(
+                        gltf.animations[0]
+                    )
+                    .play();
+            }
+        },
+
+        undefined,
+
+        error => {
+
+            console.error(
+                "Enemy model failed:",
+                error
+            );
+        }
+    );
+}
 
 /* =========================================================
-   LOADING TEXT
-========================================================= */
+   LEVEL 1 OBJECTS
+   ========================================================= */
 
-function updateLoadingMessage(
-    message
-) {
+function createLevelObjects() {
 
-    if (
-        loadingText
-    ) {
-
-        loadingText.textContent =
-            message;
-
+    if (terminalObject) {
+        scene.remove(
+            terminalObject
+        );
     }
 
+    if (evidenceObject) {
+        scene.remove(
+            evidenceObject
+        );
+    }
+
+    if (doorObject) {
+        scene.remove(
+            doorObject
+        );
+    }
+
+    /* Terminal */
+
+    terminalObject =
+        createTerminal();
+
+    terminalObject.position.set(
+        -7,
+        1.5,
+        -5
+    );
+
+    scene.add(
+        terminalObject
+    );
+
+    interactables.push(
+        terminalObject
+    );
+
+    /* Evidence */
+
+    evidenceObject =
+        createEvidence();
+
+    evidenceObject.position.set(
+        8,
+        0.7,
+        4
+    );
+
+    scene.add(
+        evidenceObject
+    );
+
+    interactables.push(
+        evidenceObject
+    );
+
+    /* Door */
+
+    doorObject =
+        createDoor();
+
+    doorObject.position.set(
+        0,
+        0,
+        -27
+    );
+
+    scene.add(
+        doorObject
+    );
+
+    interactables.push(
+        doorObject
+    );
 }
 
+/* =========================================================
+   TERMINAL
+   ========================================================= */
+
+function createTerminal() {
+
+    const group =
+        new THREE.Group();
+
+    const body =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                2.8,
+                2.2,
+                1.3
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x101219,
+                metalness: 0.75,
+                roughness: 0.35
+            })
+        );
+
+    body.castShadow = true;
+
+    group.add(body);
+
+    const screen =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                2.2,
+                1.2,
+                0.08
+            ),
+            new THREE.MeshBasicMaterial({
+                color: 0x8d1230
+            })
+        );
+
+    screen.position.set(
+        0,
+        0.2,
+        0.68
+    );
+
+    group.add(screen);
+
+    group.userData = {
+        type: "terminal",
+        label: "SECURITY TERMINAL"
+    };
+
+    return group;
+}
 
 /* =========================================================
-   GAME CONTROLS
-========================================================= */
+   EVIDENCE
+   ========================================================= */
 
-function setupGameControls() {
+function createEvidence() {
+
+    const group =
+        new THREE.Group();
+
+    const usb =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                1.5,
+                0.35,
+                0.65
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x17191f,
+                metalness: 0.85,
+                roughness: 0.25,
+                emissive: 0x6e0d25,
+                emissiveIntensity: 0.5
+            })
+        );
+
+    usb.castShadow = true;
+
+    group.add(usb);
+
+    group.userData = {
+        type: "evidence",
+        label: "ENCRYPTED USB"
+    };
+
+    return group;
+}
+
+/* =========================================================
+   DOOR
+   ========================================================= */
+
+function createDoor() {
+
+    const group =
+        new THREE.Group();
+
+    const door =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                6,
+                8,
+                0.5
+            ),
+            new THREE.MeshStandardMaterial({
+                color: 0x07080c,
+                metalness: 0.8,
+                roughness: 0.25
+            })
+        );
+
+    door.position.y = 4;
+
+    group.add(door);
+
+    const frame =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                6.5,
+                8.5,
+                0.25
+            ),
+            new THREE.MeshBasicMaterial({
+                color: 0xff1744,
+                wireframe: true
+            })
+        );
+
+    frame.position.y = 4;
+
+    group.add(frame);
+
+    group.userData = {
+        type: "door",
+        label: "RESTRICTED ACCESS"
+    };
+
+    return group;
+}
+
+/* =========================================================
+   CONTROLS
+   ========================================================= */
+
+function setupControls() {
 
     window.addEventListener(
         "keydown",
-        (event) => {
+        event => {
 
-            keys[event.code] =
+            keys[event.key.toLowerCase()] =
                 true;
 
-
             if (
-                event.code ===
-                "Escape"
+                event.key.toLowerCase() === "e"
             ) {
-
-                togglePause();
-
-            }
-
-
-            if (
-                event.code ===
-                "KeyE"
-            ) {
-
                 interact();
-
             }
-
 
             if (
-                event.code ===
-                "KeyR"
+                event.key.toLowerCase() === "r"
             ) {
-
-                if (
-                    gameState.gameRunning
-                ) {
-
-                    reloadWeapon();
-
-                }
-
+                reloadWeapon();
             }
 
+            if (
+                event.key === "Escape"
+            ) {
+                togglePause();
+            }
         }
     );
-
 
     window.addEventListener(
         "keyup",
-        (event) => {
+        event => {
 
-            keys[event.code] =
+            keys[event.key.toLowerCase()] =
                 false;
-
         }
     );
 
-
-    renderer.domElement.addEventListener(
+    window.addEventListener(
         "mousemove",
-        (event) => {
+        event => {
 
             mouse.x =
-                (
-                    event.clientX /
-                    window.innerWidth
-                ) * 2 - 1;
-
+                event.clientX /
+                window.innerWidth *
+                2 - 1;
 
             mouse.y =
-                -(
-                    event.clientY /
-                    window.innerHeight
-                ) * 2 + 1;
-
+                -(event.clientY /
+                window.innerHeight) *
+                2 + 1;
         }
     );
 
-
-    renderer.domElement.addEventListener(
+    window.addEventListener(
         "mousedown",
-        () => {
+        event => {
 
-            mouse.down =
-                true;
+            if (
+                event.button === 0
+            ) {
 
-            shoot();
+                mouse.down = true;
 
+                shoot();
+            }
         }
     );
-
 
     window.addEventListener(
         "mouseup",
         () => {
 
-            mouse.down =
-                false;
-
+            mouse.down = false;
         }
     );
-
-
-    renderer.domElement.addEventListener(
-        "click",
-        () => {
-
-            if (
-                gameState.gameRunning &&
-                !gameState.paused
-            ) {
-
-                shoot();
-
-            }
-
-        }
-    );
-
-
-    /* Mobile buttons */
-
-    const mobileInteract =
-        $("mobileInteractBtn");
-
-    const mobileShoot =
-        $("mobileShootBtn");
-
-
-    if (
-        mobileInteract
-    ) {
-
-        mobileInteract.addEventListener(
-            "click",
-            interact
-        );
-
-    }
-
-
-    if (
-        mobileShoot
-    ) {
-
-        mobileShoot.addEventListener(
-            "click",
-            shoot
-        );
-
-    }
-
 }
 
-
 /* =========================================================
-   PLAYER MOVEMENT
-========================================================= */
+   MOVEMENT
+   ========================================================= */
 
-function updatePlayer(
-    delta
-) {
+function updatePlayer(delta) {
 
     if (
         !player ||
-        gameState.paused
+        gameState.paused ||
+        !gameState.gameRunning
     ) {
-
         return;
-
     }
 
+    const speed = 9 * delta;
 
-    const speed =
-        6 * delta;
-
-
-    const direction =
+    let direction =
         new THREE.Vector3();
 
-
     if (
-        keys["KeyW"] ||
-        keys["ArrowUp"]
+        keys["w"] ||
+        keys["arrowup"]
     ) {
-
         direction.z -= 1;
-
     }
 
-
     if (
-        keys["KeyS"] ||
-        keys["ArrowDown"]
+        keys["s"] ||
+        keys["arrowdown"]
     ) {
-
         direction.z += 1;
-
     }
 
-
     if (
-        keys["KeyA"] ||
-        keys["ArrowLeft"]
+        keys["a"] ||
+        keys["arrowleft"]
     ) {
-
         direction.x -= 1;
-
     }
 
-
     if (
-        keys["KeyD"] ||
-        keys["ArrowRight"]
+        keys["d"] ||
+        keys["arrowright"]
     ) {
-
         direction.x += 1;
-
     }
 
-
     if (
-        direction.lengthSq() >
-        0
+        direction.lengthSq() > 0
     ) {
 
         direction.normalize();
 
-
-        player.position.x +=
-            direction.x *
-            speed;
-
-
-        player.position.z +=
-            direction.z *
-            speed;
-
+        player.position.add(
+            direction.multiplyScalar(
+                speed
+            )
+        );
 
         player.rotation.y =
             Math.atan2(
                 direction.x,
                 direction.z
             );
-
     }
 
-
-    /* Boundary */
+    /* Keep player inside arena */
 
     player.position.x =
         THREE.MathUtils.clamp(
             player.position.x,
-            -16,
-            16
+            -80,
+            80
         );
-
 
     player.position.z =
         THREE.MathUtils.clamp(
             player.position.z,
-            -28,
-            12
+            -80,
+            80
         );
 
+    updateCamera();
+}
 
-    /* Camera */
+/* =========================================================
+   CAMERA
+   ========================================================= */
 
-    const desiredCamera =
+function updateCamera() {
+
+    if (!player) {
+        return;
+    }
+
+    const desired =
         new THREE.Vector3(
             player.position.x,
-            player.position.y + 5.2,
+            player.position.y + 5.5,
             player.position.z + 10
         );
 
-
     camera.position.lerp(
-        desiredCamera,
+        desired,
         0.08
     );
 
-
-    cameraTarget.lerp(
+    const lookAt =
         new THREE.Vector3(
             player.position.x,
-            1.5,
+            player.position.y + 1.5,
             player.position.z
-        ),
-        0.12
-    );
-
+        );
 
     camera.lookAt(
-        cameraTarget
+        lookAt
     );
-
 }
-
 
 /* =========================================================
    INTERACTION
-========================================================= */
+   ========================================================= */
 
 function interact() {
 
     if (
         !player ||
-        gameState.paused
+        !gameState.gameRunning
     ) {
-
         return;
-
     }
 
-
-    let nearest =
-        null;
-
-
-    let nearestDistance =
-        Infinity;
-
+    let closest = null;
+    let closestDistance = 4.5;
 
     interactables.forEach(
-        (object) => {
+        object => {
+
+            if (!object) return;
 
             const distance =
                 player.position.distanceTo(
                     object.position
                 );
 
-
             if (
-                distance <
-                    nearestDistance &&
-                distance < 5
+                distance < closestDistance
             ) {
 
-                nearest =
-                    object;
-
-                nearestDistance =
+                closestDistance =
                     distance;
 
+                closest = object;
             }
-
         }
     );
 
+    if (!closest) {
 
-    if (!nearest) {
+        notify(
+            "Nothing to interact with."
+        );
 
         return;
-
     }
-
 
     const type =
-        nearest.userData.type;
-
-
-    if (
-        type ===
-        "evidence"
-    ) {
-
-        investigateEvidence(
-            nearest
-        );
-
-        return;
-
-    }
-
+        closest.userData.type;
 
     if (
-        type ===
-        "terminal"
+        type === "evidence"
     ) {
 
-        investigateTerminal(
-            nearest
-        );
-
-        return;
-
+        collectEvidence();
     }
 
-
-    if (
-        type ===
-        "door"
+    else if (
+        type === "terminal"
     ) {
 
-        interactDoor(
-            nearest
-        );
-
+        investigateTerminal();
     }
 
+    else if (
+        type === "door"
+    ) {
+
+        useDoor();
+    }
 }
-
 
 /* =========================================================
    EVIDENCE
-========================================================= */
+   ========================================================= */
 
-function investigateEvidence(
-    object
-) {
+function collectEvidence() {
 
     if (
         gameState.evidenceFound
     ) {
 
-        openInteraction(
-            "EVIDENCE SECURED",
-            "UNKNOWN USB DEVICE",
-            "This device contains traces of an unauthorized data transfer. The evidence has been added to your investigation."
+        notify(
+            "Evidence already collected."
         );
 
         return;
-
     }
-
 
     gameState.evidenceFound =
         true;
-
 
     gameState.missionProgress =
         Math.max(
@@ -2429,637 +1778,295 @@ function investigateEvidence(
             25
         );
 
+    if (evidenceObject) {
 
-    updateGameHUD();
+        evidenceObject.visible =
+            false;
+    }
 
+    gainXP(100);
 
-    openInteraction(
+    updateHUD();
 
-        "PHYSICAL EVIDENCE",
-
-        "UNKNOWN USB DEVICE",
-
-        "You discovered a suspicious USB device near the restricted area. It may contain information about the attack.",
-
-        "ANALYZE EVIDENCE"
-
+    notify(
+        "Encrypted USB recovered +100 XP"
     );
-
 }
-
 
 /* =========================================================
    TERMINAL
-========================================================= */
+   ========================================================= */
 
-function investigateTerminal(
-    object
-) {
-
-    if (
-        gameState.terminalInvestigated
-    ) {
-
-        openPuzzle();
-
-        return;
-
-    }
-
+function investigateTerminal() {
 
     gameState.terminalInvestigated =
         true;
 
-
     gameState.missionProgress =
         Math.max(
             gameState.missionProgress,
-            45
+            50
         );
 
+    updateHUD();
 
-    updateGameHUD();
+    if (puzzleModal) {
 
+        puzzleModal.style.display =
+            "flex";
+    }
 
-    openInteraction(
-
-        "DIGITAL EVIDENCE",
-
-        "COMPROMISED TERMINAL",
-
-        "The terminal shows signs of unauthorized access. A security lock is preventing access to the restricted area.",
-
-        "DECRYPT SECURITY CODE"
-
+    setText(
+        "puzzleQuestion",
+        "Decrypt the access key from the clue."
     );
 
+    setText(
+        "puzzleClue",
+        "USB CLUE: 2 + 0 + 2 + 6"
+    );
 }
 
+/* =========================================================
+   PUZZLE
+   ========================================================= */
+
+window.submitPuzzle =
+    function () {
+
+        const input =
+            $("puzzleAnswer");
+
+        if (!input) {
+            return;
+        }
+
+        const answer =
+            input.value
+                .trim()
+                .toLowerCase();
+
+        if (
+            answer === "10"
+        ) {
+
+            gameState.puzzleSolved =
+                true;
+
+            gameState.missionProgress =
+                75;
+
+            if (puzzleModal) {
+                puzzleModal.style.display =
+                    "none";
+            }
+
+            gainXP(150);
+
+            updateHUD();
+
+            notify(
+                "ACCESS KEY ACCEPTED +150 XP"
+            );
+
+        } else {
+
+            damagePlayer(5);
+
+            notify(
+                "Incorrect code. Security system detected you."
+            );
+        }
+    };
 
 /* =========================================================
    DOOR
-========================================================= */
+   ========================================================= */
 
-function interactDoor(
-    object
-) {
-
-    if (
-        gameState.doorUnlocked
-    ) {
-
-        openInteraction(
-
-            "ACCESS GRANTED",
-
-            "RESTRICTED AREA",
-
-            "The security door is unlocked. Proceed toward the final operation."
-
-        );
-
-        return;
-
-    }
-
+function useDoor() {
 
     if (
         !gameState.puzzleSolved
     ) {
 
-        openInteraction(
-
-            "ACCESS DENIED",
-
-            "RESTRICTED AREA",
-
-            "This door requires a valid security code. Investigate the compromised terminal first."
-
+        notify(
+            "Door locked. Solve the terminal puzzle first."
         );
 
         return;
-
     }
 
+    if (
+        gameState.doorUnlocked
+    ) {
 
-    unlockDoor(
-        object
-    );
+        notify(
+            "Restricted door already unlocked."
+        );
 
-}
-
-
-/* =========================================================
-   UNLOCK DOOR
-========================================================= */
-
-function unlockDoor(
-    object
-) {
+        return;
+    }
 
     gameState.doorUnlocked =
         true;
 
-
     gameState.missionProgress =
-        Math.max(
-            gameState.missionProgress,
-            75
-        );
+        90;
 
+    if (doorObject) {
 
-    updateGameHUD();
-
-
-    object.position.z +=
-        3;
-
-
-    openInteraction(
-
-        "ACCESS GRANTED",
-
-        "RESTRICTED AREA UNLOCKED",
-
-        "Security lock bypassed. The final hostile operative is inside the restricted zone."
-
-    );
-
-}
-
-
-/* =========================================================
-   PUZZLE
-========================================================= */
-
-function openPuzzle() {
-
-    closeInteraction();
-
-    puzzleModal.classList.remove(
-        "hidden"
-    );
-
-
-    const clue =
-        $("puzzleClue");
-
-
-    if (clue) {
-
-        clue.textContent =
-            "USB CLUE: 2 + 0 + 2 + 6";
-
+        doorObject.position.y =
+            -9;
     }
 
+    gainXP(100);
 
-    puzzleInput.value =
-        "";
+    updateHUD();
 
-
-    puzzleInput.focus();
-
-}
-
-
-/* Correct code */
-
-const CORRECT_CODE =
-    "10";
-
-
-if (puzzleSubmitBtn) {
-
-    puzzleSubmitBtn.addEventListener(
-        "click",
-        solvePuzzle
+    notify(
+        "RESTRICTED ACCESS UNLOCKED"
     );
-
 }
-
-
-if (puzzleInput) {
-
-    puzzleInput.addEventListener(
-        "keydown",
-        (event) => {
-
-            if (
-                event.key ===
-                "Enter"
-            ) {
-
-                solvePuzzle();
-
-            }
-
-        }
-    );
-
-}
-
-
-function solvePuzzle() {
-
-    const answer =
-        puzzleInput.value
-            .trim()
-            .toLowerCase();
-
-
-    const feedback =
-        $("puzzleFeedback");
-
-
-    if (
-        answer ===
-        CORRECT_CODE
-    ) {
-
-        gameState.puzzleSolved =
-            true;
-
-
-        gameState.missionProgress =
-            Math.max(
-                gameState.missionProgress,
-                60
-            );
-
-
-        updateGameHUD();
-
-
-        if (feedback) {
-
-            feedback.textContent =
-                "ACCESS CODE ACCEPTED.";
-
-        }
-
-
-        setTimeout(
-            () => {
-
-                puzzleModal.classList.add(
-                    "hidden"
-                );
-
-                showNotification(
-                    "SECURITY SYSTEM BYPASSED"
-                );
-
-            },
-            600
-        );
-
-
-        return;
-
-    }
-
-
-    if (feedback) {
-
-        feedback.textContent =
-            "INVALID CODE — ANALYZE THE CLUE AGAIN.";
-
-    }
-
-
-    damagePlayer(
-        5
-    );
-
-}
-
-
-/* =========================================================
-   INTERACTION MODAL
-========================================================= */
-
-function openInteraction(
-    category,
-    title,
-    description,
-    actionText = "CONTINUE"
-) {
-
-    $("modalCategory").textContent =
-        category;
-
-    $("modalTitle").textContent =
-        title;
-
-    $("modalDescription").textContent =
-        description;
-
-
-    const modalAction =
-        $("modalActionBtn");
-
-
-    modalAction.textContent =
-        actionText;
-
-
-    modalAction.onclick =
-        () => {
-
-            closeInteraction();
-
-
-            if (
-                category ===
-                "DIGITAL EVIDENCE"
-            ) {
-
-                openPuzzle();
-
-            }
-
-        };
-
-
-    interactionModal.classList.remove(
-        "hidden"
-    );
-
-}
-
-
-function closeInteraction() {
-
-    interactionModal.classList.add(
-        "hidden"
-    );
-
-}
-
-
-if (closeInteractionBtn) {
-
-    closeInteractionBtn.addEventListener(
-        "click",
-        closeInteraction
-    );
-
-}
-
 
 /* =========================================================
    SHOOTING
-========================================================= */
+   ========================================================= */
 
 function shoot() {
 
     if (
         !gameState.gameRunning ||
         gameState.paused ||
-        !player
+        !enemy
     ) {
-
         return;
-
     }
-
-
-    /* Prevent constant firing */
-
-    const now =
-        performance.now();
-
 
     if (
-        shoot.lastShot &&
-        now -
-            shoot.lastShot <
-            300
+        shootCooldown > 0
     ) {
-
         return;
-
     }
 
+    shootCooldown = 0.35;
 
-    shoot.lastShot =
-        now;
+    const origin =
+        camera.position.clone();
 
+    const direction =
+        new THREE.Vector3(
+            mouse.x,
+            mouse.y,
+            0.5
+        );
 
-    const bulletGeometry =
+    direction.unproject(
+        camera
+    );
+
+    direction
+        .sub(origin)
+        .normalize();
+
+    const raycaster =
+        new THREE.Raycaster(
+            origin,
+            direction
+        );
+
+    const hits =
+        raycaster.intersectObject(
+            enemy,
+            true
+        );
+
+    if (
+        hits.length > 0
+    ) {
+
+        enemyHealth -= 25;
+
+        createHitEffect(
+            hits[0].point
+        );
+
+        notify(
+            `TARGET HIT — ${Math.max(
+                enemyHealth,
+                0
+            )}%`
+        );
+
+        if (
+            enemyHealth <= 0
+        ) {
+
+            defeatEnemy();
+        }
+    }
+}
+
+/* =========================================================
+   HIT EFFECT
+   ========================================================= */
+
+function createHitEffect(
+    position
+) {
+
+    const geometry =
         new THREE.SphereGeometry(
-            0.08,
+            0.15,
             8,
             8
         );
 
-
-    const bulletMaterial =
+    const material =
         new THREE.MeshBasicMaterial({
-            color: 0xe5092f
+            color: 0xff1744
         });
 
-
-    const bullet =
+    const effect =
         new THREE.Mesh(
-            bulletGeometry,
-            bulletMaterial
+            geometry,
+            material
         );
 
-
-    bullet.position.copy(
-        player.position
+    effect.position.copy(
+        position
     );
 
+    scene.add(effect);
 
-    bullet.position.y +=
-        1.4;
+    setTimeout(() => {
 
+        scene.remove(effect);
 
-    const direction =
-        new THREE.Vector3();
-
-
-    camera.getWorldDirection(
-        direction
-    );
-
-
-    bullet.userData =
-        {
-
-            velocity:
-                direction
-                    .clone()
-                    .multiplyScalar(32),
-
-            life:
-                2
-
-        };
-
-
-    scene.add(
-        bullet
-    );
-
-
-    bullets.push(
-        bullet
-    );
-
+    }, 180);
 }
 
-
 /* =========================================================
-   UPDATE BULLETS
-========================================================= */
+   ENEMY AI
+   ========================================================= */
 
-function updateBullets(
-    delta
-) {
-
-    bullets =
-        bullets.filter(
-            (bullet) => {
-
-                bullet.position.add(
-                    bullet.userData.velocity
-                        .clone()
-                        .multiplyScalar(
-                            delta
-                        )
-                );
-
-
-                bullet.userData.life -=
-                    delta;
-
-
-                if (
-                    enemy &&
-                    enemy.userData.active
-                ) {
-
-                    const distance =
-                        bullet.position.distanceTo(
-                            enemy.position
-                        );
-
-
-                    if (
-                        distance < 2.5
-                    ) {
-
-                        damageEnemy(
-                            25
-                        );
-
-
-                        scene.remove(
-                            bullet
-                        );
-
-
-                        return false;
-
-                    }
-
-                }
-
-
-                if (
-                    bullet.userData.life <=
-                    0
-                ) {
-
-                    scene.remove(
-                        bullet
-                    );
-
-                    return false;
-
-                }
-
-
-                return true;
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   ENEMY DAMAGE
-========================================================= */
-
-function damageEnemy(
-    amount
-) {
-
-    if (
-        !enemy ||
-        !enemy.userData.active
-    ) {
-
-        return;
-
-    }
-
-
-    enemy.userData.health -=
-        amount;
-
-
-    showNotification(
-        `TARGET HIT — ${Math.max(
-            0,
-            enemy.userData.health
-        )}%`
-    );
-
-
-    if (
-        enemy.userData.health <=
-        0
-    ) {
-
-        defeatEnemy();
-
-    }
-
-}
-
-
-/* =========================================================
-   ENEMY
-========================================================= */
-
-function updateEnemy(
-    delta
-) {
+function updateEnemy(delta) {
 
     if (
         !enemy ||
         !player ||
-        !enemy.userData.active ||
-        gameState.paused
+        gameState.paused ||
+        gameState.enemyDefeated
     ) {
-
         return;
-
     }
-
 
     const distance =
         enemy.position.distanceTo(
             player.position
         );
 
-
     if (
-        distance < 15
+        distance > 4
     ) {
 
         const direction =
@@ -3070,159 +2077,101 @@ function updateEnemy(
                 )
                 .normalize();
 
-
-        enemy.position.x +=
-            direction.x *
-            delta *
-            1.5;
-
-
-        enemy.position.z +=
-            direction.z *
-            delta *
-            1.5;
-
-
-        enemy.lookAt(
-            player.position
+        enemy.position.add(
+            direction.multiplyScalar(
+                delta * 2.2
+            )
         );
 
+        enemy.rotation.y =
+            Math.atan2(
+                direction.x,
+                direction.z
+            );
 
-        if (
-            distance < 2.4
-        ) {
+    } else {
 
-            enemyAttack();
-
-        }
-
+        damagePlayer(
+            delta * 4
+        );
     }
-
 }
-
 
 /* =========================================================
-   ENEMY ATTACK
-========================================================= */
+   ENEMY DEFEATED
+   ========================================================= */
 
-function enemyAttack() {
-
-    const now =
-        performance.now();
-
+function defeatEnemy() {
 
     if (
-        enemyAttack.lastAttack &&
-        now -
-            enemyAttack.lastAttack <
-            1500
+        gameState.enemyDefeated
     ) {
-
         return;
-
     }
 
+    gameState.enemyDefeated =
+        true;
 
-    enemyAttack.lastAttack =
-        now;
+    gameState.missionProgress =
+        100;
 
+    if (enemy) {
 
-    damagePlayer(
-        8
-    );
+        enemy.visible =
+            false;
+    }
 
+    gainXP(250);
+
+    completeMission();
 }
-
 
 /* =========================================================
    PLAYER DAMAGE
-========================================================= */
+   ========================================================= */
 
 function damagePlayer(
     amount
 ) {
 
+    gameState.health -=
+        amount;
+
     gameState.health =
         Math.max(
             0,
-            gameState.health -
-                amount
+            gameState.health
         );
 
-
-    updateGameHUD();
-
-
-    document.body.classList.add(
-        "red-alert"
-    );
-
-
-    setTimeout(
-        () => {
-
-            document.body.classList.remove(
-                "red-alert"
-            );
-
-        },
-        350
-    );
-
+    updateHUD();
 
     if (
-        gameState.health <=
-        0
+        gameState.health <= 0
     ) {
 
         gameOver();
-
     }
-
 }
-
 
 /* =========================================================
-   ENEMY DEFEATED
-========================================================= */
+   GAME OVER
+   ========================================================= */
 
-function defeatEnemy() {
+function gameOver() {
 
-    if (
-        !enemy
-    ) {
-
-        return;
-
-    }
-
-
-    enemy.userData.active =
+    gameState.gameRunning =
         false;
 
-
-    enemy.visible =
-        false;
-
-
-    gameState.enemyDefeated =
-        true;
-
-
-    gameState.missionProgress =
-        100;
-
-
-    updateGameHUD();
-
-
-    setTimeout(
-        completeMission,
-        800
+    notify(
+        "MISSION FAILED"
     );
 
-}
+    setTimeout(() => {
 
+        restartGame();
+
+    }, 1200);
+}
 
 /* =========================================================
    COMPLETE MISSION
@@ -3233,390 +2182,365 @@ function completeMission() {
     if (
         gameState.missionComplete
     ) {
-
         return;
-
     }
-
 
     gameState.missionComplete =
         true;
 
-
     gameState.gameRunning =
         false;
 
+    gameState.missionsCompleted++;
 
-    gameState.missionsCompleted +=
-        1;
+    if (
+        !gameState.badges.includes(
+            "DATA BREAKER"
+        )
+    ) {
 
+        gameState.badges.push(
+            "DATA BREAKER"
+        );
+    }
 
-    gameState.badges +=
-        1;
+    const nextLevel =
+        gameState.currentLevel + 1;
 
+    if (
+        nextLevel <= 5 &&
+        !gameState.unlockedLevels.includes(
+            nextLevel
+        )
+    ) {
 
-    addXP(
-        250
-    );
-
-
-    $("completedXP").textContent =
-        "+250";
-
-
-    missionComplete.classList.remove(
-        "hidden"
-    );
-
-
-    unlockLevel2();
+        gameState.unlockedLevels.push(
+            nextLevel
+        );
+    }
 
     updateDashboard();
+    updateProfile();
+    updateLevels();
 
-}
+    if (
+        missionCompleteModal
+    ) {
 
-
-/* =========================================================
-   UNLOCK LEVEL 2
-========================================================= */
-
-function unlockLevel2() {
-
-    const levelTwo =
-        qs(
-            '.level-card[data-level="2"]'
-        );
-
-
-    if (!levelTwo) return;
-
-
-    levelTwo.classList.remove(
-        "locked"
-    );
-
-
-    levelTwo.classList.add(
-        "available"
-    );
-
-
-    const status =
-        levelTwo.querySelector(
-            ".level-status"
-        );
-
-
-    if (status) {
-
-        status.textContent =
-            "AVAILABLE";
-
+        missionCompleteModal.style.display =
+            "flex";
     }
 
+    setText(
+        "missionReward",
+        "+250 XP"
+    );
 
-    const button =
-        levelTwo.querySelector(
-            ".level-start-btn"
-        );
+    setText(
+        "missionTitle",
+        "MISSION COMPLETE"
+    );
 
-
-    if (button) {
-
-        button.disabled =
-            false;
-
-        button.textContent =
-            "ENTER BUILDING →";
-
-
-        button.onclick =
-            () => {
-
-                showNotification(
-                    "LEVEL 02 READY — CYBER BANK"
-                );
-
-            };
-
-    }
-
+    notify(
+        "MISSION COMPLETE — DATA VAULT SECURED"
+    );
 }
-
 
 /* =========================================================
    XP
-========================================================= */
+   ========================================================= */
 
-function addXP(
-    amount
-) {
+function gainXP(amount) {
 
     gameState.xp +=
         amount;
 
-
-    gameState.level =
-        Math.max(
-            1,
-            Math.floor(
-                gameState.xp /
-                    500
-            ) + 1
-        );
-
-
     updateDashboard();
-
+    updateProfile();
 }
-
 
 /* =========================================================
    DASHBOARD
-========================================================= */
+   ========================================================= */
 
 function updateDashboard() {
 
-    if (
-        $("dashboardXP")
-    ) {
+    setText(
+        "xpValue",
+        gameState.xp
+    );
 
-        $("dashboardXP").textContent =
-            `${gameState.xp} XP`;
+    setText(
+        "levelValue",
+        `LEVEL ${gameState.level}`
+    );
 
-    }
+    setText(
+        "missionsValue",
+        gameState.missionsCompleted
+    );
 
+    setText(
+        "badgeValue",
+        gameState.badges.length
+    );
 
-    if (
-        $("dashboardLevel")
-    ) {
+    const xpElements =
+        document.querySelectorAll(
+            "[data-xp]"
+        );
 
-        $("dashboardLevel").textContent =
-            String(
-                gameState.level
-            ).padStart(
-                2,
-                "0"
-            );
+    xpElements.forEach(
+        element => {
 
-    }
-
-
-    if (
-        $("dashboardMissions")
-    ) {
-
-        $("dashboardMissions").textContent =
-            `${gameState.missionsCompleted} / 5`;
-
-    }
-
-
-    if (
-        $("dashboardBadges")
-    ) {
-
-        $("dashboardBadges").textContent =
-            gameState.badges;
-
-    }
-
-
-    if (
-        $("profileXP")
-    ) {
-
-        $("profileXP").textContent =
-            `${gameState.xp} XP`;
-
-    }
-
-
-    if (
-        $("profileMissions")
-    ) {
-
-        $("profileMissions").textContent =
-            gameState.missionsCompleted;
-
-    }
-
-
-    if (
-        $("profileBadgeCount")
-    ) {
-
-        $("profileBadgeCount").textContent =
-            gameState.badges;
-
-    }
-
-
-    if (
-        $("profileLevel")
-    ) {
-
-        $("profileLevel").textContent =
-            String(
-                gameState.level
-            ).padStart(
-                2,
-                "0"
-            );
-
-    }
-
-
-    if (
-        $("profileXPBar")
-    ) {
-
-        const percentage =
-            Math.min(
-                100,
-                (
-                    gameState.xp %
-                    500
-                ) /
-                500 *
-                100
-            );
-
-
-        $("profileXPBar").style.width =
-            `${percentage}%`;
-
-    }
-
+            element.textContent =
+                gameState.xp;
+        }
+    );
 }
 
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
+function updateProfile() {
+
+    setText(
+        "profileXP",
+        gameState.xp
+    );
+
+    setText(
+        "profileLevel",
+        `LEVEL ${gameState.level}`
+    );
+
+    setText(
+        "profileMissions",
+        gameState.missionsCompleted
+    );
+
+    setText(
+        "profileBadges",
+        gameState.badges.length
+    );
+}
 
 /* =========================================================
-   GAME HUD
-========================================================= */
+   LEVELS
+   ========================================================= */
 
-function updateGameHUD() {
+function updateLevels() {
 
-    if (
-        $("healthFill")
-    ) {
+    document
+        .querySelectorAll(
+            "[data-start-level]"
+        )
+        .forEach(button => {
 
-        $("healthFill").style.width =
-            `${gameState.health}%`;
+            const level =
+                Number(
+                    button.dataset.startLevel
+                );
 
-    }
+            const unlocked =
+                gameState.unlockedLevels.includes(
+                    level
+                );
 
+            button.disabled =
+                !unlocked;
 
-    if (
-        $("healthValue")
-    ) {
+            button.classList.toggle(
+                "locked",
+                !unlocked
+            );
+        });
+}
 
-        $("healthValue").textContent =
-            gameState.health;
+/* =========================================================
+   HUD
+   ========================================================= */
 
-    }
+function updateHUD() {
 
+    setText(
+        "healthValue",
+        `${Math.round(
+            gameState.health
+        )}%`
+    );
 
-    if (
-        $("gameXP")
-    ) {
+    setText(
+        "xpHud",
+        gameState.xp
+    );
 
-        $("gameXP").textContent =
-            gameState.xp;
+    setText(
+        "missionProgress",
+        `${Math.round(
+            gameState.missionProgress
+        )}%`
+    );
 
-    }
+    const progress =
+        $("missionProgressBar");
 
+    if (progress) {
 
-    if (
-        $("missionProgressFill")
-    ) {
-
-        $("missionProgressFill")
-            .style.width =
+        progress.style.width =
             `${gameState.missionProgress}%`;
-
     }
-
-
-    if (
-        $("missionProgressText")
-    ) {
-
-        $("missionProgressText")
-            .textContent =
-            `${gameState.missionProgress}%`;
-
-    }
-
 
     const objective =
-        $("gameObjective");
+        $("objectiveText");
 
+    if (objective) {
 
-    if (!objective) return;
+        if (
+            !gameState.evidenceFound
+        ) {
 
+            objective.textContent =
+                "Locate the encrypted evidence.";
 
-    if (
-        !gameState.evidenceFound
-    ) {
+        } else if (
+            !gameState.puzzleSolved
+        ) {
 
-        objective.textContent =
-            "Find the compromised evidence.";
+            objective.textContent =
+                "Investigate the security terminal.";
 
+        } else if (
+            !gameState.doorUnlocked
+        ) {
+
+            objective.textContent =
+                "Unlock the restricted door.";
+
+        } else if (
+            !gameState.enemyDefeated
+        ) {
+
+            objective.textContent =
+                "Neutralize the hostile target.";
+
+        } else {
+
+            objective.textContent =
+                "Escape the facility.";
+        }
     }
-    else if (
-        !gameState.terminalInvestigated
-    ) {
-
-        objective.textContent =
-            "Investigate the compromised terminal.";
-
-    }
-    else if (
-        !gameState.puzzleSolved
-    ) {
-
-        objective.textContent =
-            "Decrypt the security code.";
-
-    }
-    else if (
-        !gameState.doorUnlocked
-    ) {
-
-        objective.textContent =
-            "Unlock the restricted door.";
-
-    }
-    else if (
-        !gameState.enemyDefeated
-    ) {
-
-        objective.textContent =
-            "Neutralize the hostile operative.";
-
-    }
-    else {
-
-        objective.textContent =
-            "Escape the Data Vault.";
-
-    }
-
 }
 
+/* =========================================================
+   RELOAD
+   ========================================================= */
+
+function reloadWeapon() {
+
+    notify(
+        "WEAPON SYSTEM READY"
+    );
+}
 
 /* =========================================================
-   NOTIFICATION
-========================================================= */
+   PAUSE
+   ========================================================= */
 
-function showNotification(
-    message
-) {
+function togglePause() {
+
+    if (
+        !gameState.gameRunning
+    ) {
+        return;
+    }
+
+    gameState.paused =
+        !gameState.paused;
+
+    if (
+        pauseMenu
+    ) {
+
+        pauseMenu.style.display =
+            gameState.paused
+                ? "flex"
+                : "none";
+    }
+}
+
+/* =========================================================
+   RESTART
+   ========================================================= */
+
+function restartGame() {
+
+    gameState.gameRunning =
+        false;
+
+    if (gameScreen) {
+        gameScreen.style.display =
+            "none";
+    }
+
+    if (app) {
+        app.style.display =
+            "block";
+    }
+
+    navigateTo(
+        "dashboard"
+    );
+
+    updateDashboard();
+}
+
+/* =========================================================
+   RETURN TO DASHBOARD
+   ========================================================= */
+
+window.returnToDashboard =
+    function () {
+
+        gameState.gameRunning =
+            false;
+
+        if (missionCompleteModal) {
+            missionCompleteModal.style.display =
+                "none";
+        }
+
+        if (pauseMenu) {
+            pauseMenu.style.display =
+                "none";
+        }
+
+        hide(gameScreen);
+        show(app);
+
+        navigateTo(
+            "dashboard"
+        );
+
+        updateDashboard();
+    };
+
+/* =========================================================
+   NOTIFICATIONS
+   ========================================================= */
+
+function notify(message) {
+
+    console.log(
+        "CYBERHUNT:",
+        message
+    );
 
     let notification =
-        $("cyberNotification");
-
+        document.getElementById(
+            "cyberNotification"
+        );
 
     if (!notification) {
 
@@ -3625,389 +2549,81 @@ function showNotification(
                 "div"
             );
 
-
         notification.id =
             "cyberNotification";
-
-
-        notification.style.position =
-            "fixed";
-
-        notification.style.left =
-            "50%";
-
-        notification.style.top =
-            "80px";
-
-        notification.style.transform =
-            "translateX(-50%)";
-
-        notification.style.zIndex =
-            "20000";
-
-        notification.style.padding =
-            "12px 20px";
-
-        notification.style.background =
-            "rgba(5,5,5,0.92)";
-
-        notification.style.border =
-            "1px solid #e5092f";
-
-        notification.style.color =
-            "#fff";
-
-        notification.style.fontSize =
-            "11px";
-
-        notification.style.letterSpacing =
-            "1.5px";
-
-        notification.style.boxShadow =
-            "0 0 25px rgba(229,9,47,0.25)";
-
 
         document.body.appendChild(
             notification
         );
-
     }
-
 
     notification.textContent =
         message;
 
-
-    notification.style.opacity =
-        "1";
-
+    notification.classList.add(
+        "show"
+    );
 
     clearTimeout(
-        showNotification.timer
+        notification._timer
     );
 
+    notification._timer =
+        setTimeout(() => {
 
-    showNotification.timer =
-        setTimeout(
-            () => {
-
-                notification.style.opacity =
-                    "0";
-
-            },
-            2200
-        );
-
-}
-
-
-/* =========================================================
-   PAUSE
-========================================================= */
-
-function togglePause() {
-
-    if (
-        !gameState.gameRunning
-    ) {
-
-        return;
-
-    }
-
-
-    gameState.paused =
-        !gameState.paused;
-
-
-    if (
-        gameState.paused
-    ) {
-
-        pauseMenu.classList.remove(
-            "hidden"
-        );
-
-    }
-    else {
-
-        pauseMenu.classList.add(
-            "hidden"
-        );
-
-    }
-
-}
-
-
-if (pauseGameBtn) {
-
-    pauseGameBtn.addEventListener(
-        "click",
-        togglePause
-    );
-
-}
-
-
-if (resumeGameBtn) {
-
-    resumeGameBtn.addEventListener(
-        "click",
-        togglePause
-    );
-
-}
-
-
-if (pauseExitBtn) {
-
-    pauseExitBtn.addEventListener(
-        "click",
-        exitMission
-    );
-
-}
-
-
-/* =========================================================
-   EXIT GAME
-========================================================= */
-
-if (exitGameBtn) {
-
-    exitGameBtn.addEventListener(
-        "click",
-        exitMission
-    );
-
-}
-
-
-function exitMission() {
-
-    gameState.gameRunning =
-        false;
-
-
-    gameState.paused =
-        false;
-
-
-    pauseMenu.classList.add(
-        "hidden"
-    );
-
-
-    missionComplete.classList.add(
-        "hidden"
-    );
-
-
-    gameScreen.classList.add(
-        "hidden"
-    );
-
-
-    app.classList.remove(
-        "hidden"
-    );
-
-
-    showPage(
-        "dashboardPage"
-    );
-
-
-    if (
-        renderer &&
-        renderer.domElement
-    ) {
-
-        renderer.domElement.style.display =
-            "block";
-
-    }
-
-}
-
-
-/* =========================================================
-   MISSION COMPLETE RETURN
-========================================================= */
-
-if (returnDashboardBtn) {
-
-    returnDashboardBtn.addEventListener(
-        "click",
-        () => {
-
-            missionComplete.classList.add(
-                "hidden"
+            notification.classList.remove(
+                "show"
             );
 
-            exitMission();
-
-        }
-    );
-
+        }, 2500);
 }
 
-
 /* =========================================================
-   CANCEL PUZZLE
-========================================================= */
+   RESIZE
+   ========================================================= */
 
-if (puzzleCancelBtn) {
-
-    puzzleCancelBtn.addEventListener(
-        "click",
-        () => {
-
-            puzzleModal.classList.add(
-                "hidden"
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   RELOAD
-========================================================= */
-
-function reloadWeapon() {
-
-    showNotification(
-        "WEAPON SYSTEM READY"
-    );
-
-}
-
-
-/* =========================================================
-   GAME OVER
-========================================================= */
-
-function gameOver() {
-
-    gameState.gameRunning =
-        false;
-
-
-    openInteraction(
-
-        "MISSION FAILED",
-
-        "OPERATIVE DOWN",
-
-        "Your health reached zero. The operation has failed. Restart the mission to try again.",
-
-        "RESTART"
-
-    );
-
-
-    $("modalActionBtn").onclick =
-        () => {
-
-            closeInteraction();
-
-            resetMissionState();
-
-            restartGameScene();
-
-        };
-
-}
-
-
-/* =========================================================
-   RESTART GAME
-========================================================= */
-
-function restartGameScene() {
+function handleResize() {
 
     if (
-        player
+        !camera ||
+        !renderer
     ) {
-
-        player.position.set(
-            0,
-            0,
-            8
-        );
-
-    }
-
-
-    if (
-        enemy
-    ) {
-
-        enemy.visible =
-            true;
-
-        enemy.userData.active =
-            true;
-
-        enemy.userData.health =
-            100;
-
-        enemy.position.set(
-            5,
-            0,
-            -10
-        );
-
-    }
-
-
-    gameState.gameRunning =
-        true;
-
-
-    gameState.paused =
-        false;
-
-
-    missionComplete.classList.add(
-        "hidden"
-    );
-
-
-    pauseMenu.classList.add(
-        "hidden"
-    );
-
-
-    updateGameHUD();
-
-}
-
-
-/* =========================================================
-   ANIMATION LOOP
-========================================================= */
-
-function animateGame() {
-
-    animationFrame =
-        requestAnimationFrame(
-            animateGame
-        );
-
-
-    if (
-        !clock
-    ) {
-
         return;
-
     }
 
+    camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+
+    if (composer) {
+
+        composer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+}
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+    if (!gameInitialized) {
+        return;
+    }
 
     const delta =
         Math.min(
@@ -4015,244 +2631,101 @@ function animateGame() {
             0.05
         );
 
+    const elapsed =
+        clock.elapsedTime;
 
     if (
         gameState.gameRunning &&
         !gameState.paused
     ) {
 
-        updatePlayer(
-            delta
-        );
+        updatePlayer(delta);
+        updateEnemy(delta);
 
-
-        updateBullets(
-            delta
-        );
-
-
-        updateEnemy(
-            delta
-        );
-
-    }
-
-
-    /* Animate neon environment */
-
-    if (
-        environmentGroup
-    ) {
-
-        environmentGroup.children
-            .forEach(
-                (object) => {
-
-                    if (
-                        object.userData &&
-                        object.userData.neon
-                    ) {
-
-                        object.material
-                            .opacity =
-                            0.5 +
-                            Math.sin(
-                                performance.now() *
-                                0.004
-                            ) *
-                            0.5;
-
-                    }
-
-                }
+        shootCooldown =
+            Math.max(
+                0,
+                shootCooldown - delta
             );
-
     }
 
+    if (mixerPlayer) {
+        mixerPlayer.update(delta);
+    }
 
-    if (
-        composer
-    ) {
+    if (mixerEnemy) {
+        mixerEnemy.update(delta);
+    }
 
+    /* Subtle cyber lighting pulse */
+
+    scene.traverse(
+        object => {
+
+            if (
+                object.isPointLight &&
+                object.color
+            ) {
+
+                if (
+                    object.color.r > 0.5 &&
+                    object.color.g < 0.2
+                ) {
+
+                    object.intensity =
+                        1.5 +
+                        Math.sin(
+                            elapsed * 2
+                        ) * 0.3;
+                }
+            }
+        }
+    );
+
+    if (composer) {
         composer.render();
-
-    }
-    else if (
-        renderer &&
-        scene &&
-        camera
-    ) {
-
+    } else {
         renderer.render(
             scene,
             camera
         );
-
     }
-
 }
 
-
 /* =========================================================
-   RESIZE
-========================================================= */
+   INITIAL STATE
+   ========================================================= */
 
-function onWindowResize() {
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
 
-    if (
-        !camera ||
-        !renderer
-    ) {
+        if (cinematicIntro) {
 
-        return;
-
-    }
-
-
-    camera.aspect =
-        window.innerWidth /
-        window.innerHeight;
-
-
-    camera.updateProjectionMatrix();
-
-
-    renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-    );
-
-
-    if (
-        composer
-    ) {
-
-        composer.setSize(
-            window.innerWidth,
-            window.innerHeight
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   SYSTEM CLOCK
-========================================================= */
-
-function updateSystemClock() {
-
-    const timeElement =
-        $("systemTime");
-
-
-    if (!timeElement) return;
-
-
-    const now =
-        new Date();
-
-
-    const hours =
-        String(
-            now.getHours()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    const minutes =
-        String(
-            now.getMinutes()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    const seconds =
-        String(
-            now.getSeconds()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    timeElement.textContent =
-        `${hours}:${minutes}:${seconds}`;
-
-}
-
-
-setInterval(
-    updateSystemClock,
-    1000
-);
-
-
-updateSystemClock();
-
-
-/* =========================================================
-   MOBILE FIRE
-========================================================= */
-
-const mobileShootBtn =
-    $("mobileShootBtn");
-
-
-if (
-    mobileShootBtn
-) {
-
-    mobileShootBtn.addEventListener(
-        "touchstart",
-        (event) => {
-
-            event.preventDefault();
-
-            shoot();
-
-        },
-        {
-            passive: false
+            cinematicIntro.style.display =
+                "flex";
         }
-    );
 
-}
+        if (app) {
 
+            app.style.display =
+                "none";
+        }
 
-/* =========================================================
-   INITIAL START
-========================================================= */
+        if (gameScreen) {
 
-startIntro();
+            gameScreen.style.display =
+                "none";
+        }
 
-updateDashboard();
+        updateDashboard();
+        updateProfile();
+        updateLevels();
+        updateHUD();
 
-updateGameHUD();
-
-
-console.log(
-    "%cCYBERHUNT ONLINE",
-    "color:#e5092f;font-size:22px;font-weight:bold"
-);
-
-console.log(
-    "%cVEXA: girl-agent.glb",
-    "color:#aaa"
-);
-
-console.log(
-    "%cKAI: boy-agent.glb",
-    "color:#aaa"
-);
-
-console.log(
-    "%cENEMY: enemy.glb",
-    "color:#aaa"
+        console.log(
+            "CYBERHUNT SYSTEM ONLINE"
+        );
+    }
 );
 ```
