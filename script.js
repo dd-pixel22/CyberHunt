@@ -2154,138 +2154,97 @@ function addCrate(
 =========================================================
 */
 function createPlayer() {
+/* 
+=========================================================
+                     PLAYER
+=========================================================
+*/
 
-  const g =
-    new THREE.Group();
+function createPlayer() {
 
-  /*
-  CUSTOM GLB
-  */
+  const g = new THREE.Group();
 
-  if (
-    USE_CUSTOM_MODELS
-  ) {
+  // ------------------------------------------------
+  // CUSTOM GIRL / BOY OPERATIVE
+  // ------------------------------------------------
+
+  if (USE_CUSTOM_MODELS) {
+
+    const path =
+      selectedOperative === 'boy'
+        ? MODEL_PATHS.boyAgent
+        : MODEL_PATHS.girlAgent;
 
     loadModel(
-      'player',
-      MODEL_PATHS.player,
-      g
+      'player-' + selectedOperative,
+      path,
+      g,
+      1.0
     );
 
   }
 
-  /*
-  TEMPORARY PROCEDURAL PLAYER
-  */
+  // ------------------------------------------------
+  // PROCEDURAL FALLBACK
+  // ------------------------------------------------
 
   else {
 
     const body =
       new THREE.Mesh(
-
         new THREE.CapsuleGeometry(
           .65,
           1.35,
           6,
           10
         ),
-
         new THREE.MeshStandardMaterial({
-
           color: 0x1a1c25,
-
           roughness: .55,
-
           metalness: .4
-
         })
-
       );
 
-    body.position.y =
-      1.2;
+    body.position.y = 1.2;
+    body.castShadow = true;
 
-    body.castShadow =
-      true;
-
-    g.add(
-      body
-    );
-
-    // KEEP EVERYTHING ELSE
-    // THAT ALREADY EXISTS
-    // INSIDE YOUR createPlayer()
-
-        // KEEP THE REST OF YOUR EXISTING
-        // HEAD / BODY / WEAPON CODE
-    }
-
-    // KEEP THE REST OF YOUR EXISTING createPlayer()
-}
-
-    
-     
+    g.add(body);
 
 
-    /*
-    HEAD
-    */
+    // HEAD
 
     const head =
       new THREE.Mesh(
-
         new THREE.SphereGeometry(
           .43,
           18,
           14
         ),
-
         new THREE.MeshStandardMaterial({
-
           color: 0x282b35,
-
           roughness: .45
-
         })
-
       );
 
+    head.position.y = 2.35;
+    head.castShadow = true;
 
-    head.position.y =
-      2.35;
-
-
-    head.castShadow =
-      true;
+    g.add(head);
 
 
-    g.add(
-      head
-    );
-
-
-
-    /*
-    RED VISOR
-    */
+    // RED VISOR
 
     const visor =
       new THREE.Mesh(
-
         new THREE.BoxGeometry(
           .58,
           .12,
           .18
         ),
-
         new THREE.MeshBasicMaterial({
-
           color: 0xe4003b
-
         })
-
       );
-
 
     visor.position.set(
       0,
@@ -2293,36 +2252,23 @@ function createPlayer() {
       .37
     );
 
-
-    g.add(
-      visor
-    );
+    g.add(visor);
 
 
-
-    /*
-    WEAPON
-    */
+    // WEAPON
 
     const gun =
       new THREE.Mesh(
-
         new THREE.BoxGeometry(
           .18,
           .18,
           1.1
         ),
-
         new THREE.MeshStandardMaterial({
-
           color: 0x090a0e,
-
           metalness: .8
-
         })
-
       );
-
 
     gun.position.set(
       .62,
@@ -2330,21 +2276,22 @@ function createPlayer() {
       .48
     );
 
+    gun.rotation.x = -.12;
 
-    gun.rotation.x =
-      -.12;
-
-
-    g.add(
-      gun
-    );
+    g.add(gun);
 
   }
-
 
   return g;
 
 }
+
+
+/* 
+=========================================================
+                  GLTF MODEL LOADER
+=========================================================
+*/
 
 
 
