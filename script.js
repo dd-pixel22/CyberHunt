@@ -7,6 +7,17 @@ const MODEL_PATHS = {
     enemy: 'assets/models/enemy.glb'
 };
 
+const USE_CUSTOM_MODELS = true;
+
+const CYBERHUNT_THEME = {
+    black: 0x050507,
+    dark: 0x0b0b0f,
+    crimson: 0x8f1028,
+    brightCrimson: 0xff1744,
+    neonRed: 0xff3155,
+    steel: 0x555862
+};
+
 /*
 =========================================================
                     CYBERHUNT
@@ -55,7 +66,7 @@ change this to:
 const USE_CUSTOM_MODELS = true;
 */
 
-const USE_CUSTOM_MODELS = false;
+const USE_CUSTOM_MODELS = true;
 
 
 /*
