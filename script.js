@@ -610,6 +610,7 @@ function update() {
 
     checkEvidence();
 
+    checkThreats();
 
     checkLevelProgress();
 
