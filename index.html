@@ -1,554 +1,986 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CYBERHUNT // Forensics & Threat Investigation Console</title>
-  <style>
-    :root {
-      --bg: #030306;
-      --panel: #0a0a12;
-      --panel-border: rgba(255, 0, 60, 0.3);
-      --red: #ff003c;
-      --red-glow: rgba(255, 0, 60, 0.6);
-      --cyan: #00f0ff;
-      --text: #d0d0e0;
-      --text-dim: #707085;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    * {
-      box-sizing: border-box;
-      user-select: none;
-    }
+    <title>CyberHunt | Cybersecurity Learning</title>
 
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      overflow-x: hidden;
-      min-height: 100vh;
-      background-image: 
-        radial-gradient(circle at 50% 50%, rgba(255,0,60,0.05) 0%, transparent 70%),
-        linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 100% 100%, 30px 30px, 30px 30px;
-    }
+    <link rel="stylesheet" href="style.css">
 
-    /* TYPOGRAPHY & GLOWS */
-    .neon-text {
-      color: var(--red);
-      text-shadow: 0 0 10px var(--red-glow), 0 0 20px var(--red-glow);
-      font-family: 'Courier New', Courier, monospace;
-      font-weight: bold;
-    }
-
-    /* VIEW SCREENS MANAGER */
-    .screen {
-      display: none;
-      min-height: 100vh;
-      width: 100vw;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: absolute;
-      top: 0;
-      left: 0;
-      padding: 20px;
-    }
-
-    .screen.active {
-      display: flex;
-    }
-
-    /* 1. CINEMATIC INTRO SCREEN */
-    #intro-screen {
-      text-align: center;
-      background: radial-gradient(circle, #0f0206 0%, #030306 100%);
-    }
-
-    .intro-title {
-      font-size: 4rem;
-      letter-spacing: 12px;
-      margin-bottom: 10px;
-      animation: pulse 2s infinite alternate;
-    }
-
-    .intro-sub {
-      color: var(--cyan);
-      font-family: 'Courier New', Courier, monospace;
-      letter-spacing: 6px;
-      font-size: 0.9rem;
-      margin-bottom: 40px;
-      text-shadow: 0 0 8px rgba(0,240,255,0.5);
-    }
-
-    .vfx-btn {
-      background: transparent;
-      color: var(--red);
-      border: 2px solid var(--red);
-      padding: 15px 40px;
-      font-size: 1.1rem;
-      font-family: 'Courier New', Courier, monospace;
-      font-weight: bold;
-      letter-spacing: 3px;
-      cursor: pointer;
-      box-shadow: 0 0 15px var(--panel-border);
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .vfx-btn:hover {
-      background: var(--red);
-      color: #fff;
-      box-shadow: 0 0 30px var(--red);
-    }
-
-    /* 2. LOGIN PORTAL */
-    .login-box {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      box-shadow: 0 0 30px rgba(255, 0, 60, 0.15);
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-      border-radius: 4px;
-      position: relative;
-    }
-
-    .input-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    .input-group label {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      margin-bottom: 8px;
-      font-family: monospace;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 12px;
-      background: #05050a;
-      border: 1px solid #222233;
-      color: var(--cyan);
-      font-family: monospace;
-      border-radius: 4px;
-      outline: none;
-    }
-
-    .input-group input:focus {
-      border-color: var(--red);
-      box-shadow: 0 0 8px var(--panel-border);
-    }
-
-    /* 3. MAIN DASHBOARD */
-    #dashboard-screen {
-      justify-content: flex-start;
-      padding-top: 80px;
-    }
-
-    .header-bar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: rgba(10, 10, 18, 0.9);
-      border-bottom: 1px solid var(--panel-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 30px;
-      z-index: 100;
-      backdrop-filter: blur(5px);
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 280px 1fr 300px;
-      gap: 20px;
-      width: 100%;
-      max-width: 1400px;
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 6px;
-      padding: 20px;
-    }
-
-    /* LEVEL MAP */
-    .level-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 70vh;
-      overflow-y: auto;
-    }
-
-    .level-item {
-      padding: 12px;
-      background: #05050a;
-      border: 1px solid #1a1a2e;
-      border-left: 3px solid #333;
-      cursor: pointer;
-      font-family: monospace;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    }
-
-    .level-item:hover, .level-item.active {
-      border-left-color: var(--red);
-      background: #10050a;
-    }
-
-    /* CASE STUDY VIEWER */
-    .case-selector {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 15px;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 10px;
-      background: #05050a;
-      border: 1px solid #222;
-      color: var(--text-dim);
-      cursor: pointer;
-      font-family: monospace;
-    }
-
-    .tab-btn.active {
-      border-color: var(--cyan);
-      color: var(--cyan);
-      background: #02121a;
-    }
-
-    .brief-box {
-      background: #020206;
-      border: 1px dashed #222;
-      padding: 15px;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-
-    /* HANDS-ON TERMINAL */
-    .terminal {
-      background: #000;
-      border: 1px solid #1a1a2e;
-      border-radius: 4px;
-      padding: 15px;
-      font-family: 'Courier New', Courier, monospace;
-      min-height: 180px;
-    }
-
-    .terminal-output {
-      color: var(--cyan);
-      font-size: 0.85rem;
-      margin-bottom: 10px;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-
-    .terminal-input-row {
-      display: flex;
-      gap: 10px;
-    }
-
-    .terminal-input-row input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      border-bottom: 1px solid var(--red);
-      color: #fff;
-      font-family: monospace;
-      outline: none;
-    }
-
-    /* SLIDE-OUT CLUE DRAWER */
-    .clue-drawer {
-      position: fixed;
-      right: -350px;
-      top: 60px;
-      bottom: 0;
-      width: 320px;
-      background: #070710;
-      border-left: 2px solid var(--red);
-      padding: 20px;
-      transition: right 0.3s ease;
-      z-index: 90;
-      box-shadow: -10px 0 30px rgba(0,0,0,0.8);
-    }
-
-    .clue-drawer.open {
-      right: 0;
-    }
-
-    .badge-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .badge-icon {
-      aspect-ratio: 1;
-      background: #05050a;
-      border: 1px solid #222;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      border-radius: 4px;
-      opacity: 0.3;
-    }
-
-    .badge-icon.unlocked {
-      opacity: 1;
-      border-color: var(--red);
-      box-shadow: 0 0 10px var(--red-glow);
-    }
-
-    @keyframes pulse {
-      0% { text-shadow: 0 0 10px var(--red-glow); }
-      100% { text-shadow: 0 0 25px var(--red), 0 0 40px var(--red); }
-    }
-  </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-  <!-- HEADER BAR -->
-  <div class="header-bar">
-    <div class="neon-text" style="font-size: 1.2rem;">CYBERHUNT // FORENSICS</div>
-    <div style="display: flex; gap: 20px; align-items: center;">
-      <span id="user-display" style="font-family: monospace; font-size: 0.85rem; color: var(--cyan);">AGENT: UNKNOWN</span>
-      <button class="vfx-btn" style="padding: 5px 15px; font-size: 0.8rem;" onclick="toggleClues()">SIDE PANEL [HINTS]</button>
+<!-- ================= LOGIN ================= -->
+
+<section id="loginPage" class="login-page">
+
+    <div class="login-grid"></div>
+
+    <div class="login-container">
+
+        <div class="brand">
+            <div class="brand-mark">C</div>
+            <div>
+                <h1>CYBER<span>HUNT</span></h1>
+                <p>CYBERSECURITY LEARNING COMMAND</p>
+            </div>
+        </div>
+
+        <div class="login-card">
+
+            <div class="security-icon">⌁</div>
+
+            <p class="eyebrow">SECURE ACCESS</p>
+
+            <h2>Enter CyberHunt</h2>
+
+            <p class="login-description">
+                Learn. Investigate. Decode. Defend.
+            </p>
+
+            <form id="loginForm">
+
+                <label>Email</label>
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="you@example.com"
+                    required
+                >
+
+                <label>Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    placeholder="CyberHunter01"
+                    required
+                >
+
+                <small>
+                    Username can contain letters and numbers only.
+                </small>
+
+                <label>Password</label>
+
+                <div class="password-box">
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Minimum 8 characters"
+                        required
+                    >
+                    <button type="button" id="showPassword">SHOW</button>
+                </div>
+
+                <div class="password-rule">
+                    <span id="passwordStatus">●</span>
+                    Minimum 8 characters
+                </div>
+
+                <p id="loginError" class="error-message"></p>
+
+                <button class="primary-button login-button" type="submit">
+                    ENTER INTO CYBERHUNT
+                    <span>→</span>
+                </button>
+
+            </form>
+
+            <div class="login-footer">
+                <span>● SYSTEM ONLINE</span>
+                <span>ENCRYPTED SESSION</span>
+            </div>
+
+        </div>
+
+        <p class="copyright">
+            CYBERHUNT • DIGITAL SECURITY LEARNING ENVIRONMENT
+        </p>
+
     </div>
-  </div>
+</section>
 
-  <!-- 1. CINEMATIC INTRO SCREEN -->
-  <div id="intro-screen" class="screen active">
-    <div class="neon-text intro-title">CYBERHUNT</div>
-    <div class="intro-sub">enter // investigate // defend</div>
-    <button class="vfx-btn" onclick="showScreen('login-screen')">INITIALIZE SYSTEM</button>
-  </div>
 
-  <!-- 2. LOGIN AUTHENTICATION PORTAL -->
-  <div id="login-screen" class="screen">
-    <div class="login-box">
-      <div class="neon-text" style="text-align: center; margin-bottom: 25px; font-size: 1.3rem;">AGENT AUTHENTICATION</div>
-      <form onsubmit="handleLogin(event)">
-        <div class="input-group">
-          <label>DETECTIVE USERNAME</label>
-          <input type="text" id="username" required placeholder="e.g. Agent_Zero">
-        </div>
-        <div class="input-group">
-          <label>SECURITY PASSCODE</label>
-          <input type="password" id="password" required placeholder="••••••••">
-        </div>
-        <button type="submit" class="vfx-btn" style="width: 100%; margin-top: 10px;">ACCESS CONSOLE</button>
-      </form>
-    </div>
-  </div>
+<!-- ================= APPLICATION ================= -->
 
-  <!-- 3. DASHBOARD (15 LEVELS / 3 CASE STUDIES EACH) -->
-  <div id="dashboard-screen" class="screen">
-    <div class="dashboard-grid">
-      
-      <!-- LEVEL MAP -->
-      <div class="card">
-        <div class="neon-text" style="margin-bottom: 15px; font-size: 0.9rem;">INVESTIGATION LEVELS</div>
-        <div class="level-list" id="level-list"></div>
-      </div>
+<section id="app" class="app hidden">
 
-      <!-- ACTIVE CASE WORKSPACE -->
-      <div class="card">
-        <div class="case-selector">
-          <button class="tab-btn active" onclick="selectCase(0)">CASE STUDY A</button>
-          <button class="tab-btn" onclick="selectCase(1)">CASE STUDY B</button>
-          <button class="tab-btn" onclick="selectCase(2)">CASE STUDY C</button>
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+            <div class="brand-mark small">C</div>
+            <div>
+                <h2>CYBER<span>HUNT</span></h2>
+                <small>LEARNING COMMAND</small>
+            </div>
         </div>
 
-        <div id="case-title" class="neon-text" style="font-size: 1.1rem; margin-bottom: 10px;"></div>
-        
-        <!-- PRE-LEARNING BRIEF -->
-        <div class="brief-box">
-          <div style="color: var(--cyan); font-family: monospace; font-size: 0.75rem; margin-bottom: 5px;">PRE-LEARNING BRIEFING:</div>
-          <div id="pre-learning-text"></div>
+        <div class="user-mini">
+            <div class="avatar" id="avatar">C</div>
+            <div>
+                <strong id="sideUsername">Cyber Hunter</strong>
+                <small>Cyber Rookie</small>
+            </div>
         </div>
 
-        <!-- SITUATION / OBJECTIVE -->
-        <div style="font-size: 0.85rem; margin-bottom: 15px; color: #aaa;" id="situation-text"></div>
+        <nav>
 
-        <!-- HANDS-ON TERMINAL -->
-        <div class="terminal">
-          <div class="terminal-output" id="term-output">CYBERHUNT Forensic Shell v2.4 initialized.<br>Type your decoded answer below to solve the case study.</div>
-          <div class="terminal-input-row">
-            <span style="color: var(--red); font-family: monospace;">&gt;</span>
-            <input type="text" id="term-input" placeholder="Enter solution hash / answer..." onkeydown="handleTerminalSubmit(event)">
-          </div>
+            <p class="nav-label">WORKSPACE</p>
+
+            <button class="nav-item active" data-page="dashboard">
+                <span>⌂</span>
+                Dashboard
+            </button>
+
+            <button class="nav-item" data-page="ai">
+                <span>✦</span>
+                AI Study Studio
+            </button>
+
+            <button class="nav-item" data-page="materials">
+                <span>▤</span>
+                Materials
+            </button>
+
+            <p class="nav-label">INVESTIGATE</p>
+
+            <button class="nav-item" data-page="cases">
+                <span>⌕</span>
+                Case Studies
+            </button>
+
+            <button class="nav-item" data-page="labs">
+                <span>⌘</span>
+                Cyber Labs
+            </button>
+
+            <button class="nav-item" data-page="quizzes">
+                <span>?</span>
+                Mini Quizzes
+            </button>
+
+            <p class="nav-label">YOUR PROGRESS</p>
+
+            <button class="nav-item" data-page="badges">
+                <span>♜</span>
+                Badges
+            </button>
+
+            <button class="nav-item" data-page="progress">
+                <span>◔</span>
+                Progress
+            </button>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="level-mini">
+                <div class="level-title">
+                    <span>LEVEL</span>
+                    <strong id="sideLevel">1</strong>
+                </div>
+
+                <div class="progress-line">
+                    <div id="sideProgress"></div>
+                </div>
+
+                <small>
+                    <span id="sideXP">0</span> XP
+                </small>
+            </div>
+
+            <button class="logout-button" id="logoutButton">
+                ⇥ Sign out
+            </button>
+
         </div>
-      </div>
 
-      <!-- BADGES & PROGRESS -->
-      <div class="card">
-        <div class="neon-text" style="margin-bottom: 15px; font-size: 0.9rem;">UNLOCKED BADGES</div>
-        <div class="badge-grid" id="badge-grid"></div>
-      </div>
+    </aside>
 
-    </div>
-  </div>
 
-  <!-- SLIDE-OUT CLUE & HINT DRAWER -->
-  <div class="clue-drawer" id="clue-drawer">
-    <div class="neon-text" style="font-size: 1rem; margin-bottom: 15px; border-bottom: 1px solid var(--red); padding-bottom: 8px;">INVESTIGATION DOSSIER</div>
-    <div style="font-size: 0.85rem; line-height: 1.6;">
-      <div style="color: var(--cyan); font-family: monospace; margin-bottom: 5px;">INTERCEPTED HINT:</div>
-      <div id="hint-text" style="color: #bbb; background: #000; padding: 10px; border: 1px solid #222; border-radius: 4px;">Select a level to view dossier hints.</div>
-    </div>
-  </div>
+    <!-- MAIN -->
 
-  <script>
-    // 15 LEVELS x 3 CASE STUDIES DATA STRUCTURE
-    const levelsData = Array.from({ length: 15 }, (_, lIdx) => ({
-      levelNumber: lIdx + 1,
-      title: `LEVEL ${lIdx + 1}: ${['Digital Footprints', 'Network Intrusions', 'Phishing Vectors', 'Malware Triage', 'Memory Forensics', 'Log Analysis', 'Encryption Breaking', 'Ransomware Tracing', 'Insider Threats', 'Cloud Espionage', 'Mobile Exploits', 'IoT Vulnerabilities', 'Identity Theft', 'Darknet Tracking', 'Incident Response'][lIdx]}`,
-      badgeIcon: ['🔍', '📡', '✉️', '🦠', '🧠', '📜', '🔐', '☣️', '👤', '☁️', '📱', '📟', '🆔', '🌐', '🛡️'][lIdx],
-      cases: [
-        {
-          title: `Case Study ${lIdx + 1}-A: Initial Vector`,
-          preLearning: "Pre-Learning: Cyber investigators analyze metadata and header fields to identify suspicious origins before proceeding to deep payload analysis.",
-          situation: "Situation: Intercepted payload header contains an encoded Base64 string. Decode the string to reveal the attacker's server key.",
-          hint: "Hint: Use standard Base64 decoding logic on the string 'Q1lCRVIyMDI2'.",
-          solution: "CYBER2026"
-        },
-        {
-          title: `Case Study ${lIdx + 1}-B: Anomaly Scan`,
-          preLearning: "Pre-Learning: Port scanning logs reveal unauthorized Reconnaissance activity across internal subnet ranges.",
-          situation: "Situation: Inspect the access log. Identify the suspicious port number associated with unencrypted FTP intrusions.",
-          hint: "Hint: Standard FTP control connections run on Port 21.",
-          solution: "21"
-        },
-        {
-          title: `Case Study ${lIdx + 1}-C: Threat Mitigation`,
-          preLearning: "Pre-Learning: Threat containment requires revoking compromised session tokens immediately upon detection.",
-          situation: "Situation: Input the command to terminate suspicious PID 8942.",
-          hint: "Hint: Type 'kill 8942' to terminate the malicious process.",
-          solution: "kill 8942"
-        }
-      ]
-    }));
+    <main class="main">
 
-    let currentLevel = 0;
-    let currentCase = 0;
-    let unlockedBadges = new Set();
+        <!-- TOP BAR -->
 
-    // VIEW SCREEN SWITCHER
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
+        <header class="topbar">
 
-    // LOGIN SYSTEM
-    function handleLogin(e) {
-      e.preventDefault();
-      const user = document.getElementById('username').value;
-      document.getElementById('user-display').innerText = `AGENT: ${user.toUpperCase()}`;
-      showScreen('dashboard-screen');
-      initDashboard();
-    }
+            <div class="mobile-brand">
+                <strong>CYBER<span>HUNT</span></strong>
+            </div>
 
-    // DASHBOARD INITIALIZATION
-    function initDashboard() {
-      const levelList = document.getElementById('level-list');
-      levelList.innerHTML = '';
+            <div class="breadcrumb" id="breadcrumb">
+                Dashboard
+            </div>
 
-      levelsData.forEach((lvl, idx) => {
-        const item = document.createElement('div');
-        item.className = `level-item ${idx === 0 ? 'active' : ''}`;
-        item.innerText = lvl.title;
-        item.onclick = () => loadLevel(idx);
-        levelList.appendChild(item);
-      });
+            <div class="top-actions">
 
-      initBadges();
-      loadLevel(0);
-    }
+                <div class="system-status">
+                    <span></span>
+                    SYSTEM SECURE
+                </div>
 
-    function initBadges() {
-      const grid = document.getElementById('badge-grid');
-      grid.innerHTML = '';
-      levelsData.forEach((lvl, idx) => {
-        const badge = document.createElement('div');
-        badge.id = `badge-${idx}`;
-        badge.className = 'badge-icon';
-        badge.innerText = lvl.badgeIcon;
-        badge.title = lvl.title;
-        grid.appendChild(badge);
-      });
-    }
+                <button class="icon-button">🔔</button>
 
-    // LOAD SELECTED LEVEL AND CASE
-    function loadLevel(idx) {
-      currentLevel = idx;
-      currentCase = 0;
+                <div class="profile">
+                    <div class="avatar" id="topAvatar">C</div>
+                    <span id="topUsername">Hunter</span>
+                </div>
 
-      const items = document.querySelectorAll('.level-item');
-      items.forEach((item, i) => item.classList.toggle('active', i === idx));
+            </div>
 
-      updateCaseView();
-    }
+        </header>
 
-    function selectCase(caseIdx) {
-      currentCase = caseIdx;
-      const tabs = document.querySelectorAll('.tab-btn');
-      tabs.forEach((tab, i) => tab.classList.toggle('active', i === caseIdx));
-      updateCaseView();
-    }
 
-    function updateCaseView() {
-      const caseData = levelsData[currentLevel].cases[currentCase];
-      document.getElementById('case-title').innerText = caseData.title;
-      document.getElementById('pre-learning-text').innerText = caseData.preLearning;
-      document.getElementById('situation-text').innerText = caseData.situation;
-      document.getElementById('hint-text').innerText = caseData.hint;
-      
-      const termOut = document.getElementById('term-output');
-      termOut.innerHTML = `CYBERHUNT Forensic Shell v2.4 initialized.<br>Awaiting input for ${caseData.title}...`;
-    }
+        <!-- ================= DASHBOARD ================= -->
 
-    // TERMINAL INPUT HANDLER
-    function handleTerminalSubmit(e) {
-      if (e.key === 'Enter') {
-        const input = document.getElementById('term-input');
-        const val = input.value.trim();
-        const caseData = levelsData[currentLevel].cases[currentCase];
-        const termOut = document.getElementById('term-output');
+        <section class="page active-page" id="dashboardPage">
 
-        if (val.toLowerCase() === caseData.solution.toLowerCase()) {
-          termOut.innerHTML += `<br><span style="color: var(--green);">[SUCCESS] Threat resolved! Passcode matched.</span>`;
-          unlockedBadges.add(currentLevel);
-          document.getElementById(`badge-${currentLevel}`).classList.add('unlocked');
-        } else {
-          termOut.innerHTML += `<br><span style="color: var(--red);">[ERROR] Solution incorrect. Check clues dossier.</span>`;
-        }
-        input.value = '';
-      }
-    }
+            <div class="hero">
 
-    // TOGGLE CLUE DRAWER
-    function toggleClues() {
-      document.getElementById('clue-drawer').classList.toggle('open');
-    }
-  </script>
+                <div>
+                    <p class="eyebrow">WELCOME BACK, AGENT</p>
+
+                    <h1>
+                        Welcome to the
+                        <span>CyberHunt.</span>
+                    </h1>
+
+                    <p>
+                        Your cybersecurity investigation journey starts here.
+                        Study concepts, investigate incidents and build your skills.
+                    </p>
+
+                    <button class="primary-button" onclick="openPage('cases')">
+                        CONTINUE INVESTIGATION →
+                    </button>
+                </div>
+
+                <div class="hero-terminal">
+
+                    <div class="terminal-top">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                    <div class="terminal-text">
+                        <p>> initializing cyberhunt...</p>
+                        <p>> identity verified</p>
+                        <p>> training environment ready</p>
+                        <p class="terminal-red">> mission awaiting hunter_</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- STATS -->
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+                    <span class="stat-icon">⚡</span>
+                    <div>
+                        <small>YOUR XP</small>
+                        <strong id="dashXP">0</strong>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-icon">⌕</span>
+                    <div>
+                        <small>CASES SOLVED</small>
+                        <strong id="dashCases">0 / 5</strong>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-icon">⌘</span>
+                    <div>
+                        <small>LABS COMPLETED</small>
+                        <strong id="dashLabs">0 / 5</strong>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-icon">♜</span>
+                    <div>
+                        <small>BADGES</small>
+                        <strong id="dashBadges">0 / 5</strong>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- DASHBOARD CONTENT -->
+
+            <div class="section-heading">
+
+                <div>
+                    <p class="eyebrow">YOUR LEARNING PATH</p>
+                    <h2>Choose your mission</h2>
+                </div>
+
+            </div>
+
+
+            <div class="feature-grid">
+
+                <div class="feature-card featured" onclick="openPage('cases')">
+
+                    <div class="feature-number">01</div>
+
+                    <div class="feature-icon">⌕</div>
+
+                    <h3>Digital Investigations</h3>
+
+                    <p>
+                        Investigate fictional cyber incidents using
+                        clues, evidence and logical reasoning.
+                    </p>
+
+                    <span class="feature-link">
+                        Open Case Files →
+                    </span>
+
+                </div>
+
+
+                <div class="feature-card" onclick="openPage('ai')">
+
+                    <div class="feature-number">02</div>
+
+                    <div class="feature-icon">✦</div>
+
+                    <h3>AI Study Studio</h3>
+
+                    <p>
+                        Ask cybersecurity questions and get
+                        beginner-friendly explanations.
+                    </p>
+
+                    <span class="feature-link">
+                        Ask CyberAI →
+                    </span>
+
+                </div>
+
+
+                <div class="feature-card" onclick="openPage('labs')">
+
+                    <div class="feature-number">03</div>
+
+                    <div class="feature-icon">⌘</div>
+
+                    <h3>Hands-on Cyber Labs</h3>
+
+                    <p>
+                        Practice encoding, decoding, hashing and
+                        other safe cybersecurity concepts.
+                    </p>
+
+                    <span class="feature-link">
+                        Enter Labs →
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="continue-card">
+
+                <div>
+                    <p class="eyebrow">NEXT OBJECTIVE</p>
+                    <h3>Operation Phantom Email</h3>
+                    <p>
+                        A suspicious email has entered the corporate network.
+                        Find out what happened.
+                    </p>
+                </div>
+
+                <button class="secondary-button" onclick="openCase(0)">
+                    INVESTIGATE →
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= AI ================= -->
+
+        <section class="page" id="aiPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">INTELLIGENT STUDY WORKSPACE</p>
+                    <h1>AI Study <span>Studio</span></h1>
+                    <p>
+                        Ask questions, explore concepts and practice cybersecurity.
+                    </p>
+                </div>
+            </div>
+
+            <div class="ai-layout">
+
+                <aside class="ai-sidebar">
+
+                    <button class="new-chat" onclick="clearChat()">
+                        + New Study Session
+                    </button>
+
+                    <p class="nav-label">QUICK PROMPTS</p>
+
+                    <button onclick="quickPrompt('Explain the CIA Triad in simple words')">
+                        Explain CIA Triad
+                    </button>
+
+                    <button onclick="quickPrompt('What is phishing?')">
+                        What is phishing?
+                    </button>
+
+                    <button onclick="quickPrompt('Explain hashing vs encryption')">
+                        Hashing vs Encryption
+                    </button>
+
+                    <button onclick="quickPrompt('Give me a cybersecurity scenario question')">
+                        Give me a scenario
+                    </button>
+
+                    <div class="ai-note">
+                        <strong>Study Tip</strong>
+                        <p>
+                            Ask the AI to explain a concept,
+                            give examples or create practice questions.
+                        </p>
+                    </div>
+
+                </aside>
+
+
+                <div class="chat-window">
+
+                    <div class="chat-header">
+                        <div class="ai-avatar">✦</div>
+
+                        <div>
+                            <strong>CyberAI Study Assistant</strong>
+                            <small>Cybersecurity learning mode</small>
+                        </div>
+
+                        <span class="ai-online">
+                            ● ONLINE
+                        </span>
+                    </div>
+
+
+                    <div class="chat-messages" id="chatMessages">
+
+                        <div class="message assistant">
+
+                            <div class="message-avatar">✦</div>
+
+                            <div class="message-content">
+
+                                <strong>CyberAI</strong>
+
+                                <p>
+                                    Welcome, Cyber Hunter. 👋
+                                </p>
+
+                                <p>
+                                    I'm your Cybersecurity Study Assistant.
+                                    Ask me anything about cybersecurity,
+                                    or choose a quick prompt from the left.
+                                </p>
+
+                                <div class="ai-suggestions">
+                                    <button onclick="quickPrompt('Explain cybersecurity for a beginner')">
+                                        Explain cybersecurity
+                                    </button>
+
+                                    <button onclick="quickPrompt('Teach me about malware')">
+                                        Teach me malware
+                                    </button>
+
+                                    <button onclick="quickPrompt('Quiz me on phishing')">
+                                        Quiz me
+                                    </button>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="chat-input-area">
+
+                        <textarea
+                            id="chatInput"
+                            placeholder="Ask CyberAI anything about cybersecurity..."
+                            rows="1"
+                        ></textarea>
+
+                        <button id="sendChat">
+                            ↑
+                        </button>
+
+                    </div>
+
+                    <small class="ai-disclaimer">
+                        CyberHunt AI demo • For educational purposes.
+                    </small>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= MATERIALS ================= -->
+
+        <section class="page" id="materialsPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">KNOWLEDGE LIBRARY</p>
+                    <h1>Cybersecurity <span>Materials</span></h1>
+                    <p>
+                        Build your knowledge from beginner to advanced.
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="learning-levels">
+
+                <button class="learning-tab active" data-level="beginner">
+                    <span>01</span>
+                    Beginner
+                </button>
+
+                <button class="learning-tab" data-level="intermediate">
+                    <span>02</span>
+                    Intermediate
+                </button>
+
+                <button class="learning-tab" data-level="advanced">
+                    <span>03</span>
+                    Advanced
+                </button>
+
+            </div>
+
+
+            <div class="materials-grid" id="materialsGrid"></div>
+
+
+            <div class="resources-card">
+
+                <div>
+                    <p class="eyebrow">EXTERNAL LEARNING</p>
+                    <h2>Continue your training</h2>
+                    <p>
+                        Explore trusted cybersecurity learning resources.
+                    </p>
+                </div>
+
+                <div class="resource-links">
+
+                    <a href="https://owasp.org/" target="_blank">
+                        OWASP ↗
+                    </a>
+
+                    <a href="https://www.cybrary.it/" target="_blank">
+                        Cybrary ↗
+                    </a>
+
+                    <a href="https://gchq.github.io/CyberChef/" target="_blank">
+                        CyberChef ↗
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= CASES ================= -->
+
+        <section class="page" id="casesPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">DIGITAL FORENSICS</p>
+                    <h1>Case <span>Files</span></h1>
+                    <p>
+                        Every case is a cyber event. Every clue tells a story.
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="case-intro">
+
+                <div class="case-counter">
+                    <span>CASE FILES</span>
+                    <strong>05</strong>
+                </div>
+
+                <div>
+                    <h2>Become a Digital Detective.</h2>
+                    <p>
+                        Read the incident, examine the clues, use hints when needed,
+                        and identify what happened.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="case-grid" id="caseGrid"></div>
+
+        </section>
+
+
+        <!-- ================= CASE INVESTIGATION ================= -->
+
+        <section class="page" id="investigationPage">
+
+            <button class="back-button" onclick="openPage('cases')">
+                ← Back to Case Files
+            </button>
+
+            <div id="investigationContent"></div>
+
+        </section>
+
+
+        <!-- ================= LABS ================= -->
+
+        <section class="page" id="labsPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">HANDS-ON TRAINING</p>
+                    <h1>Cyber <span>Labs</span></h1>
+                    <p>
+                        Learn by experimenting with safe sample data.
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="lab-selector">
+
+                <button class="lab-tab active" onclick="showLab('base64', this)">
+                    Base64
+                </button>
+
+                <button class="lab-tab" onclick="showLab('hex', this)">
+                    Hex
+                </button>
+
+                <button class="lab-tab" onclick="showLab('caesar', this)">
+                    Caesar Cipher
+                </button>
+
+                <button class="lab-tab" onclick="showLab('hash', this)">
+                    Hash Lab
+                </button>
+
+            </div>
+
+
+            <div class="lab-workspace">
+
+                <div class="lab-info">
+
+                    <p class="eyebrow" id="labEyebrow">
+                        ENCODING LAB
+                    </p>
+
+                    <h2 id="labTitle">
+                        Base64 Encoder / Decoder
+                    </h2>
+
+                    <p id="labDescription">
+                        Base64 is an encoding method used to represent
+                        binary data using readable characters. Encoding
+                        is NOT encryption.
+                    </p>
+
+                    <div class="lab-warning">
+                        <strong>SAFE PRACTICE</strong>
+                        <span>
+                            Use fictional/sample information only.
+                            Never enter real passwords or secrets.
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <div class="lab-tool">
+
+                    <label>INPUT</label>
+
+                    <textarea
+                        id="labInput"
+                        placeholder="Enter sample text..."
+                    ></textarea>
+
+                    <div class="lab-buttons">
+
+                        <button class="primary-button" onclick="runLab('encode')">
+                            ENCODE
+                        </button>
+
+                        <button class="secondary-button" onclick="runLab('decode')">
+                            DECODE
+                        </button>
+
+                        <button class="clear-button" onclick="clearLab()">
+                            CLEAR
+                        </button>
+
+                    </div>
+
+                    <label>RESULT</label>
+
+                    <div class="lab-result" id="labResult">
+                        Your result will appear here.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="lab-concept">
+
+                <p class="eyebrow">UNDERSTAND THE CONCEPT</p>
+
+                <h2>Encoding ≠ Encryption ≠ Hashing</h2>
+
+                <div class="concept-grid">
+
+                    <div>
+                        <strong>ENCODING</strong>
+                        <p>
+                            Changes data into another representation.
+                            Usually reversible without a secret key.
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong>ENCRYPTION</strong>
+                        <p>
+                            Protects confidentiality using an encryption
+                            algorithm and key.
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong>HASHING</strong>
+                        <p>
+                            Produces a fixed-length digest commonly used
+                            for integrity checks and password systems.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= QUIZZES ================= -->
+
+        <section class="page" id="quizzesPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">KNOWLEDGE CHECK</p>
+                    <h1>Mini <span>Quizzes</span></h1>
+                    <p>
+                        Test your cybersecurity instincts.
+                    </p>
+                </div>
+            </div>
+
+            <div class="quiz-container">
+
+                <div class="quiz-top">
+
+                    <span id="quizNumber">
+                        QUESTION 01 / 05
+                    </span>
+
+                    <span id="quizScore">
+                        SCORE: 0
+                    </span>
+
+                </div>
+
+                <div class="quiz-progress">
+                    <div id="quizProgress"></div>
+                </div>
+
+                <div id="quizContent"></div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= BADGES ================= -->
+
+        <section class="page" id="badgesPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">ACHIEVEMENTS</p>
+                    <h1>Your <span>Badges</span></h1>
+                    <p>
+                        Every completed investigation earns recognition.
+                    </p>
+                </div>
+            </div>
+
+            <div class="badge-summary">
+
+                <div>
+                    <strong id="badgeCount">0</strong>
+                    <span>BADGES EARNED</span>
+                </div>
+
+                <div class="badge-progress">
+                    <div>
+                        <span>Collection Progress</span>
+                        <strong id="badgePercent">0%</strong>
+                    </div>
+
+                    <div class="progress-line large">
+                        <div id="badgeProgress"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="badges-grid" id="badgesGrid"></div>
+
+        </section>
+
+
+        <!-- ================= PROGRESS ================= -->
+
+        <section class="page" id="progressPage">
+
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">YOUR PERFORMANCE</p>
+                    <h1>Learning <span>Progress</span></h1>
+                    <p>
+                        Track your CyberHunt journey.
+                    </p>
+                </div>
+            </div>
+
+            <div class="progress-overview">
+
+                <div class="big-level">
+
+                    <span>CURRENT LEVEL</span>
+
+                    <strong id="bigLevel">1</strong>
+
+                    <p>Cyber Rookie</p>
+
+                </div>
+
+                <div class="xp-overview">
+
+                    <div>
+                        <span>Total XP</span>
+                        <strong id="bigXP">0 XP</strong>
+                    </div>
+
+                    <div class="progress-line large">
+                        <div id="bigProgress"></div>
+                    </div>
+
+                    <small>
+                        Keep investigating to reach the next level.
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="progress-grid">
+
+                <div class="progress-stat">
+                    <span>⌕</span>
+                    <strong id="progressCases">0</strong>
+                    <small>Cases Solved</small>
+                </div>
+
+                <div class="progress-stat">
+                    <span>⌘</span>
+                    <strong id="progressLabs">0</strong>
+                    <small>Labs Completed</small>
+                </div>
+
+                <div class="progress-stat">
+                    <span>♜</span>
+                    <strong id="progressBadges">0</strong>
+                    <small>Badges Earned</small>
+                </div>
+
+                <div class="progress-stat">
+                    <span>✓</span>
+                    <strong id="progressQuiz">0</strong>
+                    <small>Quiz Points</small>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</section>
+
+
+<!-- TOAST -->
+
+<div id="toast" class="toast">
+    <span>✓</span>
+    <p>Mission updated.</p>
+</div>
+
+
+<script src="script.js"></script>
+
 </body>
 </html>
