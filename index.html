@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CYBERHUNT // Cyber Security Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="boot-screen"><div class="boot-logo">CYBER<span>HUNT</span></div><div class="boot-lines"><p>INITIALIZING SECURE KERNEL...</p><p>LOADING TACTICAL SIMULATION...</p><p>CONNECTING THREAT INTELLIGENCE...</p></div><div id="boot-status">SYSTEM STARTING</div></div>
+
+<main id="app" class="hidden">
+<section id="start-screen" class="screen active">
+<div class="topbar"><div class="brand">CYBER<span>HUNT</span></div><div class="dossier"><b>OPERATIVE</b><span>LEVEL <strong id="menu-level">01</strong></span><div class="xp"><i id="menu-xp-bar"></i></div><span id="menu-xp">0 / 1000 XP</span></div></div>
+<div class="hero"><div class="eyebrow">CYBER SECURITY TACTICAL SIMULATION</div><h1>HUNT THE<br><span>THREAT.</span></h1><p>Investigate physical evidence. Neutralize digital threats. Decode secure systems. Survive five escalating operations.</p><button id="begin-mission" class="primary">DEPLOY <b>OPERATIVE</b> <span>›</span></button></div>
+<nav class="menu"><button data-screen="missions">MISSIONS</button><button data-screen="operative">OPERATIVE</button><button data-screen="arsenal">ARSENAL</button><button data-screen="badges">BADGES</button></nav>
+</section>
+
+<section id="mission-screen" class="overlay-screen"><div class="panel wide"><button class="close" data-close>×</button><div class="section-title">SELECT <span>MISSION</span></div><p class="muted">Each operation introduces a new location, threat family and tactical objective.</p><div id="mission-grid" class="mission-grid"></div></div></section>
+
+<section id="operative-screen" class="overlay-screen"><div class="panel wide"><button class="close" data-close>×</button><div class="section-title">SELECT <span>OPERATIVE</span></div><p class="muted">Choose your field operative. Both agents use the same tactical systems.</p><div class="operative-grid">
+<button class="operative-card selected" data-operative="girl"><div class="operative-preview"><div id="vexa-preview" class="preview-canvas"></div><span class="preview-scan">3D LIVE PREVIEW</span></div><div class="operative-info"><small>FIELD AGENT 01</small><h2>VEXA</h2><p>Dual pistols · agile infiltration</p><b>STEALTH / SPEED</b></div></button>
+<button class="operative-card" data-operative="boy"><div class="operative-preview"><div id="kai-preview" class="preview-canvas"></div><span class="preview-scan">3D LIVE PREVIEW</span></div><div class="operative-info"><small>FIELD AGENT 02</small><h2>KAI</h2><p>Precision rifle · tactical control</p><b>TACTICAL / RANGE</b></div></button>
+</div><button id="deploy-operative" class="primary">DEPLOY OPERATIVE ›</button></div></section>
+
+<section id="arsenal-screen" class="overlay-screen"><div class="panel"><button class="close" data-close>×</button><div class="section-title">ARSENAL</div><div class="arsenal-item"><b>DUAL PISTOLS</b><span>FAST / CLOSE RANGE</span></div><div class="arsenal-item"><b>PRECISION RIFLE</b><span>HIGH DAMAGE / LONG RANGE</span></div><div class="arsenal-item"><b>TACTICAL VISOR</b><span>THREAT SCAN / MINIMAP</span></div></div></section>
+
+<section id="badges-screen" class="overlay-screen"><div class="panel wide"><button class="close" data-close>×</button><div class="section-title">BADGES</div><div id="badge-grid" class="badge-grid"></div></div></section>
+
+<section id="game-screen" class="game-screen">
+<canvas id="game-canvas"></canvas>
+<header class="hud top"><div><small>MISSION <b id="hud-mission-number">01</b></small><h2 id="hud-mission-title">ABANDONED CYBER DISTRICT</h2></div><button id="pause-btn">Ⅱ</button></header>
+<div id="objective-list" class="objectives"></div>
+<div class="minimap-wrap"><canvas id="minimap-canvas" width="180" height="180"></canvas><span id="map-level">LVL 01</span></div>
+<div id="interaction-panel" class="interaction hidden"><small id="interaction-type">OBJECTIVE</small><h3 id="interaction-title">SECURE EVIDENCE</h3><p id="interaction-desc"></p><button id="interact-primary" class="primary">INTERACT</button><button id="interact-secondary" class="ghost">CANCEL</button></div>
+<div class="bottom-hud"><div class="stat"><span>HP</span><div class="bar"><i id="health-bar"></i></div><b id="health-text">100</b></div><div class="weapon"><small>WEAPON</small><b id="weapon-name">DUAL PISTOLS</b><span><strong id="ammo-current">12</strong> / <span id="ammo-reserve">72</span></span></div></div>
+<div id="interact-hint" class="hint">WASD MOVE · SHIFT SPRINT · E INTERACT · CLICK SHOOT</div>
+<div id="mobile-controls"><div id="joystick"><i></i></div><button id="mobile-interact">E</button><button id="mobile-shoot">FIRE</button></div>
+</section>
+
+<section id="pause-screen" class="overlay-screen"><div class="panel small"><div class="section-title">SYSTEM <span>PAUSED</span></div><button id="resume-btn" class="primary">RESUME</button><button id="restart-btn" class="ghost">RESTART MISSION</button><button id="exit-btn" class="ghost">EXIT TO MENU</button></div></section>
+
+<section id="decrypt-screen" class="overlay-screen"><div class="panel decrypt"><button id="decrypt-close" class="close">×</button><div class="section-title">SECURE <span>DECRYPTION</span></div><pre id="terminal-log"></pre><div id="decrypt-hints"></div><div id="code-slots"></div><div id="code-keypad"></div><button id="decode-btn" class="primary">DECRYPT</button><p id="decode-message"></p></div></section>
+
+<section id="evidence-screen" class="overlay-screen"><div class="panel small"><div class="section-title">PHYSICAL <span>EVIDENCE</span></div><h2 id="evidence-title"></h2><p id="evidence-text"></p><button id="collect-evidence" class="primary">COLLECT</button><button id="leave-evidence" class="ghost">LEAVE</button></div></section>
+
+<section id="complete-screen" class="overlay-screen"><div class="panel small complete"><div class="section-title">MISSION <span>COMPLETE</span></div><h2 id="complete-title"></h2><p id="complete-subtitle"></p><div class="rewards"><b>+<span id="reward-xp">0</span> XP</b><b id="reward-badge">BADGE</b><b><span id="reward-accuracy">100</span>% ACCURACY</b></div><button id="next-mission" class="primary">NEXT MISSION ›</button><button id="complete-menu" class="ghost">MAIN MENU</button></div></section>
+<div id="toast"></div>
+</main>
+<script type="module" src="script.js"></script>
+</body>
+</html>
