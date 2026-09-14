@@ -41,6 +41,8 @@ const MODEL_PATHS = {
 
 const USE_CUSTOM_MODELS = true;
 
+let selectedOperative = 'girl';
+
 
 // ============================================================
 // CYBERHUNT — THEME
@@ -2162,62 +2164,68 @@ function createPlayer() {
   CUSTOM GLB
   */
 
-  if (USE_CUSTOM_MODELS) {
+ /*
+CUSTOM GLB PLAYER
+*/
 
-  const selectedModel =
-    selectedOperative === 'boy'
-      ? MODEL_PATHS.boyAgent
-      : MODEL_PATHS.girlAgent;
+if (USE_CUSTOM_MODELS) {
 
-  loadModel(
-    'player',
-    selectedModel,
-    g
-  );
+    const selectedModel =
+        selectedOperative === 'boy'
+            ? MODEL_PATHS.boyAgent
+            : MODEL_PATHS.girlAgent;
+
+    loadModel(
+        'player',
+        selectedModel,
+        g
+    );
 
 }
-
   /*
   TEMPORARY PROCEDURAL PLAYER
   */
 
-  else {
+  else{
 
-    const body =
-      new THREE.Mesh(
+     // KEEP ALL YOUR EXISTING
+    // PROCEDURAL PLAYER CODE HERE
 
-        new THREE.CapsuleGeometry(
-          .65,
-          1.35,
-          6,
-          10
-        ),
+        const body =
+            new THREE.Mesh(
 
-        new THREE.MeshStandardMaterial({
+                new THREE.CapsuleGeometry(
+                    0.65,
+                    1.35,
+                    6,
+                    10
+                ),
 
-          color: 0x1a1c25,
+                new THREE.MeshStandardMaterial({
 
-          roughness: .55,
+                    color: 0x1a1c25,
+                    roughness: .55,
+                    metalness: .4
 
-          metalness: .4
+                })
 
-        })
+            );
 
-      );
+        body.position.y = 1.2;
 
+        body.castShadow = true;
 
-    body.position.y =
-      1.2;
+        g.add(body);
 
+        // KEEP THE REST OF YOUR EXISTING
+        // HEAD / BODY / WEAPON CODE
+    }
 
-    body.castShadow =
-      true;
+    // KEEP THE REST OF YOUR EXISTING createPlayer()
+}
 
-
-    g.add(
-      body
-    );
-
+    
+     
 
 
     /*
