@@ -1065,122 +1065,63 @@ function initUI() {
 */
 
 function initThree() {
+  const canvas = $('game-canvas');
 
-  const canvas =
-    $('game-canvas');
+  renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: false,
+    powerPreference: 'high-performance'
+  });
 
+  // High-quality rendering
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
 
-  renderer =
-    new THREE.WebGLRenderer({
+  // Cinematic shadows
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = true;
 
-      canvas,
+  // Better colors and cinematic contrast
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
 
-      antialias: true,
+  // Dark CyberHunt atmosphere
+  renderer.setClearColor(0x030308, 1);
 
-      alpha: false
+  scene = new THREE.Scene();
 
-    });
+  // Deep black/red cyberpunk environment
+  scene.background = new THREE.Color(0x030308);
 
-
-  renderer.setPixelRatio(
-    Math.min(
-      devicePixelRatio,
-      2
-    )
+  // Atmospheric depth
+  scene.fog = new THREE.FogExp2(
+    0x05060b,
+    0.018
   );
 
-
-  renderer.setSize(
-    innerWidth,
-    innerHeight
+  // Third-person cinematic camera
+  camera = new THREE.PerspectiveCamera(
+    52,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    300
   );
 
+  camera.position.set(0, 15, 12);
+  camera.lookAt(0, 0, 0);
 
-  renderer.shadowMap.enabled =
-    true;
+  clock = new THREE.Clock();
+  raycaster = new THREE.Raycaster();
 
-
-  renderer.shadowMap.type =
-    THREE.PCFSoftShadowMap;
-
-
-  renderer.outputColorSpace =
-    THREE.SRGBColorSpace;
-
-
-  renderer.toneMapping =
-    THREE.ACESFilmicToneMapping;
-
-
-  renderer.toneMappingExposure =
-    1.25;
-
-
-
-  scene =
-    new THREE.Scene();
-
-
-  scene.background =
-    new THREE.Color(
-      0x04050a
-    );
-
-
-  scene.fog =
-    new THREE.FogExp2(
-      0x05060b,
-      0.018
-    );
-
-
-
-  camera =
-    new THREE.PerspectiveCamera(
-
-      52,
-
-      innerWidth /
-        innerHeight,
-
-      0.1,
-
-      300
-
-    );
-
-
-  camera.position.set(
-    0,
-    15,
-    12
-  );
-
-
-  camera.lookAt(
-    0,
-    0,
-    0
-  );
-
-
-
-  clock =
-    new THREE.Clock();
-
-
-  raycaster =
-    new THREE.Raycaster();
-
-
-
+  // Build the lighting system
   addLights();
 
+  // Start the game renderer
   animate();
-
 }
-
-
 
 /*
 =========================================================
