@@ -2162,18 +2162,20 @@ function createPlayer() {
   CUSTOM GLB
   */
 
-  if (
-    USE_CUSTOM_MODELS
-  ) {
+  if (USE_CUSTOM_MODELS) {
 
-    loadModel(
-      'player',
-      MODEL_PATHS.player,
-      g
-    );
+  const selectedModel =
+    selectedOperative === 'boy'
+      ? MODEL_PATHS.boyAgent
+      : MODEL_PATHS.girlAgent;
 
-  }
+  loadModel(
+    'player',
+    selectedModel,
+    g
+  );
 
+}
 
   /*
   TEMPORARY PROCEDURAL PLAYER
