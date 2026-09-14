@@ -1,999 +1,137 @@
-```javascript
-/* =========================================================
-   CYBERHUNT
-   3D CYBER CITY / ESCAPE ROOM ARENA
-   ========================================================= */
+// 3D Scene Global Variables
+let scene, camera, renderer, raycaster, mouse;
+let roomObjects = [];
+let passcodeTarget = "4821";
+let gatheredDigits = ["_", "_", "_", "_"];
 
-import * as THREE from "three";
+function init3DArena() {
+    const canvas = document.getElementById('game-canvas');
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050002, 0.05);
 
-const CITY = {
-    size: 180,
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1.6, 5); // Eye level position
 
-    colors: {
-        ground: 0x030305,
-        road: 0x07070b,
-        building: 0x08090d,
-        red: 0xff1744,
-        darkRed: 0x7e0d29,
-        window: 0x8e102d
-    }
-};
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
 
-const arenaState = {
-    scene: null,
-    city: null,
-    buildings: [],
-    neonLights: [],
-    initialized: false
-};
+    // Dynamic Crimson/Neon Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    scene.add(ambientLight);
 
-/* =========================================================
-   CREATE CITY
-========================================================= */
+    const redLight = new THREE.PointLight(0xff003c, 2, 20);
+    redLight.position.set(0, 4, 0);
+    scene.add(redLight);
 
-export function createCyberCity(scene) {
+    // Environment Construction (Escape Room Base)
+    buildRoomFrame();
+    populateInteractiveObjects();
+    loadCharacterModels();
 
-    arenaState.scene = scene;
+    // Event Listeners for Raycasting (Interactivity)
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+    window.addEventListener('click', onObjectClick);
+    window.addEventListener('resize', onWindowResize);
 
-    if (arenaState.city) {
-        scene.remove(arenaState.city);
-    }
-
-    arenaState.city =
-        new THREE.Group();
-
-    arenaState.city.name =
-        "CYBER_CITY";
-
-    arenaState.buildings = [];
-    arenaState.neonLights = [];
-
-    scene.add(
-        arenaState.city
-    );
-
-    createGround();
-    createRoads();
-    createBuildings();
-    createStreetLights();
-    createCityDetails();
-
-    arenaState.initialized = true;
-
-    return arenaState.city;
+    animate();
 }
 
-/* =========================================================
-   GROUND
-========================================================= */
+function buildRoomFrame() {
+    // Cyber Grid Floor
+    const gridHelper = new THREE.GridHelper(20, 20, 0xff003c, 0x220008);
+    scene.add(gridHelper);
 
-function createGround() {
+    // Room Walls
+    const wallGeo = new THREE.BoxGeometry(20, 10, 0.5);
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.8 });
 
-    const geometry =
-        new THREE.PlaneGeometry(
-            CITY.size,
-            CITY.size
-        );
-
-    const material =
-        new THREE.MeshStandardMaterial({
-            color: CITY.colors.ground,
-            roughness: 0.88,
-            metalness: 0.3
-        });
-
-    const ground =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-    ground.rotation.x =
-        -Math.PI / 2;
-
-    ground.position.y =
-        -0.05;
-
-    ground.receiveShadow = true;
-
-    arenaState.city.add(
-        ground
-    );
-
-    const grid =
-        new THREE.GridHelper(
-            CITY.size,
-            45,
-            CITY.colors.darkRed,
-            0x15151a
-        );
-
-    grid.position.y =
-        0.01;
-
-    grid.material.transparent = true;
-
-    grid.material.opacity = 0.24;
-
-    arenaState.city.add(
-        grid
-    );
+    const backWall = new THREE.Mesh(wallGeo, wallMat);
+    backWall.position.set(0, 5, -10);
+    scene.add(backWall);
 }
 
-/* =========================================================
-   ROADS
-========================================================= */
+function populateInteractiveObjects() {
+    // 1. USB Drive Clue Object
+    const usbGeo = new THREE.BoxGeometry(0.4, 0.2, 0.8);
+    const usbMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5 });
+    const usb = new THREE.Mesh(usbGeo, usbMat);
+    usb.position.set(-3, 1, -4);
+    usb.userData = { type: 'clue', digit: '4', index: 0, text: 'Decrypted Malware log: First passcode digit is 4' };
+    scene.add(usb);
+    roomObjects.push(usb);
 
-function createRoads() {
+    // 2. Cyber Threat Terminal
+    const termGeo = new THREE.BoxGeometry(1.5, 2, 0.5);
+    const termMat = new THREE.MeshStandardMaterial({ color: 0xff003c, emissive: 0x5a0016 });
+    const terminal = new THREE.Mesh(termGeo, termMat);
+    terminal.position.set(3, 1.5, -6);
+    terminal.userData = { type: 'threat', digit: '8', index: 1, text: 'Ransomware Purged! Recovered passcode digit: 8' };
+    scene.add(terminal);
+    roomObjects.push(terminal);
 
-    createRoad(
-        0,
-        0,
-        CITY.size,
-        18
-    );
-
-    createRoad(
-        0,
-        0,
-        18,
-        CITY.size
-    );
-
-    createRoad(
-        0,
-        -45,
-        CITY.size,
-        9
-    );
-
-    createRoad(
-        0,
-        45,
-        CITY.size,
-        9
-    );
-
-    createRoad(
-        -45,
-        0,
-        9,
-        CITY.size
-    );
-
-    createRoad(
-        45,
-        0,
-        9,
-        CITY.size
-    );
+    // 3. Exit Door with Keypad
+    const doorGeo = new THREE.BoxGeometry(3, 6, 0.2);
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9 });
+    const exitDoor = new THREE.Mesh(doorGeo, doorMat);
+    exitDoor.position.set(0, 3, -9.8);
+    exitDoor.userData = { type: 'exit' };
+    scene.add(exitDoor);
+    roomObjects.push(exitDoor);
 }
 
-function createRoad(
-    x,
-    z,
-    width,
-    depth
-) {
+function loadCharacterModels() {
+    const loader = new THREE.GLTFLoader();
 
-    const geometry =
-        new THREE.PlaneGeometry(
-            width,
-            depth
-        );
-
-    const material =
-        new THREE.MeshStandardMaterial({
-            color: CITY.colors.road,
-            roughness: 0.72,
-            metalness: 0.5
-        });
-
-    const road =
-        new THREE.Mesh(
-            geometry,
-            material
-        );
-
-    road.rotation.x =
-        -Math.PI / 2;
-
-    road.position.set(
-        x,
-        0.015,
-        z
-    );
-
-    arenaState.city.add(
-        road
-    );
-
-    createRoadLines(
-        x,
-        z,
-        width,
-        depth
-    );
+    /* 
+       Replace placeholder paths with your actual 3D model files (.gltf or .glb)
+       Example: loader.load('assets/agent_boy.glb', (gltf) => { scene.add(gltf.scene); });
+    */
+    
+    // Placeholder Mesh Visualizers for Boy/Girl/Enemy until models load
+    const agentBoy = createPlaceholderCapsule(0x00f0ff, -1, 1, -2); // Player Boy Agent
+    const enemy = createPlaceholderCapsule(0xff003c, 2, 1, -5);     // Enemy Threat
 }
 
-/* =========================================================
-   ROAD NEON
-========================================================= */
-
-function createRoadLines(
-    x,
-    z,
-    width,
-    depth
-) {
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color: CITY.colors.red
-        });
-
-    if (width > depth) {
-
-        const geometry =
-            new THREE.PlaneGeometry(
-                width,
-                0.08
-            );
-
-        const line =
-            new THREE.Mesh(
-                geometry,
-                material
-            );
-
-        line.rotation.x =
-            -Math.PI / 2;
-
-        line.position.set(
-            x,
-            0.055,
-            z
-        );
-
-        arenaState.city.add(
-            line
-        );
-
-    } else {
-
-        const geometry =
-            new THREE.PlaneGeometry(
-                0.08,
-                depth
-            );
-
-        const line =
-            new THREE.Mesh(
-                geometry,
-                material
-            );
-
-        line.rotation.x =
-            -Math.PI / 2;
-
-        line.position.set(
-            x,
-            0.055,
-            z
-        );
-
-        arenaState.city.add(
-            line
-        );
-    }
+function createPlaceholderCapsule(color, x, y, z) {
+    const geo = new THREE.CylinderGeometry(0.4, 0.4, 1.8, 16);
+    const mat = new THREE.MeshStandardMaterial({ color: color, wireframe: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    return mesh;
 }
 
-/* =========================================================
-   FIVE BUILDINGS
-========================================================= */
+function onObjectClick(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-function createBuildings() {
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(roomObjects);
 
-    const data = [
+    if (intersects.length > 0) {
+        const obj = intersects[0].object;
 
-        {
-            level: 1,
-            name: "DATA VAULT",
-            x: -48,
-            z: -42,
-            width: 28,
-            depth: 28,
-            height: 30
-        },
-
-        {
-            level: 2,
-            name: "CYBER BANK",
-            x: 48,
-            z: -42,
-            width: 30,
-            depth: 28,
-            height: 38
-        },
-
-        {
-            level: 3,
-            name: "NEXUS LAB",
-            x: -48,
-            z: 42,
-            width: 28,
-            depth: 28,
-            height: 34
-        },
-
-        {
-            level: 4,
-            name: "BLACKSITE",
-            x: 48,
-            z: 42,
-            width: 30,
-            depth: 28,
-            height: 43
-        },
-
-        {
-            level: 5,
-            name: "CYBER CORE",
-            x: 0,
-            z: -67,
-            width: 32,
-            depth: 22,
-            height: 50
-        }
-
-    ];
-
-    data.forEach(
-        buildingData => {
-
-            const building =
-                createBuilding(
-                    buildingData
-                );
-
-            arenaState.city.add(
-                building
-            );
-
-            arenaState.buildings.push(
-                {
-                    ...buildingData,
-                    object: building
-                }
-            );
-        }
-    );
-}
-
-/* =========================================================
-   BUILDING
-========================================================= */
-
-function createBuilding(data) {
-
-    const group =
-        new THREE.Group();
-
-    group.position.set(
-        data.x,
-        0,
-        data.z
-    );
-
-    group.name =
-        `BUILDING_${data.level}`;
-
-    /* Main body */
-
-    const bodyGeometry =
-        new THREE.BoxGeometry(
-            data.width,
-            data.height,
-            data.depth
-        );
-
-    const bodyMaterial =
-        new THREE.MeshStandardMaterial({
-            color: CITY.colors.building,
-            roughness: 0.62,
-            metalness: 0.78
-        });
-
-    const body =
-        new THREE.Mesh(
-            bodyGeometry,
-            bodyMaterial
-        );
-
-    body.position.y =
-        data.height / 2;
-
-    body.castShadow = true;
-    body.receiveShadow = true;
-
-    group.add(body);
-
-    /* Roof */
-
-    const roof =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                data.width + 1,
-                0.8,
-                data.depth + 1
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x111218,
-                roughness: 0.35,
-                metalness: 0.85
-            })
-        );
-
-    roof.position.y =
-        data.height + 0.4;
-
-    group.add(roof);
-
-    /* Red vertical edges */
-
-    const edgeMaterial =
-        new THREE.MeshBasicMaterial({
-            color: CITY.colors.red
-        });
-
-    const edgeGeometry =
-        new THREE.BoxGeometry(
-            0.15,
-            data.height,
-            0.15
-        );
-
-    const corners = [
-        [-data.width / 2, -data.depth / 2],
-        [data.width / 2, -data.depth / 2],
-        [-data.width / 2, data.depth / 2],
-        [data.width / 2, data.depth / 2]
-    ];
-
-    corners.forEach(
-        ([x, z]) => {
-
-            const edge =
-                new THREE.Mesh(
-                    edgeGeometry,
-                    edgeMaterial
-                );
-
-            edge.position.set(
-                x,
-                data.height / 2,
-                z
-            );
-
-            group.add(edge);
-        }
-    );
-
-    createWindows(
-        group,
-        data
-    );
-
-    createBuildingEntrance(
-        group,
-        data
-    );
-
-    createBuildingSign(
-        group,
-        data
-    );
-
-    group.userData = {
-        level: data.level,
-        name: data.name
-    };
-
-    return group;
-}
-
-/* =========================================================
-   WINDOWS
-========================================================= */
-
-function createWindows(
-    group,
-    data
-) {
-
-    const material =
-        new THREE.MeshBasicMaterial({
-            color: CITY.colors.window,
-            transparent: true,
-            opacity: 0.52
-        });
-
-    for (
-        let y = 5;
-        y < data.height - 2;
-        y += 5
-    ) {
-
-        for (
-            let x = -data.width / 2 + 3;
-            x < data.width / 2 - 2;
-            x += 4
-        ) {
-
-            const window =
-                new THREE.Mesh(
-                    new THREE.BoxGeometry(
-                        1.35,
-                        1.6,
-                        0.05
-                    ),
-                    material
-                );
-
-            window.position.set(
-                x,
-                y,
-                data.depth / 2 + 0.05
-            );
-
-            group.add(
-                window
-            );
+        if (obj.userData.type === 'clue' || obj.userData.type === 'threat') {
+            triggerClue(obj.userData.text, obj.userData.digit, obj.userData.index);
+        } else if (obj.userData.type === 'exit') {
+            openKeypad();
         }
     }
 }
 
-/* =========================================================
-   ENTRANCE
-========================================================= */
-
-function createBuildingEntrance(
-    group,
-    data
-) {
-
-    const door =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                5,
-                6,
-                0.3
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x020204,
-                metalness: 0.9,
-                roughness: 0.2
-            })
-        );
-
-    door.position.set(
-        0,
-        3,
-        data.depth / 2 + 0.2
-    );
-
-    group.add(
-        door
-    );
-
-    const frame =
-        new THREE.Mesh(
-            new THREE.BoxGeometry(
-                5.5,
-                6.5,
-                0.15
-            ),
-            new THREE.MeshBasicMaterial({
-                color: CITY.colors.red,
-                wireframe: true
-            })
-        );
-
-    frame.position.set(
-        0,
-        3,
-        data.depth / 2 + 0.4
-    );
-
-    group.add(
-        frame
-    );
+function animate() {
+    requestAnimationFrame(animate);
+    // Subtle rotation animations for objects to heighten AAA effect
+    roomObjects.forEach(obj => {
+        if(obj.userData.type === 'clue') obj.rotation.y += 0.02;
+    });
+    renderer.render(scene, camera);
 }
 
-/* =========================================================
-   BUILDING SIGN
-========================================================= */
-
-function createBuildingSign(
-    group,
-    data
-) {
-
-    const canvas =
-        document.createElement(
-            "canvas"
-        );
-
-    canvas.width = 900;
-    canvas.height = 220;
-
-    const context =
-        canvas.getContext("2d");
-
-    context.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    context.font =
-        "bold 68px Arial";
-
-    context.textAlign =
-        "center";
-
-    context.textBaseline =
-        "middle";
-
-    context.fillStyle =
-        "#ffffff";
-
-    context.shadowColor =
-        "#ff1744";
-
-    context.shadowBlur =
-        22;
-
-    context.fillText(
-        data.name,
-        450,
-        110
-    );
-
-    const texture =
-        new THREE.CanvasTexture(
-            canvas
-        );
-
-    const sprite =
-        new THREE.Sprite(
-            new THREE.SpriteMaterial({
-                map: texture,
-                transparent: true
-            })
-        );
-
-    sprite.scale.set(
-        11,
-        2.7,
-        1
-    );
-
-    sprite.position.set(
-        0,
-        data.height * 0.68,
-        data.depth / 2 + 0.8
-    );
-
-    group.add(
-        sprite
-    );
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
-
-/* =========================================================
-   STREET LIGHTS
-========================================================= */
-
-function createStreetLights() {
-
-    const positions = [
-
-        [-20, -12],
-        [20, -12],
-
-        [-20, 12],
-        [20, 12],
-
-        [-67, 0],
-        [67, 0],
-
-        [-12, -67],
-        [12, -67]
-
-    ];
-
-    positions.forEach(
-        ([x, z]) => {
-
-            const light =
-                createStreetLight();
-
-            light.position.set(
-                x,
-                0,
-                z
-            );
-
-            arenaState.city.add(
-                light
-            );
-        }
-    );
-}
-
-function createStreetLight() {
-
-    const group =
-        new THREE.Group();
-
-    const pole =
-        new THREE.Mesh(
-            new THREE.CylinderGeometry(
-                0.1,
-                0.16,
-                6,
-                8
-            ),
-            new THREE.MeshStandardMaterial({
-                color: 0x1b1c22,
-                metalness: 0.85,
-                roughness: 0.3
-            })
-        );
-
-    pole.position.y = 3;
-
-    group.add(
-        pole
-    );
-
-    const bulb =
-        new THREE.Mesh(
-            new THREE.SphereGeometry(
-                0.23,
-                12,
-                12
-            ),
-            new THREE.MeshBasicMaterial({
-                color: CITY.colors.red
-            })
-        );
-
-    bulb.position.y = 6;
-
-    group.add(
-        bulb
-    );
-
-    const light =
-        new THREE.PointLight(
-            CITY.colors.red,
-            1.7,
-            15
-        );
-
-    light.position.y = 6;
-
-    group.add(
-        light
-    );
-
-    arenaState.neonLights.push(
-        light
-    );
-
-    return group;
-}
-
-/* =========================================================
-   CITY DETAILS
-========================================================= */
-
-function createCityDetails() {
-
-    for (
-        let i = 0;
-        i < 18;
-        i++
-    ) {
-
-        const crate =
-            new THREE.Mesh(
-                new THREE.BoxGeometry(
-                    2.3,
-                    2.3,
-                    2.3
-                ),
-                new THREE.MeshStandardMaterial({
-                    color: 0x101117,
-                    metalness: 0.7,
-                    roughness: 0.55
-                })
-            );
-
-        crate.position.set(
-            THREE.MathUtils.randFloat(
-                -25,
-                25
-            ),
-            1.15,
-            THREE.MathUtils.randFloat(
-                -25,
-                25
-            )
-        );
-
-        crate.rotation.y =
-            Math.random() *
-            Math.PI;
-
-        crate.castShadow = true;
-
-        arenaState.city.add(
-            crate
-        );
-    }
-
-    createHologram(
-        -70,
-        -70
-    );
-
-    createHologram(
-        70,
-        -70
-    );
-
-    createHologram(
-        -70,
-        70
-    );
-
-    createHologram(
-        70,
-        70
-    );
-}
-
-/* =========================================================
-   HOLOGRAM
-========================================================= */
-
-function createHologram(
-    x,
-    z
-) {
-
-    const group =
-        new THREE.Group();
-
-    const platform =
-        new THREE.Mesh(
-            new THREE.CylinderGeometry(
-                3,
-                3,
-                0.2,
-                32
-            ),
-            new THREE.MeshBasicMaterial({
-                color: CITY.colors.red,
-                transparent: true,
-                opacity: 0.4
-            })
-        );
-
-    platform.position.y =
-        0.15;
-
-    group.add(
-        platform
-    );
-
-    const ring =
-        new THREE.Mesh(
-            new THREE.TorusGeometry(
-                3.3,
-                0.08,
-                8,
-                32
-            ),
-            new THREE.MeshBasicMaterial({
-                color: CITY.colors.red
-            })
-        );
-
-    ring.rotation.x =
-        Math.PI / 2;
-
-    ring.position.y =
-        0.4;
-
-    group.add(
-        ring
-    );
-
-    group.position.set(
-        x,
-        0,
-        z
-    );
-
-    arenaState.city.add(
-        group
-    );
-}
-
-/* =========================================================
-   GET BUILDING
-========================================================= */
-
-export function getBuilding(
-    level
-) {
-
-    return arenaState.buildings.find(
-        building =>
-            building.level === level
-    );
-}
-
-/* =========================================================
-   UPDATE CITY
-========================================================= */
-
-export function updateCyberCity(
-    elapsed
-) {
-
-    if (
-        !arenaState.initialized
-    ) {
-        return;
-    }
-
-    arenaState.neonLights.forEach(
-        (light, index) => {
-
-            light.intensity =
-                1.5 +
-                Math.sin(
-                    elapsed * 2 +
-                    index
-                ) * 0.3;
-        }
-    );
-}
-
-/* =========================================================
-   DESTROY
-========================================================= */
-
-export function destroyCyberCity() {
-
-    if (
-        arenaState.scene &&
-        arenaState.city
-    ) {
-
-        arenaState.scene.remove(
-            arenaState.city
-        );
-    }
-
-    arenaState.city = null;
-    arenaState.buildings = [];
-    arenaState.neonLights = [];
-    arenaState.initialized = false;
-}
-```
