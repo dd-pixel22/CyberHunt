@@ -5,13 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>CYBERHUNT // ESCAPE PROTOCOL</title>
+    <title>CyberHunt — The Escape Protocol</title>
 
-    <meta name="theme-color" content="#050505">
+    <meta
+        name="description"
+        content="CyberHunt — Escape Room × CyberCity cybersecurity game."
+    >
 
+    <!-- Main stylesheet -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- Three.js import map -->
+    <!-- Three.js Import Map -->
     <script type="importmap">
     {
         "imports": {
@@ -24,965 +28,1393 @@
 
 <body>
 
-<!-- =====================================================
-     CINEMATIC INTRO
-===================================================== -->
+    <!-- =========================================================
+         CINEMATIC INTRO
+    ========================================================== -->
 
-<div id="cinematicIntro" class="screen cinematic-screen">
+    <section id="cinematicIntro" class="screen active">
 
-    <div id="introScene"></div>
+        <div id="introScene">
 
-    <div class="intro-overlay"></div>
+            <div class="intro-grid"></div>
 
-    <div class="intro-scanlines"></div>
+            <div class="intro-scanlines"></div>
 
-    <div class="intro-content">
+            <div class="intro-content">
 
-        <div class="intro-status">
-            <span class="status-dot"></span>
-            SECURE CONNECTION ESTABLISHED
-        </div>
-
-        <div class="intro-title">
-            <span class="title-small">PROJECT</span>
-            <h1>CYBER<span>HUNT</span></h1>
-            <div class="title-line"></div>
-            <p>THE ESCAPE PROTOCOL</p>
-        </div>
-
-        <div class="intro-message" id="introMessage">
-            SYSTEM BREACH DETECTED
-        </div>
-
-        <button id="enterGameBtn" class="cinematic-btn">
-            <span>ENTER CYBERHUNT</span>
-            <b>→</b>
-        </button>
-
-    </div>
-
-    <div class="intro-corner intro-corner-tl">
-        SYS.01<br>
-        NIGHT PROTOCOL
-    </div>
-
-    <div class="intro-corner intro-corner-br">
-        CLASSIFIED<br>
-        05 LEVELS
-    </div>
-
-</div>
-
-
-<!-- =====================================================
-     MAIN APPLICATION
-===================================================== -->
-
-<div id="app" class="app hidden">
-
-    <!-- BACKGROUND -->
-    <div class="app-background"></div>
-
-    <!-- =================================================
-         TOP BAR
-    ================================================= -->
-
-    <header class="topbar">
-
-        <div class="brand">
-            <span class="brand-mark">⬢</span>
-            <div>
-                <strong>CYBER<span>HUNT</span></strong>
-                <small>ESCAPE PROTOCOL</small>
-            </div>
-        </div>
-
-        <div class="system-status">
-            <span class="status-dot"></span>
-            SYSTEM ONLINE
-        </div>
-
-        <div class="player-mini">
-
-            <div class="mini-avatar" id="miniAvatar">
-                V
-            </div>
-
-            <div>
-                <strong id="miniName">VEXA</strong>
-                <small>LEVEL <span id="miniLevel">01</span></small>
-            </div>
-
-            <div class="xp-mini">
-                <div class="xp-bar">
-                    <span id="miniXPBar"></span>
-                </div>
-                <small><span id="miniXP">0</span> XP</small>
-            </div>
-
-        </div>
-
-    </header>
-
-
-    <!-- =================================================
-         DASHBOARD
-    ================================================= -->
-
-    <main id="dashboardScreen" class="page active">
-
-        <section class="dashboard-hero">
-
-            <div class="hero-copy">
-
-                <div class="eyebrow">
-                    OPERATION // CYBERHUNT
+                <div class="intro-status">
+                    <span class="status-dot"></span>
+                    SECURE CONNECTION ESTABLISHED
                 </div>
 
-                <h1>
-                    ENTER THE
-                    <span>NETWORK.</span>
+                <h1 class="intro-title">
+                    CYBER<span>HUNT</span>
                 </h1>
 
-                <p>
-                    Five secured buildings. Five escalating cyber threats.
-                    Find the clues, breach the systems, solve the protocol
-                    and escape before the network locks you in.
+                <p class="intro-subtitle">
+                    THE ESCAPE PROTOCOL
                 </p>
 
-                <div class="hero-actions">
+                <p class="intro-description">
+                    Investigate. Decode. Survive.
+                </p>
 
-                    <button id="continueBtn" class="primary-btn">
-                        <span>CONTINUE MISSION</span>
-                        <b>→</b>
-                    </button>
+                <button id="enterGameBtn" class="primary-btn">
+                    <span>ENTER CYBERHUNT</span>
+                    <span class="btn-arrow">→</span>
+                </button>
 
-                    <button id="levelsHeroBtn" class="secondary-btn">
-                        VIEW LEVELS
-                    </button>
+            </div>
+
+            <div class="intro-corner intro-corner-tl">
+                SYS://BOOT
+            </div>
+
+            <div class="intro-corner intro-corner-br">
+                ENCRYPTION: ACTIVE
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         MAIN APPLICATION
+    ========================================================== -->
+
+    <div id="app" class="app hidden">
+
+        <!-- =====================================================
+             TOP NAVIGATION
+        ====================================================== -->
+
+        <header class="topbar">
+
+            <div class="brand">
+                <div class="brand-symbol">CH</div>
+
+                <div class="brand-text">
+                    <strong>CYBERHUNT</strong>
+                    <span>ESCAPE PROTOCOL</span>
+                </div>
+            </div>
+
+
+            <nav class="main-nav">
+
+                <button
+                    class="nav-btn active"
+                    data-page="dashboardPage"
+                >
+                    DASHBOARD
+                </button>
+
+                <button
+                    class="nav-btn"
+                    data-page="levelsPage"
+                >
+                    LEVELS
+                </button>
+
+                <button
+                    class="nav-btn"
+                    data-page="profilePage"
+                >
+                    PROFILE
+                </button>
+
+                <button
+                    class="nav-btn"
+                    data-page="rewardsPage"
+                >
+                    REWARDS
+                </button>
+
+            </nav>
+
+
+            <div class="topbar-player">
+
+                <div class="connection-status">
+                    <span class="status-dot"></span>
+                    ONLINE
+                </div>
+
+                <div class="mini-player">
+
+                    <div class="mini-avatar">
+                        VX
+                    </div>
+
+                    <div class="mini-player-info">
+                        <strong>VEXA</strong>
+                        <span>OPERATIVE</span>
+                    </div>
 
                 </div>
 
             </div>
 
+        </header>
 
-            <div class="dashboard-terminal">
 
-                <div class="terminal-header">
-                    <span>LIVE NETWORK</span>
-                    <span class="terminal-live">● LIVE</span>
+        <!-- =====================================================
+             PAGE CONTAINER
+        ====================================================== -->
+
+        <main class="page-container">
+
+
+            <!-- =================================================
+                 DASHBOARD
+            ================================================== -->
+
+            <section
+                id="dashboardPage"
+                class="page active-page"
+            >
+
+                <div class="page-heading">
+
+                    <div>
+                        <span class="eyebrow">
+                            COMMAND CENTER
+                        </span>
+
+                        <h2>
+                            Welcome back, <span>VEXA</span>
+                        </h2>
+
+                        <p>
+                            Your next operation is waiting.
+                        </p>
+                    </div>
+
+                    <div class="system-time">
+                        <span>SYSTEM TIME</span>
+                        <strong id="systemTime">
+                            --:--:--
+                        </strong>
+                    </div>
+
                 </div>
 
-                <div class="network-grid">
 
-                    <div class="network-core">
-                        <div class="core-ring ring-one"></div>
-                        <div class="core-ring ring-two"></div>
-                        <div class="core-ring ring-three"></div>
+                <!-- Hero Operation -->
 
-                        <div class="core-center">
+                <div class="dashboard-hero">
+
+                    <div class="hero-content">
+
+                        <div class="hero-tag">
+                            CURRENT OPERATION
+                        </div>
+
+                        <h1>
+                            THE ESCAPE
+                            <span>PROTOCOL</span>
+                        </h1>
+
+                        <p>
+                            Enter the CyberCity network, investigate
+                            compromised systems, recover evidence,
+                            decode encrypted information and escape
+                            before the system locks you in.
+                        </p>
+
+                        <button
+                            id="continueMissionBtn"
+                            class="primary-btn"
+                        >
+                            <span>CONTINUE MISSION</span>
+                            <span class="btn-arrow">→</span>
+                        </button>
+
+                    </div>
+
+
+                    <div class="hero-network">
+
+                        <div class="network-ring ring-one"></div>
+                        <div class="network-ring ring-two"></div>
+                        <div class="network-ring ring-three"></div>
+
+                        <div class="network-core">
                             <span>CH</span>
                         </div>
-                    </div>
 
-                    <div class="network-node node-1">01</div>
-                    <div class="network-node node-2">02</div>
-                    <div class="network-node node-3">03</div>
-                    <div class="network-node node-4">04</div>
-                    <div class="network-node node-5">05</div>
+                        <div class="network-node node-one"></div>
+                        <div class="network-node node-two"></div>
+                        <div class="network-node node-three"></div>
+                        <div class="network-node node-four"></div>
 
-                </div>
-
-                <div class="terminal-data">
-
-                    <div>
-                        <small>THREAT</small>
-                        <strong>CRITICAL</strong>
-                    </div>
-
-                    <div>
-                        <small>BUILDINGS</small>
-                        <strong>05</strong>
-                    </div>
-
-                    <div>
-                        <small>STATUS</small>
-                        <strong>ACTIVE</strong>
                     </div>
 
                 </div>
 
-            </div>
 
-        </section>
+                <!-- Dashboard Stats -->
 
+                <div class="stats-grid">
 
-        <!-- DASHBOARD CARDS -->
+                    <div class="stat-card">
 
-        <section class="dashboard-cards">
-
-            <button class="dashboard-card" data-page="levels">
-
-                <span class="card-number">01</span>
-                <div class="card-icon">⌁</div>
-
-                <div>
-                    <small>MISSION CONTROL</small>
-                    <h2>LEVELS</h2>
-                    <p>Enter secured locations.</p>
-                </div>
-
-                <b>→</b>
-
-            </button>
-
-
-            <button class="dashboard-card" data-page="profile">
-
-                <span class="card-number">02</span>
-                <div class="card-icon">◉</div>
-
-                <div>
-                    <small>OPERATIVE</small>
-                    <h2>PROFILE</h2>
-                    <p>View your statistics.</p>
-                </div>
-
-                <b>→</b>
-
-            </button>
-
-
-            <button class="dashboard-card" data-page="rewards">
-
-                <span class="card-number">03</span>
-                <div class="card-icon">◇</div>
-
-                <div>
-                    <small>ACHIEVEMENTS</small>
-                    <h2>REWARDS</h2>
-                    <p>Collect cyber badges.</p>
-                </div>
-
-                <b>→</b>
-
-            </button>
-
-        </section>
-
-
-        <!-- CURRENT OPERATION -->
-
-        <section class="current-operation">
-
-            <div class="section-heading">
-                <div>
-                    <small>ACTIVE OPERATION</small>
-                    <h2>DATA VAULT</h2>
-                </div>
-
-                <span>LEVEL 01 / 05</span>
-            </div>
-
-            <div class="operation-progress">
-
-                <div class="operation-step complete">
-                    <span>✓</span>
-                    <p>INFILTRATE</p>
-                </div>
-
-                <div class="operation-line complete"></div>
-
-                <div class="operation-step active">
-                    <span>02</span>
-                    <p>INVESTIGATE</p>
-                </div>
-
-                <div class="operation-line"></div>
-
-                <div class="operation-step">
-                    <span>03</span>
-                    <p>DECRYPT</p>
-                </div>
-
-                <div class="operation-line"></div>
-
-                <div class="operation-step">
-                    <span>04</span>
-                    <p>ESCAPE</p>
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
-
-
-    <!-- =================================================
-         LEVELS PAGE
-    ================================================= -->
-
-    <main id="levelsScreen" class="page">
-
-        <div class="page-heading">
-
-            <div>
-                <small>MISSION SELECT</small>
-                <h1>CYBERCITY // <span>LEVELS</span></h1>
-            </div>
-
-            <button class="back-btn" data-page="dashboard">
-                ← DASHBOARD
-            </button>
-
-        </div>
-
-
-        <div class="levels-grid">
-
-
-            <button class="level-card unlocked selected-level" data-level="1">
-
-                <div class="level-image level-01">
-                    <div class="building-silhouette"></div>
-                    <span class="level-overlay-number">01</span>
-                </div>
-
-                <div class="level-info">
-
-                    <div class="level-top">
-                        <span>LEVEL 01</span>
-                        <em>AVAILABLE</em>
-                    </div>
-
-                    <h2>DATA VAULT</h2>
-
-                    <p>
-                        Infiltrate the corporation's secure
-                        data archive and recover the breach key.
-                    </p>
-
-                    <div class="level-tags">
-                        <span>INVESTIGATION</span>
-                        <span>DECRYPTION</span>
-                    </div>
-
-                </div>
-
-                <div class="level-action">
-                    DEPLOY →
-                </div>
-
-            </button>
-
-
-            <button class="level-card unlocked" data-level="2">
-
-                <div class="level-image level-02">
-                    <span class="level-overlay-number">02</span>
-                </div>
-
-                <div class="level-info">
-
-                    <div class="level-top">
-                        <span>LEVEL 02</span>
-                        <em>AVAILABLE</em>
-                    </div>
-
-                    <h2>CYBER BANK</h2>
-
-                    <p>
-                        A financial network has been compromised.
-                        Locate the malicious access point.
-                    </p>
-
-                    <div class="level-tags">
-                        <span>FORENSICS</span>
-                        <span>SECURITY</span>
-                    </div>
-
-                </div>
-
-                <div class="level-action">
-                    DEPLOY →
-                </div>
-
-            </button>
-
-
-            <button class="level-card locked" data-level="3">
-
-                <div class="level-image level-03">
-                    <span class="level-overlay-number">03</span>
-                    <div class="lock-symbol">⌑</div>
-                </div>
-
-                <div class="level-info">
-
-                    <div class="level-top">
-                        <span>LEVEL 03</span>
-                        <em>LOCKED</em>
-                    </div>
-
-                    <h2>NEXUS LAB</h2>
-
-                    <p>
-                        Experimental AI systems are showing
-                        signs of hostile behavior.
-                    </p>
-
-                    <div class="level-tags">
-                        <span>AI SECURITY</span>
-                        <span>PUZZLES</span>
-                    </div>
-
-                </div>
-
-                <div class="level-action">
-                    LOCKED
-                </div>
-
-            </button>
-
-
-            <button class="level-card locked" data-level="4">
-
-                <div class="level-image level-04">
-                    <span class="level-overlay-number">04</span>
-                    <div class="lock-symbol">⌑</div>
-                </div>
-
-                <div class="level-info">
-
-                    <div class="level-top">
-                        <span>LEVEL 04</span>
-                        <em>LOCKED</em>
-                    </div>
-
-                    <h2>BLACKSITE</h2>
-
-                    <p>
-                        Enter a classified facility where
-                        every system has been compromised.
-                    </p>
-
-                    <div class="level-tags">
-                        <span>STEALTH</span>
-                        <span>HIGH RISK</span>
-                    </div>
-
-                </div>
-
-                <div class="level-action">
-                    LOCKED
-                </div>
-
-            </button>
-
-
-            <button class="level-card locked final-level" data-level="5">
-
-                <div class="level-image level-05">
-                    <span class="level-overlay-number">05</span>
-                    <div class="lock-symbol">⌑</div>
-                </div>
-
-                <div class="level-info">
-
-                    <div class="level-top">
-                        <span>LEVEL 05</span>
-                        <em>LOCKED</em>
-                    </div>
-
-                    <h2>CYBER CORE</h2>
-
-                    <p>
-                        Reach the heart of the network and
-                        terminate the final threat.
-                    </p>
-
-                    <div class="level-tags">
-                        <span>FINAL PROTOCOL</span>
-                        <span>EXTREME</span>
-                    </div>
-
-                </div>
-
-                <div class="level-action">
-                    LOCKED
-                </div>
-
-            </button>
-
-        </div>
-
-    </main>
-
-
-    <!-- =================================================
-         PROFILE PAGE
-    ================================================= -->
-
-    <main id="profileScreen" class="page">
-
-        <div class="page-heading">
-
-            <div>
-                <small>OPERATIVE DATABASE</small>
-                <h1>PLAYER <span>PROFILE</span></h1>
-            </div>
-
-            <button class="back-btn" data-page="dashboard">
-                ← DASHBOARD
-            </button>
-
-        </div>
-
-
-        <section class="profile-layout">
-
-            <div class="profile-card">
-
-                <div class="profile-avatar">
-
-                    <div class="avatar-glow"></div>
-
-                    <div class="avatar-letter" id="profileAvatar">
-                        V
-                    </div>
-
-                </div>
-
-                <div class="profile-name">
-                    <small>FIELD OPERATIVE</small>
-                    <h2 id="profileName">VEXA</h2>
-                    <span>CYBERHUNT UNIT // 01</span>
-                </div>
-
-                <div class="profile-level">
-                    <span>LVL</span>
-                    <strong id="profileLevel">01</strong>
-                </div>
-
-            </div>
-
-
-            <div class="profile-stats">
-
-                <div class="stat-box">
-                    <small>TOTAL XP</small>
-                    <strong id="profileXP">0</strong>
-                </div>
-
-                <div class="stat-box">
-                    <small>MISSIONS</small>
-                    <strong id="profileMissions">0 / 5</strong>
-                </div>
-
-                <div class="stat-box">
-                    <small>CLUES FOUND</small>
-                    <strong id="profileClues">0</strong>
-                </div>
-
-                <div class="stat-box">
-                    <small>BADGES</small>
-                    <strong id="profileBadges">0</strong>
-                </div>
-
-            </div>
-
-
-            <div class="profile-progress">
-
-                <div class="section-heading">
-                    <div>
-                        <small>OPERATIVE PROGRESSION</small>
-                        <h2>EXPERIENCE</h2>
-                    </div>
-
-                    <strong>
-                        <span id="profileCurrentXP">0</span> /
-                        <span id="profileNextXP">1000</span>
-                    </strong>
-                </div>
-
-                <div class="large-xp-bar">
-                    <span id="profileXPBar"></span>
-                </div>
-
-            </div>
-
-
-            <div class="operative-select">
-
-                <div class="section-heading">
-                    <div>
-                        <small>CHOOSE YOUR OPERATIVE</small>
-                        <h2>FIELD AGENTS</h2>
-                    </div>
-                </div>
-
-
-                <div class="operative-options">
-
-                    <button
-                        class="operative-option selected"
-                        data-operative="girl"
-                    >
-
-                        <div class="operative-preview">
-                            <div id="vexa-preview"></div>
-                            <span>3D</span>
+                        <div class="stat-icon">
+                            XP
                         </div>
 
                         <div>
-                            <small>FIELD AGENT 01</small>
-                            <h3>VEXA</h3>
-                            <p>Dual pistols · agile infiltration</p>
+                            <span>EXPERIENCE</span>
+                            <strong id="dashboardXP">
+                                0 XP
+                            </strong>
                         </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">
+                            LV
+                        </div>
+
+                        <div>
+                            <span>OPERATIVE LEVEL</span>
+                            <strong id="dashboardLevel">
+                                01
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">
+                            ✓
+                        </div>
+
+                        <div>
+                            <span>MISSIONS</span>
+                            <strong id="dashboardMissions">
+                                0 / 5
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="stat-card">
+
+                        <div class="stat-icon">
+                            ◈
+                        </div>
+
+                        <div>
+                            <span>BADGES</span>
+                            <strong id="dashboardBadges">
+                                0
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Dashboard Cards -->
+
+                <div class="dashboard-grid">
+
+
+                    <button
+                        class="dashboard-card"
+                        data-page-target="levelsPage"
+                    >
+
+                        <div class="card-number">
+                            01
+                        </div>
+
+                        <div class="card-content">
+
+                            <span class="card-label">
+                                OPERATIONS
+                            </span>
+
+                            <h3>
+                                ENTER THE CITY
+                            </h3>
+
+                            <p>
+                                Explore five dangerous locations
+                                across CyberCity.
+                            </p>
+
+                        </div>
+
+                        <span class="card-arrow">→</span>
 
                     </button>
 
 
                     <button
-                        class="operative-option"
-                        data-operative="boy"
+                        class="dashboard-card"
+                        data-page-target="profilePage"
                     >
 
-                        <div class="operative-preview">
-                            <div id="kai-preview"></div>
-                            <span>3D</span>
+                        <div class="card-number">
+                            02
                         </div>
 
-                        <div>
-                            <small>FIELD AGENT 02</small>
-                            <h3>KAI</h3>
-                            <p>Precision rifle · tactical control</p>
+                        <div class="card-content">
+
+                            <span class="card-label">
+                                OPERATIVE
+                            </span>
+
+                            <h3>
+                                YOUR PROFILE
+                            </h3>
+
+                            <p>
+                                Choose your operative and monitor
+                                your progress.
+                            </p>
+
                         </div>
+
+                        <span class="card-arrow">→</span>
+
+                    </button>
+
+
+                    <button
+                        class="dashboard-card"
+                        data-page-target="rewardsPage"
+                    >
+
+                        <div class="card-number">
+                            03
+                        </div>
+
+                        <div class="card-content">
+
+                            <span class="card-label">
+                                ACHIEVEMENTS
+                            </span>
+
+                            <h3>
+                                REWARDS
+                            </h3>
+
+                            <p>
+                                Unlock badges and classified
+                                mission rewards.
+                            </p>
+
+                        </div>
+
+                        <span class="card-arrow">→</span>
 
                     </button>
 
                 </div>
 
-            </div>
 
-        </section>
+                <!-- Current Operation -->
 
-    </main>
+                <div class="operation-panel">
 
+                    <div class="operation-header">
 
-    <!-- =================================================
-         REWARDS PAGE
-    ================================================= -->
+                        <div>
+                            <span class="eyebrow">
+                                ACTIVE FILE
+                            </span>
 
-    <main id="rewardsScreen" class="page">
+                            <h3>
+                                DATA VAULT
+                            </h3>
+                        </div>
 
-        <div class="page-heading">
+                        <span class="operation-state">
+                            AVAILABLE
+                        </span>
 
-            <div>
-                <small>ACHIEVEMENT DATABASE</small>
-                <h1>CYBER <span>REWARDS</span></h1>
-            </div>
+                    </div>
 
-            <button class="back-btn" data-page="dashboard">
-                ← DASHBOARD
-            </button>
 
-        </div>
+                    <div class="operation-body">
 
+                        <div class="operation-detail">
+                            <span>THREAT</span>
+                            <strong>
+                                COMPROMISED TERMINAL
+                            </strong>
+                        </div>
 
-        <div class="reward-summary">
+                        <div class="operation-detail">
+                            <span>OBJECTIVE</span>
+                            <strong>
+                                RECOVER THE EVIDENCE
+                            </strong>
+                        </div>
 
-            <div>
-                <small>BADGES EARNED</small>
-                <strong id="rewardCount">0 / 8</strong>
-            </div>
+                        <div class="operation-detail">
+                            <span>DIFFICULTY</span>
+                            <strong>
+                                ★★☆☆☆
+                            </strong>
+                        </div>
 
-            <div>
-                <small>COMPLETION</small>
-                <strong id="rewardPercent">0%</strong>
-            </div>
+                        <button
+                            id="startLevel1Btn"
+                            class="secondary-btn"
+                        >
+                            START LEVEL 01
+                        </button>
 
-            <div class="reward-progress">
-                <span id="rewardBar"></span>
-            </div>
+                    </div>
 
-        </div>
+                </div>
 
+            </section>
 
-        <div class="rewards-grid">
 
-            <div class="reward-card unlocked-reward">
+            <!-- =================================================
+                 LEVELS
+            ================================================== -->
 
-                <div class="reward-icon">◈</div>
+            <section
+                id="levelsPage"
+                class="page"
+            >
 
-                <small>FIRST BREACH</small>
-                <h2>INITIAL ACCESS</h2>
+                <div class="page-heading">
 
-                <p>
-                    Complete your first cybersecurity mission.
-                </p>
+                    <div>
 
-                <span class="reward-status">UNLOCKED</span>
+                        <span class="eyebrow">
+                            CYBERCITY OPERATIONS
+                        </span>
 
-            </div>
+                        <h2>
+                            Choose your <span>mission</span>
+                        </h2>
 
+                        <p>
+                            Every building contains a new threat.
+                            Complete the previous operation to advance.
+                        </p>
 
-            <div class="reward-card">
+                    </div>
 
-                <div class="reward-icon">⌁</div>
+                </div>
 
-                <small>INVESTIGATOR</small>
-                <h2>DIGITAL FORENSICS</h2>
 
-                <p>
-                    Find every clue in a building.
-                </p>
+                <div class="levels-grid">
 
-                <span class="reward-status">LOCKED</span>
 
-            </div>
+                    <!-- LEVEL 1 -->
 
+                    <article
+                        class="level-card available"
+                        data-level="1"
+                    >
 
-            <div class="reward-card">
+                        <div class="level-image level-one">
+                            <span class="building-code">
+                                DV-01
+                            </span>
 
-                <div class="reward-icon">◇</div>
+                            <span class="level-status">
+                                AVAILABLE
+                            </span>
+                        </div>
 
-                <small>CRYPTANALYST</small>
-                <h2>CODE BREAKER</h2>
+                        <div class="level-info">
 
-                <p>
-                    Solve three encrypted security systems.
-                </p>
+                            <span class="level-number">
+                                LEVEL 01
+                            </span>
 
-                <span class="reward-status">LOCKED</span>
+                            <h3>
+                                DATA VAULT
+                            </h3>
 
-            </div>
+                            <p>
+                                Investigate a compromised
+                                corporate terminal.
+                            </p>
 
+                            <div class="level-meta">
+                                <span>THREAT: DIGITAL</span>
+                                <span>★ ★ ☆ ☆ ☆</span>
+                            </div>
 
-            <div class="reward-card">
+                            <button
+                                class="level-start-btn"
+                                data-start-level="1"
+                            >
+                                ENTER BUILDING →
+                            </button>
 
-                <div class="reward-icon">△</div>
+                        </div>
 
-                <small>GHOST</small>
-                <h2>ZERO TRACE</h2>
+                    </article>
 
-                <p>
-                    Escape a level without triggering security.
-                </p>
 
-                <span class="reward-status">LOCKED</span>
+                    <!-- LEVEL 2 -->
 
-            </div>
+                    <article
+                        class="level-card locked"
+                        data-level="2"
+                    >
 
+                        <div class="level-image level-two">
+                            <span class="building-code">
+                                CB-02
+                            </span>
 
-            <div class="reward-card">
+                            <span class="level-status">
+                                LOCKED
+                            </span>
+                        </div>
 
-                <div class="reward-icon">⬢</div>
+                        <div class="level-info">
 
-                <small>BREACH MASTER</small>
-                <h2>SYSTEM BREAKER</h2>
+                            <span class="level-number">
+                                LEVEL 02
+                            </span>
 
-                <p>
-                    Complete three buildings.
-                </p>
+                            <h3>
+                                CYBER BANK
+                            </h3>
 
-                <span class="reward-status">LOCKED</span>
+                            <p>
+                                Detect a physical security breach
+                                and trace the attacker.
+                            </p>
 
-            </div>
+                            <div class="level-meta">
+                                <span>THREAT: PHYSICAL</span>
+                                <span>★ ★ ★ ☆ ☆</span>
+                            </div>
 
+                            <button
+                                class="level-start-btn"
+                                disabled
+                            >
+                                COMPLETE LEVEL 01
+                            </button>
 
-            <div class="reward-card">
+                        </div>
 
-                <div class="reward-icon">✦</div>
+                    </article>
 
-                <small>CYBERHUNTER</small>
-                <h2>NETWORK GHOST</h2>
 
-                <p>
-                    Complete all five buildings.
-                </p>
+                    <!-- LEVEL 3 -->
 
-                <span class="reward-status">LOCKED</span>
+                    <article
+                        class="level-card locked"
+                        data-level="3"
+                    >
 
-            </div>
+                        <div class="level-image level-three">
+                            <span class="building-code">
+                                NL-03
+                            </span>
 
+                            <span class="level-status">
+                                LOCKED
+                            </span>
+                        </div>
 
-            <div class="reward-card">
+                        <div class="level-info">
 
-                <div class="reward-icon">⚡</div>
+                            <span class="level-number">
+                                LEVEL 03
+                            </span>
 
-                <small>ELITE</small>
-                <h2>PERFECT RUN</h2>
+                            <h3>
+                                NEXUS LAB
+                            </h3>
 
-                <p>
-                    Complete a mission with maximum XP.
-                </p>
+                            <p>
+                                Decode encrypted research files
+                                hidden inside the laboratory.
+                            </p>
 
-                <span class="reward-status">LOCKED</span>
+                            <div class="level-meta">
+                                <span>THREAT: MALWARE</span>
+                                <span>★ ★ ★ ☆ ☆</span>
+                            </div>
 
-            </div>
+                            <button
+                                class="level-start-btn"
+                                disabled
+                            >
+                                CLASSIFIED
+                            </button>
 
+                        </div>
 
-            <div class="reward-card final-reward">
+                    </article>
 
-                <div class="reward-icon">☠</div>
 
-                <small>FINAL PROTOCOL</small>
-                <h2>CYBER CORE</h2>
+                    <!-- LEVEL 4 -->
 
-                <p>
-                    Reach the heart of the CyberHunt network.
-                </p>
+                    <article
+                        class="level-card locked"
+                        data-level="4"
+                    >
 
-                <span class="reward-status">LOCKED</span>
+                        <div class="level-image level-four">
+                            <span class="building-code">
+                                BS-04
+                            </span>
 
-            </div>
+                            <span class="level-status">
+                                LOCKED
+                            </span>
+                        </div>
 
-        </div>
+                        <div class="level-info">
 
-    </main>
+                            <span class="level-number">
+                                LEVEL 04
+                            </span>
 
+                            <h3>
+                                BLACKSITE
+                            </h3>
 
-    <!-- =================================================
+                            <p>
+                                Survive an espionage operation
+                                inside a restricted facility.
+                            </p>
+
+                            <div class="level-meta">
+                                <span>THREAT: ESPIONAGE</span>
+                                <span>★ ★ ★ ★ ☆</span>
+                            </div>
+
+                            <button
+                                class="level-start-btn"
+                                disabled
+                            >
+                                CLASSIFIED
+                            </button>
+
+                        </div>
+
+                    </article>
+
+
+                    <!-- LEVEL 5 -->
+
+                    <article
+                        class="level-card locked"
+                        data-level="5"
+                    >
+
+                        <div class="level-image level-five">
+                            <span class="building-code">
+                                CC-05
+                            </span>
+
+                            <span class="level-status">
+                                LOCKED
+                            </span>
+                        </div>
+
+                        <div class="level-info">
+
+                            <span class="level-number">
+                                LEVEL 05
+                            </span>
+
+                            <h3>
+                                CYBER CORE
+                            </h3>
+
+                            <p>
+                                Reach the heart of the network
+                                and stop the final cyber attack.
+                            </p>
+
+                            <div class="level-meta">
+                                <span>THREAT: CRITICAL</span>
+                                <span>★ ★ ★ ★ ★</span>
+                            </div>
+
+                            <button
+                                class="level-start-btn"
+                                disabled
+                            >
+                                FINAL OPERATION
+                            </button>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 PROFILE
+            ================================================== -->
+
+            <section
+                id="profilePage"
+                class="page"
+            >
+
+                <div class="page-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            OPERATIVE DATABASE
+                        </span>
+
+                        <h2>
+                            Agent <span>Profile</span>
+                        </h2>
+
+                        <p>
+                            Select your operative for CyberHunt.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-layout">
+
+
+                    <!-- Profile Card -->
+
+                    <div class="profile-card">
+
+                        <div class="profile-avatar-large">
+                            VX
+                        </div>
+
+                        <span class="profile-rank">
+                            FIELD OPERATIVE
+                        </span>
+
+                        <h3>
+                            VEXA
+                        </h3>
+
+                        <p>
+                            Cyber infiltration specialist
+                        </p>
+
+                        <div class="profile-xp">
+
+                            <div class="xp-label">
+                                <span>EXPERIENCE</span>
+                                <strong id="profileXP">
+                                    0 XP
+                                </strong>
+                            </div>
+
+                            <div class="xp-bar">
+                                <div
+                                    id="profileXPBar"
+                                    class="xp-fill"
+                                    style="width: 0%"
+                                ></div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Stats -->
+
+                    <div class="profile-stats">
+
+                        <div class="profile-stat">
+                            <span>MISSIONS</span>
+                            <strong id="profileMissions">
+                                0
+                            </strong>
+                        </div>
+
+                        <div class="profile-stat">
+                            <span>BADGES</span>
+                            <strong id="profileBadgeCount">
+                                0
+                            </strong>
+                        </div>
+
+                        <div class="profile-stat">
+                            <span>LEVEL</span>
+                            <strong id="profileLevel">
+                                01
+                            </strong>
+                        </div>
+
+                        <div class="profile-stat">
+                            <span>STATUS</span>
+                            <strong>
+                                ACTIVE
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <!-- Operative Selection -->
+
+                    <div class="operative-section">
+
+                        <div class="section-heading">
+
+                            <span class="eyebrow">
+                                OPERATIVE SELECTION
+                            </span>
+
+                            <h3>
+                                Choose your agent
+                            </h3>
+
+                        </div>
+
+
+                        <div class="operative-grid">
+
+
+                            <button
+                                class="operative-card selected"
+                                data-operative="vexa"
+                            >
+
+                                <div
+                                    id="vexa-preview"
+                                    class="operative-preview"
+                                >
+                                    <span>VEXA</span>
+                                </div>
+
+                                <div class="operative-info">
+
+                                    <span>
+                                        FEMALE OPERATIVE
+                                    </span>
+
+                                    <h4>
+                                        VEXA
+                                    </h4>
+
+                                    <p>
+                                        Dual-pistol specialist
+                                    </p>
+
+                                </div>
+
+                                <div class="operative-selected">
+                                    SELECTED
+                                </div>
+
+                            </button>
+
+
+                            <button
+                                class="operative-card"
+                                data-operative="kai"
+                            >
+
+                                <div
+                                    id="kai-preview"
+                                    class="operative-preview"
+                                >
+                                    <span>KAI</span>
+                                </div>
+
+                                <div class="operative-info">
+
+                                    <span>
+                                        MALE OPERATIVE
+                                    </span>
+
+                                    <h4>
+                                        KAI
+                                    </h4>
+
+                                    <p>
+                                        Long-range sniper specialist
+                                    </p>
+
+                                </div>
+
+                                <div class="operative-selected">
+                                    SELECT
+                                </div>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 REWARDS
+            ================================================== -->
+
+            <section
+                id="rewardsPage"
+                class="page"
+            >
+
+                <div class="page-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            CLASSIFIED ACHIEVEMENTS
+                        </span>
+
+                        <h2>
+                            Mission <span>Rewards</span>
+                        </h2>
+
+                        <p>
+                            Complete operations and unlock classified
+                            CyberHunt achievements.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="rewards-grid">
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            I
+                        </div>
+
+                        <span>
+                            LEVEL 01
+                        </span>
+
+                        <h3>
+                            FIRST BREACH
+                        </h3>
+
+                        <p>
+                            Complete your first operation.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            II
+                        </div>
+
+                        <span>
+                            LEVEL 02
+                        </span>
+
+                        <h3>
+                            DIGITAL GHOST
+                        </h3>
+
+                        <p>
+                            Enter the Cyber Bank.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            III
+                        </div>
+
+                        <span>
+                            LEVEL 03
+                        </span>
+
+                        <h3>
+                            CODE BREAKER
+                        </h3>
+
+                        <p>
+                            Decode the Nexus Lab system.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            IV
+                        </div>
+
+                        <span>
+                            LEVEL 04
+                        </span>
+
+                        <h3>
+                            SHADOW OPERATIVE
+                        </h3>
+
+                        <p>
+                            Survive the Blacksite.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            V
+                        </div>
+
+                        <span>
+                            LEVEL 05
+                        </span>
+
+                        <h3>
+                            CYBER LEGEND
+                        </h3>
+
+                        <p>
+                            Complete the Cyber Core.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            XP
+                        </div>
+
+                        <span>
+                            EXPERIENCE
+                        </span>
+
+                        <h3>
+                            ELITE HUNTER
+                        </h3>
+
+                        <p>
+                            Reach 1000 XP.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            ⚡
+                        </div>
+
+                        <span>
+                            SPEED
+                        </span>
+
+                        <h3>
+                            ZERO TRACE
+                        </h3>
+
+                        <p>
+                            Complete an operation without
+                            triggering an alarm.
+                        </p>
+
+                    </article>
+
+
+                    <article class="reward-card locked-reward">
+
+                        <div class="reward-icon">
+                            ◈
+                        </div>
+
+                        <span>
+                            MASTER
+                        </span>
+
+                        <h3>
+                            CYBERHUNTER
+                        </h3>
+
+                        <p>
+                            Complete all five missions.
+                        </p>
+
+                    </article>
+
+                </div>
+
+            </section>
+
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================================================
          GAME SCREEN
-    ================================================= -->
+    ========================================================== -->
 
-    <main id="gameScreen" class="game-screen hidden">
+    <section
+        id="gameScreen"
+        class="game-screen hidden"
+    >
 
         <div id="gameContainer"></div>
 
+
         <!-- GAME HUD -->
 
-        <div class="game-hud">
+        <div id="gameHUD">
 
-            <div class="hud-top-left">
 
-                <div class="mission-label">
-                    <small>MISSION 01</small>
-                    <strong id="gameMissionName">DATA VAULT</strong>
-                </div>
+            <!-- Top Left -->
 
-                <div class="objective">
-                    <small>OBJECTIVE</small>
-                    <strong id="gameObjective">
-                        FIND THE SECURITY CLUE
+            <div class="hud-mission">
+
+                <span class="hud-label">
+                    OPERATION 01
+                </span>
+
+                <h2>
+                    DATA VAULT
+                </h2>
+
+                <p id="gameObjective">
+                    Find the compromised terminal.
+                </p>
+
+            </div>
+
+
+            <!-- Top Right -->
+
+            <div class="hud-stats">
+
+                <div class="hud-stat">
+                    <span>HP</span>
+
+                    <div class="health-bar">
+                        <div
+                            id="healthFill"
+                            class="health-fill"
+                            style="width: 100%"
+                        ></div>
+                    </div>
+
+                    <strong id="healthValue">
+                        100
                     </strong>
                 </div>
 
-            </div>
 
+                <div class="hud-stat">
 
-            <div class="hud-top-right">
+                    <span>XP</span>
 
-                <div class="hud-health">
-
-                    <small>HEALTH</small>
-
-                    <div class="health-number">
-                        <strong id="gameHealth">100</strong>
-                        <span>%</span>
-                    </div>
-
-                    <div class="health-bar">
-                        <span id="healthBar"></span>
-                    </div>
-
-                </div>
-
-                <div class="hud-xp">
-
-                    <small>XP</small>
-
-                    <strong id="gameXP">0</strong>
+                    <strong id="gameXP">
+                        0
+                    </strong>
 
                 </div>
 
             </div>
 
 
-            <div class="crosshair">
+            <!-- Crosshair -->
+
+            <div
+                id="crosshair"
+                class="crosshair"
+            >
                 <span></span>
             </div>
 
 
-            <div class="interaction-prompt hidden" id="interactionPrompt">
-                <span>[ E ]</span>
-                <strong>INTERACT</strong>
+            <!-- Interaction Message -->
+
+            <div
+                id="interactionHint"
+                class="interaction-hint hidden"
+            >
+                <span class="interaction-key">
+                    E
+                </span>
+
+                <span id="interactionText">
+                    INTERACT
+                </span>
             </div>
 
 
-            <div class="minimap">
+            <!-- Minimap -->
 
-                <div class="map-grid"></div>
+            <div
+                id="minimap"
+                class="minimap"
+            >
 
-                <div class="map-player"></div>
+                <div class="minimap-header">
+                    <span>
+                        CITY MAP
+                    </span>
 
-                <div class="map-object map-object-1"></div>
-                <div class="map-object map-object-2"></div>
-                <div class="map-object map-object-3"></div>
+                    <span class="map-status">
+                        LIVE
+                    </span>
+                </div>
+
+                <div
+                    id="minimapContent"
+                    class="minimap-content"
+                >
+
+                    <div class="map-grid"></div>
+
+                    <div
+                        id="playerMarker"
+                        class="player-marker"
+                    ></div>
+
+                    <div class="enemy-marker enemy-one"></div>
+                    <div class="enemy-marker enemy-two"></div>
+
+                </div>
 
             </div>
 
 
-            <div class="game-bottom">
+            <!-- Bottom Mission Progress -->
 
-                <div class="weapon-display">
+            <div class="mission-progress">
 
-                    <small>OPERATIVE LOADOUT</small>
+                <div class="progress-info">
 
-                    <strong id="gameOperative">
-                        VEXA
+                    <span>
+                        MISSION PROGRESS
+                    </span>
+
+                    <strong id="missionProgressText">
+                        0%
                     </strong>
 
-                    <span id="gameWeapon">
-                        DUAL PISTOLS
-                    </span>
-
                 </div>
 
+                <div class="mission-progress-bar">
 
-                <div class="mission-progress">
-
-                    <span id="gameProgressText">
-                        0 / 3 OBJECTIVES
-                    </span>
-
-                    <div class="mission-progress-bar">
-                        <span id="gameProgressBar"></span>
-                    </div>
+                    <div
+                        id="missionProgressFill"
+                        class="mission-progress-fill"
+                        style="width: 0%"
+                    ></div>
 
                 </div>
-
-
-                <button id="pauseBtn" class="pause-btn">
-                    II
-                </button>
 
             </div>
+
+
+            <!-- Pause -->
+
+            <button
+                id="pauseGameBtn"
+                class="hud-button"
+            >
+                II
+            </button>
+
+
+            <!-- Exit -->
+
+            <button
+                id="exitGameBtn"
+                class="hud-exit"
+            >
+                EXIT
+            </button>
 
         </div>
 
 
-        <!-- INTERACTION MODAL -->
+        <!-- =====================================================
+             INTERACTION MODAL
+        ====================================================== -->
 
-        <div id="interactionModal" class="game-modal hidden">
+        <div
+            id="interactionModal"
+            class="modal hidden"
+        >
 
             <div class="modal-panel">
 
-                <span class="modal-label">SECURITY SYSTEM</span>
+                <button
+                    id="closeInteractionBtn"
+                    class="modal-close"
+                >
+                    ×
+                </button>
 
-                <h2 id="modalTitle">ACCESS TERMINAL</h2>
+                <span
+                    id="modalCategory"
+                    class="modal-category"
+                >
+                    EVIDENCE
+                </span>
 
-                <p id="modalText">
-                    Security terminal detected.
+                <h2 id="modalTitle">
+                    SYSTEM TERMINAL
+                </h2>
+
+                <p id="modalDescription">
+                    Investigate this terminal.
                 </p>
 
-                <div id="modalContent"></div>
+                <div
+                    id="modalContent"
+                    class="modal-content"
+                >
+                </div>
 
-                <button id="modalClose" class="secondary-btn">
-                    CLOSE
+                <button
+                    id="modalActionBtn"
+                    class="primary-btn"
+                >
+                    CONTINUE
                 </button>
 
             </div>
@@ -990,21 +1422,116 @@
         </div>
 
 
-        <!-- PAUSE -->
+        <!-- =====================================================
+             PUZZLE MODAL
+        ====================================================== -->
 
-        <div id="pauseOverlay" class="pause-overlay hidden">
+        <div
+            id="puzzleModal"
+            class="modal hidden"
+        >
+
+            <div class="modal-panel puzzle-panel">
+
+                <span class="modal-category">
+                    SECURITY SYSTEM
+                </span>
+
+                <h2>
+                    DECRYPT ACCESS CODE
+                </h2>
+
+                <p>
+                    Analyze the clues and enter the correct
+                    security code to unlock the restricted area.
+                </p>
+
+
+                <div class="puzzle-clue">
+
+                    <span>
+                        CLUE
+                    </span>
+
+                    <strong id="puzzleClue">
+                        ----
+                    </strong>
+
+                </div>
+
+
+                <input
+                    id="puzzleInput"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="ENTER CODE"
+                    maxlength="12"
+                >
+
+
+                <div class="puzzle-actions">
+
+                    <button
+                        id="puzzleSubmitBtn"
+                        class="primary-btn"
+                    >
+                        UNLOCK
+                    </button>
+
+                    <button
+                        id="puzzleCancelBtn"
+                        class="secondary-btn"
+                    >
+                        CANCEL
+                    </button>
+
+                </div>
+
+
+                <p
+                    id="puzzleFeedback"
+                    class="puzzle-feedback"
+                ></p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             PAUSE MENU
+        ====================================================== -->
+
+        <div
+            id="pauseMenu"
+            class="pause-menu hidden"
+        >
 
             <div class="pause-panel">
 
-                <small>CYBERHUNT // SYSTEM PAUSED</small>
+                <span class="eyebrow">
+                    SYSTEM PAUSED
+                </span>
 
-                <h1>MISSION<br><span>PAUSED</span></h1>
+                <h2>
+                    CYBERHUNT
+                </h2>
 
-                <button id="resumeBtn" class="primary-btn">
+                <p>
+                    Your operation is temporarily suspended.
+                </p>
+
+                <button
+                    id="resumeGameBtn"
+                    class="primary-btn"
+                >
                     RESUME
                 </button>
 
-                <button id="exitGameBtn" class="secondary-btn">
+                <button
+                    id="pauseExitBtn"
+                    class="secondary-btn"
+                >
                     EXIT MISSION
                 </button>
 
@@ -1013,53 +1540,151 @@
         </div>
 
 
-    </main>
+        <!-- =====================================================
+             MISSION COMPLETE
+        ====================================================== -->
+
+        <div
+            id="missionComplete"
+            class="mission-complete hidden"
+        >
+
+            <div class="complete-panel">
+
+                <span class="eyebrow">
+                    OPERATION COMPLETE
+                </span>
+
+                <h1>
+                    MISSION <span>ACCOMPLISHED</span>
+                </h1>
+
+                <p>
+                    You successfully breached the Data Vault
+                    and recovered the classified evidence.
+                </p>
 
 
-    <!-- =================================================
-         GLOBAL NOTIFICATION
-    ================================================= -->
+                <div class="reward-summary">
 
-    <div id="notification" class="notification">
+                    <div>
+                        <span>XP EARNED</span>
+                        <strong id="completedXP">
+                            +250
+                        </strong>
+                    </div>
 
-        <span class="notification-icon">!</span>
+                    <div>
+                        <span>BADGE</span>
+                        <strong>
+                            FIRST BREACH
+                        </strong>
+                    </div>
 
-        <div>
-            <small>SYSTEM MESSAGE</small>
-            <strong id="notificationText">
-                Welcome operative.
-            </strong>
+                </div>
+
+
+                <button
+                    id="returnDashboardBtn"
+                    class="primary-btn"
+                >
+                    RETURN TO COMMAND CENTER
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             MOBILE CONTROLS
+        ====================================================== -->
+
+        <div
+            id="mobileControls"
+            class="mobile-controls"
+        >
+
+            <div class="mobile-joystick">
+
+                <div class="joystick-center"></div>
+
+            </div>
+
+
+            <div class="mobile-actions">
+
+                <button
+                    id="mobileInteractBtn"
+                    class="mobile-action"
+                >
+                    E
+                </button>
+
+                <button
+                    id="mobileShootBtn"
+                    class="mobile-action attack"
+                >
+                    FIRE
+                </button>
+
+                <button
+                    id="mobileJumpBtn"
+                    class="mobile-action"
+                >
+                    ↑
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         LOADING OVERLAY
+    ========================================================== -->
+
+    <div
+        id="loadingOverlay"
+        class="loading-overlay hidden"
+    >
+
+        <div class="loading-content">
+
+            <div class="loading-logo">
+                CH
+            </div>
+
+            <h2>
+                INITIALIZING CYBERHUNT
+            </h2>
+
+            <p id="loadingText">
+                Loading CyberCity...
+            </p>
+
+            <div class="loading-bar">
+
+                <div
+                    id="loadingFill"
+                    class="loading-fill"
+                ></div>
+
+            </div>
+
         </div>
 
     </div>
 
 
-    <!-- =================================================
-         MOBILE CONTROLS
-    ================================================= -->
+    <!-- =========================================================
+         MAIN JAVASCRIPT
+    ========================================================== -->
 
-    <div id="mobileControls" class="mobile-controls hidden">
-
-        <div class="virtual-joystick">
-            <div class="joystick-stick"></div>
-        </div>
-
-        <button class="mobile-action interact">
-            E
-        </button>
-
-        <button class="mobile-action sprint">
-            ⚡
-        </button>
-
-    </div>
-
-
-</div>
-
-
-<script type="module" src="script.js"></script>
+    <script type="module" src="script.js"></script>
 
 </body>
 </html>
-
+```
