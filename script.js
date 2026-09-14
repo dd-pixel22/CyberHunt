@@ -66,49 +66,12 @@ change this to:
 const USE_CUSTOM_MODELS = true;
 */
 
-const USE_CUSTOM_MODELS = true;
-
 
 /*
 =========================================================
                   MODEL PATHS
 =========================================================
 */
-
-const MODEL_PATHS = {
-
-  player:
-    'assets/models/player.glb',
-
-  girlAgent:
-    'assets/models/girl-agent.glb',
-
-  boyAgent:
-    'assets/models/boy-agent.glb',
-
-  enemy:
-    'assets/models/enemy.glb',
-
-  boss:
-    'assets/models/boss.glb',
-
-  usb:
-    'assets/models/usb.glb',
-
-  terminal:
-    'assets/models/terminal.glb',
-
-  door:
-    'assets/models/door.glb',
-
-  crate:
-    'assets/models/crate.glb',
-
-  weapon:
-    'assets/models/weapon.glb'
-
-};
-
 
 
 /*
