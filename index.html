@@ -3,113 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>CyberHunt | Cybersecurity Learning Lab</title>
-
-    <meta
-        name="description"
-        content="CyberHunt is a cybersecurity learning platform with AI Study Studio, case studies, materials, quizzes and practice labs."
-    >
-
+    <title>CyberHunt | Cybersecurity Study Studio</title>
+    <meta name="description" content="CyberHunt - Learn cybersecurity from foundations to advanced concepts through materials, case studies, quizzes and practical labs.">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<!-- =========================================================
-     LOGIN
-========================================================= -->
+<!-- ================= LOGIN ================= -->
 
 <div id="loginPage" class="login-page">
-
     <div class="login-glow glow-one"></div>
     <div class="login-glow glow-two"></div>
 
     <div class="login-card">
-
-        <div class="brand large-brand">
+        <div class="brand-center">
             <div class="brand-mark">C</div>
             <div>
-                <div class="brand-name">CyberHunt</div>
-                <div class="brand-subtitle">Digital Security Learning Lab</div>
+                <h1>CYBER<span>HUNT</span></h1>
+                <p>CYBERSECURITY STUDY STUDIO</p>
             </div>
         </div>
 
         <div class="login-heading">
-            <span class="red-line"></span>
-            <h1>Welcome, Detective</h1>
-            <p>
-                Learn cybersecurity from fundamentals to advanced concepts,
-                investigate real-world scenarios and build practical knowledge.
-            </p>
+            <span class="eyebrow">SECURE YOUR KNOWLEDGE</span>
+            <h2>Welcome, Detective.</h2>
+            <p>Build your cybersecurity knowledge from the foundations to advanced concepts.</p>
         </div>
 
-        <form id="loginForm" novalidate>
-
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    autocomplete="email"
-                >
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Email</label>
+                <input id="emailInput" type="email" placeholder="you@example.com" required>
             </div>
 
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input
-                    id="username"
-                    type="text"
-                    placeholder="Your username"
-                    autocomplete="username"
-                    maxlength="30"
-                >
-                <small>No spaces or special characters.</small>
+            <div class="input-group">
+                <label>Username</label>
+                <input id="usernameInput" type="text" placeholder="Your username" required>
+                <small>Letters and numbers only.</small>
             </div>
 
-            <div class="form-group">
-                <label for="password">Password</label>
-
-                <div class="password-wrapper">
-                    <input
-                        id="password"
-                        type="password"
-                        placeholder="Minimum 8 characters"
-                        autocomplete="new-password"
-                    >
-                    <button
-                        type="button"
-                        id="togglePassword"
-                        class="password-toggle"
-                    >
-                        Show
-                    </button>
-                </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input id="passwordInput" type="password" placeholder="Minimum 8 characters" required>
             </div>
 
             <div id="loginError" class="form-error"></div>
 
-            <button type="submit" class="primary-btn login-btn">
+            <button type="submit" class="primary-btn full-btn">
                 Enter CyberHunt
                 <span>→</span>
             </button>
-
         </form>
 
-        <div class="demo-note">
-            <strong>Demo access:</strong>
-            This GitHub Pages version uses local browser login.
-            It does not send or store your password on a server.
+        <div class="login-footer">
+            <span class="status-dot"></span>
+            Your cybersecurity learning journey starts here.
         </div>
-
     </div>
 </div>
 
 
-<!-- =========================================================
-     MAIN APPLICATION
-========================================================= -->
+<!-- ================= APPLICATION ================= -->
 
 <div id="app" class="app hidden">
 
@@ -118,15 +73,14 @@
     <aside class="sidebar" id="sidebar">
 
         <div class="sidebar-brand">
-            <div class="brand-mark">C</div>
-
+            <div class="brand-mark small">C</div>
             <div>
-                <div class="brand-name">CyberHunt</div>
-                <div class="brand-subtitle">Learning Lab</div>
+                <h2>CYBER<span>HUNT</span></h2>
+                <small>STUDY STUDIO</small>
             </div>
         </div>
 
-        <div class="sidebar-section-label">WORKSPACE</div>
+        <div class="sidebar-section-title">WORKSPACE</div>
 
         <nav class="main-nav">
 
@@ -146,12 +100,12 @@
             </button>
 
             <button class="nav-item" data-section="cases">
-                <span class="nav-icon">◉</span>
+                <span class="nav-icon">◈</span>
                 <span>Case Studies</span>
             </button>
 
             <button class="nav-item" data-section="quizzes">
-                <span class="nav-icon">✓</span>
+                <span class="nav-icon">?</span>
                 <span>Mini Quizzes</span>
             </button>
 
@@ -161,7 +115,7 @@
             </button>
 
             <button class="nav-item" data-section="badges">
-                <span class="nav-icon">◇</span>
+                <span class="nav-icon">◆</span>
                 <span>Badges</span>
             </button>
 
@@ -169,18 +123,11 @@
 
         <div class="sidebar-bottom">
 
-            <div class="progress-mini">
-                <div class="progress-mini-header">
-                    <span>Learning progress</span>
-                    <span id="sidebarProgressText">0%</span>
-                </div>
-
-                <div class="progress-track">
-                    <div
-                        id="sidebarProgress"
-                        class="progress-fill"
-                        style="width:0%"
-                    ></div>
+            <div class="sidebar-tip">
+                <div class="tip-icon">✦</div>
+                <div>
+                    <strong>Study Tip</strong>
+                    <p>Understand the concept first. Practice it next.</p>
                 </div>
             </div>
 
@@ -190,75 +137,82 @@
             </button>
 
         </div>
-
     </aside>
 
 
     <!-- MAIN -->
 
-    <main class="main-area">
+    <main class="main-content">
 
         <!-- TOPBAR -->
 
         <header class="topbar">
 
-            <button id="mobileMenuBtn" class="mobile-menu-btn">
-                ☰
-            </button>
+            <button id="mobileMenuBtn" class="mobile-menu-btn">☰</button>
 
-            <div class="mobile-title">
-                <strong>CyberHunt</strong>
+            <div class="topbar-title">
+                <span class="topbar-label">CYBERHUNT</span>
+                <span id="pageTitle">Dashboard</span>
             </div>
 
             <div class="topbar-right">
 
-                <div class="xp-pill">
-                    <span>XP</span>
-                    <strong id="topXP">0</strong>
-                </div>
-
-                <div class="level-pill">
-                    Level <strong id="topLevel">1</strong>
-                </div>
-
-                <div class="profile">
-                    <div class="profile-avatar" id="profileAvatar">D</div>
-                    <div class="profile-info">
-                        <strong id="profileName">Detective</strong>
-                        <span>Cyber Learner</span>
+                <div class="top-stat">
+                    <span class="top-stat-icon">XP</span>
+                    <div>
+                        <strong id="headerXP">0</strong>
+                        <small>XP</small>
                     </div>
                 </div>
 
-            </div>
+                <div class="top-stat">
+                    <span class="top-stat-icon">LV</span>
+                    <div>
+                        <strong id="headerLevel">1</strong>
+                        <small>LEVEL</small>
+                    </div>
+                </div>
 
+                <div class="top-profile">
+                    <div id="profileInitials">D</div>
+                    <span id="headerUsername">Detective</span>
+                </div>
+
+            </div>
         </header>
 
 
-        <!-- =================================================
-             DASHBOARD
-        ================================================== -->
+        <!-- ================= DASHBOARD ================= -->
 
-        <section id="dashboard" class="content-section active-section">
+        <section id="dashboard" class="page-section active-section">
 
-            <div class="page-heading">
+            <div class="hero-banner">
 
                 <div>
-                    <span class="eyebrow">CYBERHUNT LEARNING LAB</span>
-
-                    <h1>
-                        Welcome back,
-                        <span id="welcomeName">Detective</span>.
-                    </h1>
-
+                    <span class="eyebrow">YOUR SECURITY LEARNING HUB</span>
+                    <h1>Welcome back, <span id="welcomeName">Detective</span>.</h1>
                     <p>
-                        Continue your cybersecurity journey from fundamentals
-                        to advanced security concepts.
+                        Investigate concepts, understand real cybersecurity situations,
+                        practice technical skills and build your expertise.
                     </p>
+
+                    <div class="hero-actions">
+                        <button class="primary-btn" data-section-action="materials">
+                            Continue Learning →
+                        </button>
+
+                        <button class="secondary-btn" data-section-action="ai">
+                            Ask AI Study Studio
+                        </button>
+                    </div>
                 </div>
 
-                <button class="outline-btn" data-go-section="ai">
-                    Ask Study AI →
-                </button>
+                <div class="hero-symbol">
+                    <div class="symbol-ring">
+                        <span>CYBER</span>
+                        <strong>HUNT</strong>
+                    </div>
+                </div>
 
             </div>
 
@@ -266,35 +220,39 @@
             <div class="stats-grid">
 
                 <div class="stat-card">
-                    <div class="stat-icon red">XP</div>
-                    <div>
-                        <span>Total XP</span>
-                        <strong id="dashXP">0</strong>
+                    <div class="stat-card-top">
+                        <span>LEARNING XP</span>
+                        <span class="stat-symbol">✦</span>
                     </div>
+                    <strong id="dashboardXP">0</strong>
+                    <p>Total experience earned</p>
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">◉</div>
-                    <div>
-                        <span>Cases Completed</span>
-                        <strong id="dashCases">0 / 50</strong>
+                    <div class="stat-card-top">
+                        <span>CASE STUDIES</span>
+                        <span class="stat-symbol">◈</span>
                     </div>
+                    <strong id="dashboardCases">0/50</strong>
+                    <p>Investigations completed</p>
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">✓</div>
-                    <div>
-                        <span>Quiz Score</span>
-                        <strong id="dashQuiz">0%</strong>
+                    <div class="stat-card-top">
+                        <span>QUIZ BEST</span>
+                        <span class="stat-symbol">?</span>
                     </div>
+                    <strong id="dashboardQuiz">0%</strong>
+                    <p>Highest quiz score</p>
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">◇</div>
-                    <div>
-                        <span>Badges</span>
-                        <strong id="dashBadges">0</strong>
+                    <div class="stat-card-top">
+                        <span>BADGES</span>
+                        <span class="stat-symbol">◆</span>
                     </div>
+                    <strong id="dashboardBadges">0</strong>
+                    <p>Achievements unlocked</p>
                 </div>
 
             </div>
@@ -302,150 +260,106 @@
 
             <div class="dashboard-grid">
 
-                <div class="panel continue-panel">
+                <div class="panel roadmap-panel">
 
                     <div class="panel-header">
                         <div>
-                            <span class="eyebrow">CONTINUE LEARNING</span>
-                            <h2 id="currentMissionTitle">
-                                Cybersecurity Fundamentals
-                            </h2>
+                            <span class="eyebrow">LEARNING PATH</span>
+                            <h2>Cybersecurity Roadmap</h2>
                         </div>
-
-                        <span class="status-dot">ACTIVE</span>
+                        <span class="panel-count">BEGINNER → ADVANCED</span>
                     </div>
 
-                    <p id="currentMissionText">
-                        Start with the foundations of cybersecurity:
-                        CIA Triad, threats, vulnerabilities, risk,
-                        authentication and security controls.
-                    </p>
+                    <div class="roadmap">
 
-                    <div class="mission-progress">
-
-                        <div class="progress-label">
-                            <span>Overall learning path</span>
-                            <strong id="overallPercent">0%</strong>
+                        <div class="roadmap-item completed-looking">
+                            <div class="roadmap-number">01</div>
+                            <div>
+                                <strong>Cybersecurity Foundations</strong>
+                                <p>CIA Triad, threats, vulnerabilities, assets and risk.</p>
+                            </div>
+                            <span>FOUNDATION</span>
                         </div>
 
-                        <div class="progress-track large">
-                            <div
-                                id="overallProgress"
-                                class="progress-fill"
-                                style="width:0%"
-                            ></div>
+                        <div class="roadmap-item">
+                            <div class="roadmap-number">02</div>
+                            <div>
+                                <strong>Identity & Access</strong>
+                                <p>Authentication, authorization, MFA and least privilege.</p>
+                            </div>
+                            <span>CORE</span>
+                        </div>
+
+                        <div class="roadmap-item">
+                            <div class="roadmap-number">03</div>
+                            <div>
+                                <strong>Network & Application Security</strong>
+                                <p>Firewalls, attacks, secure web applications and monitoring.</p>
+                            </div>
+                            <span>INTERMEDIATE</span>
+                        </div>
+
+                        <div class="roadmap-item">
+                            <div class="roadmap-number">04</div>
+                            <div>
+                                <strong>Cryptography & Security Engineering</strong>
+                                <p>Hashing, encryption, PKI, signatures and secure design.</p>
+                            </div>
+                            <span>ADVANCED</span>
+                        </div>
+
+                        <div class="roadmap-item">
+                            <div class="roadmap-number">05</div>
+                            <div>
+                                <strong>Incident Response & Forensics</strong>
+                                <p>Detection, evidence, investigation, containment and recovery.</p>
+                            </div>
+                            <span>ADVANCED</span>
                         </div>
 
                     </div>
-
-                    <button
-                        class="primary-btn"
-                        data-go-section="materials"
-                    >
-                        Continue Learning →
-                    </button>
-
                 </div>
 
 
-                <div class="panel quick-panel">
+                <div class="panel mission-panel">
 
                     <div class="panel-header">
                         <div>
-                            <span class="eyebrow">QUICK ACCESS</span>
-                            <h2>Study tools</h2>
+                            <span class="eyebrow">RECOMMENDED</span>
+                            <h2>Today's Mission</h2>
                         </div>
                     </div>
 
-                    <button class="quick-action" data-go-section="ai">
-                        <span>✦</span>
-                        <div>
-                            <strong>AI Study Studio</strong>
-                            <small>Ask anything about cybersecurity</small>
-                        </div>
-                        <b>→</b>
-                    </button>
-
-                    <button class="quick-action" data-go-section="cases">
-                        <span>◉</span>
-                        <div>
-                            <strong>Case Investigations</strong>
-                            <small>Practice scenario-based reasoning</small>
-                        </div>
-                        <b>→</b>
-                    </button>
-
-                    <button class="quick-action" data-go-section="labs">
-                        <span>⌘</span>
-                        <div>
-                            <strong>Practice Labs</strong>
-                            <small>Learn through safe hands-on exercises</small>
-                        </div>
-                        <b>→</b>
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            <div class="panel roadmap-panel">
-
-                <div class="panel-header">
-                    <div>
-                        <span class="eyebrow">LEARNING ROADMAP</span>
-                        <h2>From beginner to advanced</h2>
-                    </div>
-                </div>
-
-                <div class="roadmap">
-
-                    <div class="roadmap-step completed-style">
-                        <div class="roadmap-number">01</div>
-                        <div>
-                            <strong>Foundations</strong>
-                            <span>CIA Triad • Threats • Risk • Security basics</span>
-                        </div>
+                    <div class="mission-box">
+                        <div class="mission-icon">✦</div>
+                        <h3>Understand Before You Defend</h3>
+                        <p>
+                            Start with a cybersecurity material, test your understanding
+                            with a case study, then reinforce it in a practice lab.
+                        </p>
+                        <button class="text-btn" data-section-action="materials">
+                            Open Materials →
+                        </button>
                     </div>
 
-                    <div class="roadmap-line"></div>
+                    <div class="quick-links">
 
-                    <div class="roadmap-step">
-                        <div class="roadmap-number">02</div>
-                        <div>
-                            <strong>Core Security</strong>
-                            <span>Networking • Cryptography • IAM • Malware</span>
-                        </div>
-                    </div>
+                        <button data-section-action="cases">
+                            <span>◈</span>
+                            <div>
+                                <strong>Case Studies</strong>
+                                <small>50 scenarios</small>
+                            </div>
+                        </button>
 
-                    <div class="roadmap-line"></div>
+                        <button data-section-action="labs">
+                            <span>⌘</span>
+                            <div>
+                                <strong>Practice Labs</strong>
+                                <small>5 practical topics</small>
+                            </div>
+                        </button>
 
-                    <div class="roadmap-step">
-                        <div class="roadmap-number">03</div>
-                        <div>
-                            <strong>Defensive Security</strong>
-                            <span>SIEM • IDS/IPS • Incident Response • SOC</span>
-                        </div>
-                    </div>
-
-                    <div class="roadmap-line"></div>
-
-                    <div class="roadmap-step">
-                        <div class="roadmap-number">04</div>
-                        <div>
-                            <strong>Application Security</strong>
-                            <span>OWASP • Secure Design • Web Security</span>
-                        </div>
-                    </div>
-
-                    <div class="roadmap-line"></div>
-
-                    <div class="roadmap-step">
-                        <div class="roadmap-number">05</div>
-                        <div>
-                            <strong>Advanced Security</strong>
-                            <span>Zero Trust • Cloud • Forensics • Governance</span>
-                        </div>
                     </div>
 
                 </div>
@@ -455,152 +369,104 @@
         </section>
 
 
-        <!-- =================================================
-             AI STUDY STUDIO
-        ================================================== -->
+        <!-- ================= AI STUDY STUDIO ================= -->
 
-        <section id="ai" class="content-section">
+        <section id="ai" class="page-section">
 
-            <div class="page-heading">
-
+            <div class="section-heading">
                 <div>
-                    <span class="eyebrow">INTELLIGENT STUDY ASSISTANT</span>
+                    <span class="eyebrow">INTELLIGENT LEARNING</span>
                     <h1>AI Study Studio</h1>
-                    <p>
-                        Ask CyberHunt to explain, compare, revise or
-                        simplify cybersecurity concepts.
-                    </p>
+                    <p>Ask about a cybersecurity concept and continue the conversation from where you left off.</p>
                 </div>
 
+                <button id="clearAI" class="secondary-btn">Clear Conversation</button>
             </div>
 
 
             <div class="ai-layout">
 
-                <div class="panel ai-chat-panel">
+                <div class="ai-chat-panel">
 
                     <div class="ai-header">
-
-                        <div class="ai-title">
-
-                            <div class="ai-orb">✦</div>
-
-                            <div>
-                                <strong>CyberHunt Study AI</strong>
-                                <span>Library-aware study assistant</span>
-                            </div>
-
+                        <div class="ai-avatar">✦</div>
+                        <div>
+                            <strong>CyberHunt Study Assistant</strong>
+                            <span>Cybersecurity learning assistant</span>
                         </div>
-
-                        <span class="ai-status">
-                            <i></i> READY
-                        </span>
-
+                        <span class="ai-online">READY</span>
                     </div>
 
+                    <div id="chatMessages" class="chat-messages"></div>
 
-                    <div id="chatMessages" class="chat-messages">
+                    <div class="suggestion-row">
 
-                        <div class="chat-message assistant">
-
-                            <div class="message-avatar">C</div>
-
-                            <div class="message-content">
-
-                                <strong>CyberHunt AI</strong>
-
-                                <p>
-                                    Hello, Detective. Ask me anything about
-                                    cybersecurity. I can explain concepts,
-                                    compare topics, create revision notes,
-                                    give scenario examples and point you
-                                    toward trusted resources.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="suggested-prompts">
-
-                        <button data-prompt="Explain the CIA Triad simply">
+                        <button class="suggestion-btn" data-ai-prompt="Explain the CIA Triad simply with an example.">
                             Explain CIA Triad
                         </button>
 
-                        <button data-prompt="Difference between threat, vulnerability and risk">
-                            Threat vs Risk
+                        <button class="suggestion-btn" data-ai-prompt="What is the difference between authentication and authorization?">
+                            Authentication vs Authorization
                         </button>
 
-                        <button data-prompt="Explain phishing with a scenario">
-                            Phishing scenario
+                        <button class="suggestion-btn" data-ai-prompt="Teach me hashing with a simple example.">
+                            Teach Hashing
                         </button>
 
-                        <button data-prompt="Teach me cryptography from basics">
-                            Learn cryptography
-                        </button>
-
-                        <button data-prompt="Explain OWASP Top 10">
-                            OWASP Top 10
+                        <button class="suggestion-btn" data-ai-prompt="Explain SQL injection from a defensive cybersecurity perspective.">
+                            SQL Injection
                         </button>
 
                     </div>
-
 
                     <form id="aiForm" class="ai-input-area">
 
                         <textarea
                             id="aiInput"
-                            rows="2"
-                            placeholder="Ask a cybersecurity question..."
+                            rows="1"
+                            placeholder="Ask anything about cybersecurity..."
                         ></textarea>
 
-                        <button type="submit" class="primary-btn">
-                            Ask AI
-                            <span>→</span>
-                        </button>
+                        <button type="submit" class="send-btn">↑</button>
 
                     </form>
 
                 </div>
 
 
-                <div class="ai-side">
+                <div class="ai-side-panel">
 
                     <div class="panel">
-                        <span class="eyebrow">WHAT IT CAN DO</span>
-                        <h2>Study smarter</h2>
+                        <span class="eyebrow">STUDY WITH CONTEXT</span>
+                        <h3>Ask better questions</h3>
 
-                        <ul class="feature-list">
-                            <li>Explain difficult topics simply</li>
-                            <li>Give exam-focused definitions</li>
-                            <li>Compare two cybersecurity concepts</li>
-                            <li>Create scenario-based questions</li>
-                            <li>Give revision summaries</li>
-                            <li>Connect topics to the CyberHunt library</li>
-                            <li>Open web research for current information</li>
-                        </ul>
+                        <div class="prompt-card">
+                            <span>01</span>
+                            <p>“Explain this like I'm preparing for an exam.”</p>
+                        </div>
+
+                        <div class="prompt-card">
+                            <span>02</span>
+                            <p>“Give me a real-world scenario.”</p>
+                        </div>
+
+                        <div class="prompt-card">
+                            <span>03</span>
+                            <p>“Compare these two cybersecurity concepts.”</p>
+                        </div>
+
+                        <div class="prompt-card">
+                            <span>04</span>
+                            <p>“Give me a scenario-based question.”</p>
+                        </div>
                     </div>
 
-
-                    <div class="panel web-research-card">
-
-                        <span class="eyebrow">CURRENT INFORMATION</span>
-
-                        <h2>Need the live web?</h2>
-
-                        <p>
-                            GitHub Pages cannot safely run a private AI API.
-                            CyberHunt can still open a web search for
-                            current cybersecurity information.
+                    <div class="panel">
+                        <span class="eyebrow">CURRENT TOPIC</span>
+                        <h3 id="aiCurrentTopic">General Cybersecurity</h3>
+                        <p id="aiCurrentDescription">
+                            Choose a material or practice lab to study a specific topic here.
                         </p>
-
-                        <button id="webSearchBtn" class="outline-btn">
-                            Search Web →
-                        </button>
-
                     </div>
 
                 </div>
@@ -610,581 +476,109 @@
         </section>
 
 
-        <!-- =================================================
-             MATERIALS
-        ================================================== -->
+        <!-- ================= MATERIALS ================= -->
 
-        <section id="materials" class="content-section">
+        <section id="materials" class="page-section">
 
-            <div class="page-heading">
-
+            <div class="section-heading">
                 <div>
-                    <span class="eyebrow">KNOWLEDGE LIBRARY</span>
-                    <h1>Cybersecurity Materials</h1>
-                    <p>
-                        A structured path from first principles to
-                        advanced cybersecurity.
-                    </p>
+                    <span class="eyebrow">CYBERSECURITY LIBRARY</span>
+                    <h1>Materials</h1>
+                    <p>Build your knowledge from fundamental concepts to advanced security engineering.</p>
+                </div>
+            </div>
+
+            <div class="search-filter-bar">
+
+                <div class="search-box">
+                    <span>⌕</span>
+                    <input id="materialSearch" type="text" placeholder="Search cybersecurity topics...">
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="Beginner">Beginner</button>
+                    <button class="filter-btn" data-filter="Intermediate">Intermediate</button>
+                    <button class="filter-btn" data-filter="Advanced">Advanced</button>
                 </div>
 
             </div>
-
-
-            <div class="material-filter">
-
-                <button class="filter-btn active" data-level-filter="all">
-                    All
-                </button>
-
-                <button class="filter-btn" data-level-filter="beginner">
-                    Beginner
-                </button>
-
-                <button class="filter-btn" data-level-filter="intermediate">
-                    Intermediate
-                </button>
-
-                <button class="filter-btn" data-level-filter="advanced">
-                    Advanced
-                </button>
-
-            </div>
-
 
             <div id="materialsGrid" class="materials-grid"></div>
 
-
-            <div class="panel resources-panel">
-
-                <div class="panel-header">
-                    <div>
-                        <span class="eyebrow">TRUSTED RESOURCES</span>
-                        <h2>Continue beyond CyberHunt</h2>
-                    </div>
-                </div>
-
-                <div class="resource-grid">
-
-                    <a
-                        href="https://www.nist.gov/cyberframework"
-                        target="_blank"
-                        rel="noopener"
-                        class="resource-card"
-                    >
-                        <strong>NIST Cybersecurity Framework</strong>
-                        <span>
-                            Risk management and cybersecurity framework resources.
-                        </span>
-                        <b>Open resource →</b>
-                    </a>
-
-                    <a
-                        href="https://owasp.org/projects/top-ten"
-                        target="_blank"
-                        rel="noopener"
-                        class="resource-card"
-                    >
-                        <strong>OWASP Top 10</strong>
-                        <span>
-                            Learn the major web application security risks.
-                        </span>
-                        <b>Open resource →</b>
-                    </a>
-
-                    <a
-                        href="https://gchq.github.io/CyberChef/"
-                        target="_blank"
-                        rel="noopener"
-                        class="resource-card"
-                    >
-                        <strong>CyberChef</strong>
-                        <span>
-                            Browser-based data transformation and analysis tool.
-                        </span>
-                        <b>Open resource →</b>
-                    </a>
-
-                    <a
-                        href="https://vwad.owasp.org/app/webgoat/"
-                        target="_blank"
-                        rel="noopener"
-                        class="resource-card"
-                    >
-                        <strong>OWASP WebGoat</strong>
-                        <span>
-                            Deliberately vulnerable application for authorized
-                            security education.
-                        </span>
-                        <b>Open resource →</b>
-                    </a>
-
-                </div>
-
-            </div>
-
         </section>
 
 
-        <!-- =================================================
-             CASE STUDIES
-        ================================================== -->
+        <!-- ================= CASE STUDIES ================= -->
 
-        <section id="cases" class="content-section">
+        <section id="cases" class="page-section">
 
-            <div class="page-heading">
-
+            <div class="section-heading">
                 <div>
-                    <span class="eyebrow">INVESTIGATION LAB</span>
-                    <h1>Cyber Case Studies</h1>
-                    <p>
-                        Investigate realistic cybersecurity situations,
-                        inspect clues and choose the best security decision.
-                    </p>
+                    <span class="eyebrow">SCENARIO-BASED LEARNING</span>
+                    <h1>Case Studies</h1>
+                    <p>Analyze realistic cybersecurity situations and identify the correct defensive response.</p>
                 </div>
 
-            </div>
-
-
-            <div id="caseOverview">
-
-                <div id="caseGrid" class="case-grid"></div>
-
-            </div>
-
-
-            <div id="caseWorkspace" class="case-workspace hidden">
-
-                <button id="backToCases" class="back-btn">
-                    ← Back to case studies
-                </button>
-
-                <div class="case-workspace-header">
-
-                    <div>
-                        <span class="eyebrow" id="caseCategory">
-                            CASE
-                        </span>
-
-                        <h1 id="caseTitle">
-                            Case title
-                        </h1>
-
-                        <p id="caseDescription">
-                            Case description
-                        </p>
-                    </div>
-
-                    <div class="case-level-counter">
-                        Level <strong id="caseLevelNumber">1</strong> / 10
-                    </div>
-
+                <div class="case-total">
+                    <strong id="caseProgressTop">0/50</strong>
+                    <span>completed</span>
                 </div>
-
-
-                <div class="level-selector" id="levelSelector"></div>
-
-
-                <div class="case-content-grid">
-
-                    <div class="panel scenario-panel">
-
-                        <div class="scenario-label">
-                            <span>SCENARIO</span>
-                            <span id="caseXP">+25 XP</span>
-                        </div>
-
-                        <h2 id="scenarioTitle">
-                            Investigation
-                        </h2>
-
-                        <p id="scenarioText">
-                            Scenario text.
-                        </p>
-
-                        <div class="clues-box">
-
-                            <div class="clues-title">
-                                <strong>Evidence & Clues</strong>
-                                <button id="hintBtn" class="small-btn">
-                                    Reveal hint
-                                </button>
-                            </div>
-
-                            <ul id="clueList"></ul>
-
-                            <div id="hintBox" class="hint-box hidden"></div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="panel question-panel">
-
-                        <span class="eyebrow">DETECTIVE DECISION</span>
-
-                        <h2 id="questionText">
-                            Question
-                        </h2>
-
-                        <div id="answerOptions" class="answer-options"></div>
-
-                        <button
-                            id="submitCaseAnswer"
-                            class="primary-btn full-btn"
-                        >
-                            Submit Decision
-                        </button>
-
-                        <div
-                            id="caseFeedback"
-                            class="case-feedback hidden"
-                        ></div>
-
-                    </div>
-
-                </div>
-
             </div>
+
+            <div id="caseTracksGrid" class="case-tracks-grid"></div>
+
+            <div id="caseLevelsPanel" class="case-detail-panel hidden"></div>
 
         </section>
 
 
-        <!-- =================================================
-             QUIZZES
-        ================================================== -->
+        <!-- ================= QUIZZES ================= -->
 
-        <section id="quizzes" class="content-section">
+        <section id="quizzes" class="page-section">
 
-            <div class="page-heading">
-
+            <div class="section-heading">
                 <div>
                     <span class="eyebrow">KNOWLEDGE CHECK</span>
                     <h1>Mini Quizzes</h1>
-                    <p>
-                        Test your cybersecurity knowledge with quick
-                        scenario-based questions.
-                    </p>
+                    <p>Test your ability to identify and apply cybersecurity concepts.</p>
                 </div>
-
             </div>
 
-
-            <div class="quiz-layout">
-
-                <div class="panel quiz-panel">
-
-                    <div class="quiz-top">
-
-                        <span id="quizProgress">
-                            Question 1 / 10
-                        </span>
-
-                        <span id="quizScore">
-                            Score: 0
-                        </span>
-
-                    </div>
-
-                    <div class="quiz-progress">
-                        <div
-                            id="quizProgressBar"
-                            class="progress-fill"
-                            style="width:10%"
-                        ></div>
-                    </div>
-
-                    <div class="quiz-question">
-
-                        <span class="eyebrow">SCENARIO QUESTION</span>
-
-                        <h2 id="quizQuestion">
-                            Loading question...
-                        </h2>
-
-                        <div id="quizOptions" class="answer-options"></div>
-
-                    </div>
-
-                    <button
-                        id="nextQuizBtn"
-                        class="primary-btn full-btn"
-                    >
-                        Check Answer
-                    </button>
-
-                    <div id="quizFeedback" class="quiz-feedback hidden"></div>
-
-                </div>
-
-
-                <div class="panel quiz-info">
-
-                    <span class="eyebrow">WHY QUIZ?</span>
-
-                    <h2>Think like a security analyst.</h2>
-
-                    <p>
-                        Cybersecurity is not only about memorizing definitions.
-                        Good analysts identify evidence, understand context,
-                        assess risk and choose an appropriate response.
-                    </p>
-
-                    <div class="quiz-tip">
-                        <strong>Study tip</strong>
-                        <span>
-                            If you get an answer wrong, read the explanation
-                            before moving to the next question.
-                        </span>
-                    </div>
-
-                </div>
-
-            </div>
+            <div id="quizContainer"></div>
 
         </section>
 
 
-        <!-- =================================================
-             LABS
-        ================================================== -->
+        <!-- ================= LABS ================= -->
 
-        <section id="labs" class="content-section">
+        <section id="labs" class="page-section">
 
-            <div class="page-heading">
-
+            <div class="section-heading">
                 <div>
-                    <span class="eyebrow">SAFE HANDS-ON PRACTICE</span>
+                    <span class="eyebrow">LEARN → SEE → PRACTICE</span>
                     <h1>Practice Labs</h1>
-                    <p>
-                        Learn common security data concepts through
-                        safe browser-based exercises.
-                    </p>
+                    <p>Learn the theory first, follow a worked example, then experiment safely.</p>
                 </div>
-
             </div>
 
+            <div id="labsGrid" class="labs-grid"></div>
 
-            <div class="lab-grid">
-
-                <!-- BASE64 -->
-
-                <div class="panel lab-card">
-
-                    <span class="lab-number">LAB 01</span>
-                    <h2>Base64</h2>
-
-                    <p>
-                        Base64 is an encoding format. It is not encryption.
-                    </p>
-
-                    <textarea
-                        id="base64Input"
-                        placeholder="Enter text..."
-                    ></textarea>
-
-                    <div class="lab-buttons">
-
-                        <button
-                            class="outline-btn"
-                            id="base64Encode"
-                        >
-                            Encode
-                        </button>
-
-                        <button
-                            class="outline-btn"
-                            id="base64Decode"
-                        >
-                            Decode
-                        </button>
-
-                    </div>
-
-                    <div id="base64Output" class="lab-output">
-                        Result appears here.
-                    </div>
-
-                </div>
-
-
-                <!-- URL -->
-
-                <div class="panel lab-card">
-
-                    <span class="lab-number">LAB 02</span>
-                    <h2>URL Encoding</h2>
-
-                    <p>
-                        Learn how special characters are represented
-                        safely inside URLs.
-                    </p>
-
-                    <textarea
-                        id="urlInput"
-                        placeholder="Enter text..."
-                    ></textarea>
-
-                    <div class="lab-buttons">
-
-                        <button
-                            class="outline-btn"
-                            id="urlEncode"
-                        >
-                            Encode
-                        </button>
-
-                        <button
-                            class="outline-btn"
-                            id="urlDecode"
-                        >
-                            Decode
-                        </button>
-
-                    </div>
-
-                    <div id="urlOutput" class="lab-output">
-                        Result appears here.
-                    </div>
-
-                </div>
-
-
-                <!-- HEX -->
-
-                <div class="panel lab-card">
-
-                    <span class="lab-number">LAB 03</span>
-                    <h2>Hexadecimal</h2>
-
-                    <p>
-                        Convert normal text into hexadecimal representation
-                        and back again.
-                    </p>
-
-                    <textarea
-                        id="hexInput"
-                        placeholder="Enter text or hexadecimal..."
-                    ></textarea>
-
-                    <div class="lab-buttons">
-
-                        <button
-                            class="outline-btn"
-                            id="hexEncode"
-                        >
-                            Encode
-                        </button>
-
-                        <button
-                            class="outline-btn"
-                            id="hexDecode"
-                        >
-                            Decode
-                        </button>
-
-                    </div>
-
-                    <div id="hexOutput" class="lab-output">
-                        Result appears here.
-                    </div>
-
-                </div>
-
-
-                <!-- ROT13 -->
-
-                <div class="panel lab-card">
-
-                    <span class="lab-number">LAB 04</span>
-                    <h2>ROT13</h2>
-
-                    <p>
-                        Explore a simple substitution transformation
-                        frequently used for demonstrations.
-                    </p>
-
-                    <textarea
-                        id="rotInput"
-                        placeholder="Enter text..."
-                    ></textarea>
-
-                    <div class="lab-buttons">
-
-                        <button
-                            class="outline-btn"
-                            id="rotRun"
-                        >
-                            Transform
-                        </button>
-
-                    </div>
-
-                    <div id="rotOutput" class="lab-output">
-                        Result appears here.
-                    </div>
-
-                </div>
-
-
-                <!-- SHA256 -->
-
-                <div class="panel lab-card wide-lab">
-
-                    <span class="lab-number">LAB 05</span>
-                    <h2>SHA-256 Hashing</h2>
-
-                    <p>
-                        Hashing creates a fixed-length digest from data.
-                        A hash is not the same thing as encryption.
-                    </p>
-
-                    <textarea
-                        id="hashInput"
-                        placeholder="Enter text to hash..."
-                    ></textarea>
-
-                    <button
-                        class="primary-btn"
-                        id="hashBtn"
-                    >
-                        Generate SHA-256
-                    </button>
-
-                    <div id="hashOutput" class="lab-output">
-                        Hash appears here.
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="safe-lab-note">
-                <strong>Educational safety:</strong>
-                These labs demonstrate encoding, transformation and hashing.
-                They do not attack real systems or bypass security controls.
-            </div>
+            <div id="labLearningPanel" class="lab-learning-panel hidden"></div>
 
         </section>
 
 
-        <!-- =================================================
-             BADGES
-        ================================================== -->
+        <!-- ================= BADGES ================= -->
 
-        <section id="badges" class="content-section">
+        <section id="badges" class="page-section">
 
-            <div class="page-heading">
-
+            <div class="section-heading">
                 <div>
-                    <span class="eyebrow">ACHIEVEMENTS</span>
-                    <h1>Your Badges</h1>
-                    <p>
-                        Earn badges as you progress through CyberHunt.
-                    </p>
+                    <span class="eyebrow">YOUR ACHIEVEMENTS</span>
+                    <h1>Badges</h1>
+                    <p>Milestones earned through consistent cybersecurity learning.</p>
                 </div>
-
             </div>
 
             <div id="badgesGrid" class="badges-grid"></div>
@@ -1192,16 +586,31 @@
         </section>
 
     </main>
+</div>
+
+
+<!-- ================= MATERIAL MODAL ================= -->
+
+<div id="materialModal" class="modal hidden">
+
+    <div class="modal-overlay" data-close-modal></div>
+
+    <div class="modal-box material-modal-box">
+
+        <button class="modal-close" data-close-modal>×</button>
+
+        <div id="materialModalContent"></div>
+
+    </div>
 
 </div>
 
 
-<!-- TOAST -->
+<!-- ================= TOAST ================= -->
 
-<div id="toast" class="toast"></div>
+<div id="toastContainer" class="toast-container"></div>
 
 
-<script src="script.js" defer></script>
-
+<script src="script.js"></script>
 </body>
 </html>
