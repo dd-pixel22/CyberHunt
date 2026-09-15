@@ -1,3214 +1,2753 @@
-(() => {
+/* =========================================================
+   CYBERHUNT — CYBERSECURITY STUDY PLATFORM
+   Complete JavaScript
+   ========================================================= */
+
 "use strict";
 
-/* =========================
-   HELPERS
-========================= */
+/* -------------------- HELPERS -------------------- */
 
-const $ = (s) => document.querySelector(s);
-const $$ = (s) => [...document.querySelectorAll(s)];
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
 
-const STORAGE_KEY = "cyberhuntStudyStateV4";
+const STORAGE_KEY = "cyberhuntStudyStateV3";
 
-const defaultState = {
-  user:null,
-  xp:0,
-  completedCases:[],
-  completedLabs:[],
-  quizBest:0,
-  badges:[],
-  aiHistory:[],
-  currentSection:"dashboard",
-  streak:1
+let state = {
+  user: null,
+  xp: 0,
+  completedCases: [],
+  quizBest: 0,
+  quizAttemptAwarded: false,
+  badges: [],
+  aiHistory: [],
+  completedLabs: [],
+  streak: 1,
+  currentSection: "dashboard"
 };
 
-let state = {...defaultState};
-
-const esc = (value) =>
-  String(value ?? "")
-  .replace(/[&<>"']/g, char => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[char]));
-
-function save(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function load(){
-  try{
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-
-    if(saved){
-      state = {
-        ...defaultState,
-        ...saved
-      };
-    }
-  }catch{
-    state = {...defaultState};
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.warn("Could not save state:", error);
   }
 }
 
-function toast(message){
-  const el = $("#toast");
+function load() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
 
-  if(!el) return;
+    if (saved) {
+      const parsed = JSON.parse(saved);
 
-  el.textContent = message;
-  el.classList.add("show");
-
-  clearTimeout(window.cyberToast);
-
-  window.cyberToast = setTimeout(() => {
-    el.classList.remove("show");
-  },2300);
+      state = {
+        ...state,
+        ...parsed,
+        user: parsed.user || null,
+        completedCases: Array.isArray(parsed.completedCases)
+          ? parsed.completedCases
+          : [],
+        badges: Array.isArray(parsed.badges) ? parsed.badges : [],
+        aiHistory: Array.isArray(parsed.aiHistory)
+          ? parsed.aiHistory
+          : [],
+        completedLabs: Array.isArray(parsed.completedLabs)
+          ? parsed.completedLabs
+          : []
+      };
+    }
+  } catch (error) {
+    console.warn("Saved state was invalid. Starting fresh.");
+  }
 }
 
-function xpLevel(){
+function toast(message) {
+  const box = $("#toast");
+  if (!box) return;
+
+  box.textContent = message;
+  box.classList.add("show");
+
+  clearTimeout(window.__toastTimer);
+
+  window.__toastTimer = setTimeout(() => {
+    box.classList.remove("show");
+  }, 2600);
+}
+
+function openExternal(url) {
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
+function login() {
+  const email = $("#email")?.value.trim() || "";
+  const username = $("#username")?.value.trim() || "";
+  const password = $("#password")?.value || "";
+  const error = $("#loginError");
+
+  if (error) error.textContent = "";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (error) error.textContent = "Enter a valid email address.";
+    return;
+  }
+
+  if (!/^[A-Za-z0-9]+$/.test(username)) {
+    if (error) {
+      error.textContent =
+        "Username can contain only letters and numbers.";
+    }
+    return;
+  }
+
+  if (username.length < 3) {
+    if (error) error.textContent = "Username must be at least 3 characters.";
+    return;
+  }
+
+  if (password.length < 8) {
+    if (error) {
+      error.textContent = "Password must be at least 8 characters.";
+    }
+    return;
+  }
+
+  /*
+    Password is deliberately NOT stored.
+    This is a static GitHub Pages demo.
+  */
+
+  state.user = {
+    name: username,
+    email: email
+  };
+
+  state.currentSection = "dashboard";
+
+  save();
+
+  try {
+    sessionStorage.setItem("cyberhuntLoggedIn", "1");
+  } catch (e) {}
+
+  $("#loginPage")?.classList.add("hidden");
+  $("#app")?.classList.remove("hidden");
+
+  updateHeader();
+  showSection("dashboard");
+  renderAll();
+  renderChat();
+
+  toast("Welcome to CyberHunt, " + username + "!");
+}
+
+function logout() {
+  try {
+    sessionStorage.removeItem("cyberhuntLoggedIn");
+  } catch (e) {}
+
+  $("#app")?.classList.add("hidden");
+  $("#loginPage")?.classList.remove("hidden");
+
+  const password = $("#password");
+  if (password) password.value = "";
+
+  toast("Logged out.");
+}
+
+/* =========================================================
+   HEADER / PROGRESS
+   ========================================================= */
+
+function getLevel() {
   return Math.max(1, Math.floor(state.xp / 250) + 1);
 }
 
-function caseDone(id){
-  return state.completedCases.includes(id);
+function getOverallProgress() {
+  const caseProgress = state.completedCases.length / 50;
+  const labProgress = state.completedLabs.length / 5;
+  const quizProgress = state.quizBest / 10;
+
+  return Math.min(
+    100,
+    Math.round(
+      (caseProgress * 0.6 +
+        labProgress * 0.25 +
+        quizProgress * 0.15) *
+        100
+    )
+  );
 }
 
-function labDone(id){
-  return state.completedLabs.includes(id);
-}
+function updateHeader() {
+  const level = getLevel();
 
+  if ($("#xpTop")) $("#xpTop").textContent = state.xp;
+  if ($("#levelTop")) $("#levelTop").textContent = level;
 
-/* =========================
-   MATERIAL LIBRARY
-========================= */
+  if ($("#dashXP")) $("#dashXP").textContent = state.xp;
+  if ($("#casesDone")) $("#casesDone").textContent = state.completedCases.length;
+  if ($("#labsDone")) $("#labsDone").textContent = state.completedLabs.length;
+  if ($("#quizBest")) $("#quizBest").textContent = state.quizBest;
 
-const materials = [
+  const name = state.user?.name || "Detective";
 
-{
- id:"foundations",
- level:"Beginner",
- title:"Cybersecurity Foundations",
- short:"The core vocabulary behind cybersecurity.",
- detail:"Cybersecurity is the practice of protecting information, systems, devices, applications and services from unauthorized access, misuse, disruption, modification or destruction.",
- why:"Every cybersecurity topic builds on a small set of ideas: assets, threats, vulnerabilities, risk and controls.",
- keys:[
-  "Asset = something valuable",
-  "Threat = potential cause of harm",
-  "Vulnerability = weakness",
-  "Risk = possibility and consequence of harm",
-  "Control = safeguard"
- ],
- example:"A customer database is an asset. An outdated application may contain a vulnerability. An attacker attempting to exploit that weakness represents a threat. The resulting possible loss is risk.",
- scenario:"A university discovers that a server is running software with a known security weakness. The outdated software is the vulnerability.",
- remember:"Ask: What are we protecting? What can harm it? What weakness exists? What is the risk? What control reduces the risk?",
- tags:["beginner"]
-},
-
-{
- id:"cia",
- level:"Beginner",
- title:"CIA Triad",
- short:"Confidentiality, Integrity and Availability.",
- detail:"The CIA triad represents three fundamental security objectives. Confidentiality means preventing unauthorized disclosure. Integrity means protecting information from unauthorized or improper alteration. Availability means ensuring authorized users can access systems and information when required.",
- why:"CIA is one of the most frequently used frameworks for analyzing security incidents.",
- keys:[
-  "Confidentiality = secrecy",
-  "Integrity = correctness",
-  "Availability = access",
-  "One incident can affect multiple objectives"
- ],
- example:"A leaked employee database primarily affects confidentiality. Altered salary records affect integrity. A long service outage affects availability.",
- scenario:"A hospital database remains online, but patient records have been modified incorrectly. The main CIA objective affected is integrity.",
- remember:"C = Confidential. I = Intact. A = Accessible.",
- tags:["beginner"]
-},
-
-{
- id:"threat-risk",
- level:"Beginner",
- title:"Threats, Vulnerabilities & Risk",
- short:"Learn the difference between threats, weaknesses and risk.",
- detail:"A threat is a potential actor or event capable of causing harm. A vulnerability is a weakness that could be exploited or triggered. Risk represents potential loss resulting from a threat exploiting a vulnerability.",
- why:"Exam scenarios often intentionally mix these three concepts.",
- keys:[
-  "Threat is not the same as vulnerability",
-  "Vulnerability is a weakness",
-  "Likelihood describes possibility",
-  "Impact describes consequence"
- ],
- example:"A phishing attacker is a threat. Lack of user awareness may be a vulnerability. Account compromise and financial loss are possible risks.",
- scenario:"A server has a known unpatched weakness. The weakness is the vulnerability.",
- remember:"Weakness = vulnerability. Harm source = threat. Exposure = risk.",
- tags:["beginner"]
-},
-
-{
- id:"controls",
- level:"Beginner",
- title:"Security Controls",
- short:"Administrative, technical and physical safeguards.",
- detail:"Security controls reduce cybersecurity risk. Administrative controls include policies and training. Technical controls include MFA, encryption and firewalls. Physical controls include locks and secure facilities.",
- why:"Security is not one technology. It is a layered combination of people, processes and technology.",
- keys:[
-  "Administrative = policy/process",
-  "Technical = technology",
-  "Physical = environment",
-  "Preventive = prevents",
-  "Detective = detects",
-  "Corrective = restores"
- ],
- example:"Security awareness training is administrative. MFA is technical. A locked server room is physical. An IDS is primarily detective.",
- scenario:"An organization introduces badge-controlled access to its server room. This is a physical control.",
- remember:"Think people + process + technology + physical protection.",
- tags:["beginner"]
-},
-
-{
- id:"authentication",
- level:"Beginner",
- title:"Authentication & Authorization",
- short:"Authentication proves identity; authorization determines permissions.",
- detail:"Authentication verifies who a user is. Authorization determines what an authenticated user is allowed to access or perform.",
- why:"Confusing these terms can cause serious access-control mistakes.",
- keys:[
-  "Authentication = Who are you?",
-  "Authorization = What can you do?",
-  "MFA strengthens authentication",
-  "Least privilege limits authorization"
- ],
- example:"Entering a password and authenticator code is authentication. Permission to open the payroll database is authorization.",
- scenario:"An employee logs in successfully but cannot open the finance folder because they lack permission. This is authorization.",
- remember:"AuthN = identity. AuthZ = permissions.",
- tags:["beginner"]
-},
-
-{
- id:"passwords",
- level:"Beginner",
- title:"Password Security & MFA",
- short:"Strong passwords and multi-factor authentication.",
- detail:"Good password security includes unique passwords, sufficient length, password managers and protection against reuse. MFA uses multiple authentication factor categories.",
- why:"Password reuse can allow a compromise at one service to affect another service.",
- keys:[
-  "Use unique passwords",
-  "Prefer long passwords",
-  "Use a password manager",
-  "MFA adds another barrier",
-  "Passwords should not be stored in plaintext"
- ],
- example:"A password manager generates a unique password for every website. A hardware security key can add another authentication factor.",
- scenario:"A password from an old breach is reused on a company account. MFA can reduce the impact of that password compromise.",
- remember:"Unique passwords + MFA = stronger authentication.",
- tags:["beginner"]
-},
-
-{
- id:"phishing",
- level:"Beginner",
- title:"Social Engineering & Phishing",
- short:"Detect manipulation through email, SMS, calls and fake websites.",
- detail:"Phishing attempts to manipulate people into revealing information, clicking unsafe links, opening attachments or performing unauthorized actions. Social engineering exploits trust, urgency, authority or curiosity.",
- why:"Humans remain an important part of the security boundary.",
- keys:[
-  "Urgency can be a warning sign",
-  "Verify unusual requests",
-  "Inspect links",
-  "Be careful with attachments",
-  "Report suspicious messages"
- ],
- example:"A message says an account will be closed within ten minutes and asks the user to log in through a link. The user should verify the account through its known official channel.",
- scenario:"A manager supposedly emails asking for an urgent gift-card purchase. The employee should verify the request through another trusted channel.",
- remember:"Pause → inspect → verify → report.",
- tags:["beginner"]
-},
-
-{
- id:"malware",
- level:"Beginner",
- title:"Malware Fundamentals",
- short:"Understand malware categories and defensive response.",
- detail:"Malware is software designed to perform unauthorized or harmful actions. Common categories include ransomware, spyware, trojans, worms and destructive malware.",
- why:"Recognizing suspicious behavior helps defenders select appropriate containment and investigation steps.",
- keys:[
-  "Ransomware can disrupt data availability",
-  "Worms can spread automatically",
-  "Trojans disguise malicious functionality",
-  "Spyware can collect information"
- ],
- example:"If multiple computers suddenly show unfamiliar file-extension changes, the security team should investigate and contain affected systems.",
- scenario:"Several endpoints begin displaying identical suspicious changes. This is an indicator that should trigger investigation.",
- remember:"Detect → contain → investigate → eradicate → recover.",
- tags:["beginner"]
-},
-
-{
- id:"network",
- level:"Beginner",
- title:"Network Security Basics",
- short:"IP addresses, ports, protocols and segmentation.",
- detail:"Networks allow systems to communicate using protocols. IP addresses identify network endpoints. Ports identify communication endpoints for services. Segmentation separates systems to reduce unnecessary communication and limit the spread of incidents.",
- why:"Security analysts need basic networking knowledge to understand logs and incidents.",
- keys:[
-  "IP identifies a network endpoint",
-  "Ports identify service endpoints",
-  "Protocols define communication rules",
-  "Segmentation limits exposure"
- ],
- example:"A company separates employee computers from critical servers using network segmentation.",
- scenario:"A security team places sensitive servers in a separate network segment so ordinary user devices cannot directly communicate with them.",
- remember:"Know IP + ports + protocols + segmentation.",
- tags:["beginner"]
-},
-
-{
- id:"firewalls",
- level:"Intermediate",
- title:"Firewalls, IDS & IPS",
- short:"Understand three important network-defense technologies.",
- detail:"A firewall controls network traffic according to defined rules. An IDS detects suspicious activity and generates alerts. An IPS can detect and actively block or prevent certain suspicious traffic.",
- why:"These technologies help organizations control and monitor network activity.",
- keys:[
-  "Firewall = traffic control",
-  "IDS = detection",
-  "IPS = detection + prevention",
-  "Rules should follow security requirements"
- ],
- example:"An IDS detects unusual traffic and alerts the security team. An IPS may block matching malicious traffic.",
- scenario:"A device detects suspicious traffic and automatically prevents it from reaching protected systems. This is consistent with IPS behavior.",
- remember:"IDS tells. IPS can stop.",
- tags:["intermediate"]
-},
-
-{
- id:"cryptography",
- level:"Intermediate",
- title:"Cryptography",
- short:"Encryption, decryption and the role of keys.",
- detail:"Cryptography protects information using mathematical techniques. Encryption transforms readable plaintext into ciphertext. Decryption converts ciphertext back into readable data using the appropriate key.",
- why:"Cryptography supports confidentiality, integrity, authentication and non-repudiation depending on the mechanism.",
- keys:[
-  "Plaintext = readable data",
-  "Ciphertext = transformed data",
-  "Encryption protects confidentiality",
-  "Keys control cryptographic operations"
- ],
- example:"HTTPS uses cryptographic mechanisms to protect communications between a browser and a server.",
- scenario:"A company encrypts sensitive files so unauthorized people cannot read them without the required key.",
- remember:"Encryption is reversible with the appropriate key; hashing is designed differently.",
- tags:["intermediate"]
-},
-
-{
- id:"hashing",
- level:"Intermediate",
- title:"Hashing",
- short:"One-way transformation used for integrity and verification.",
- detail:"A cryptographic hash function transforms input into a fixed-size digest. Good cryptographic hash functions make it computationally difficult to find another input producing the same digest.",
- why:"Hashes are widely used for integrity checks, signatures and secure password systems.",
- keys:[
-  "Hashing is not encryption",
-  "Same input gives same digest",
-  "Small input changes produce major output changes",
-  "SHA-256 produces a 256-bit digest"
- ],
- example:"A downloaded file's SHA-256 hash can be compared with a trusted published hash to check integrity.",
- scenario:"Two copies of a file produce different SHA-256 values. This indicates their contents differ.",
- remember:"Hash = fingerprint, not reversible encryption.",
- tags:["intermediate"]
-},
-
-{
- id:"web-security",
- level:"Intermediate",
- title:"Web Security",
- short:"Core concepts for protecting websites and web applications.",
- detail:"Web security includes authentication, authorization, session security, input validation, output encoding, secure configuration, logging and safe error handling.",
- why:"Web applications process user input and sensitive information, making secure design essential.",
- keys:[
-  "Validate input",
-  "Enforce authorization server-side",
-  "Protect sessions",
-  "Use secure defaults",
-  "Log security-relevant events"
- ],
- example:"An application verifies that a logged-in user is authorized to access a specific record instead of relying only on a hidden button in the interface.",
- scenario:"A user changes an ID in a URL and can view another customer's record. This indicates an access-control problem.",
- remember:"Never trust the browser to enforce security.",
- tags:["intermediate"]
-},
-
-{
- id:"injection",
- level:"Intermediate",
- title:"Injection Concepts",
- short:"Understand why untrusted input must be handled safely.",
- detail:"Injection vulnerabilities occur when untrusted data is interpreted as part of a command or query. Examples include SQL injection and command injection. Secure design separates data from instructions.",
- why:"Injection is a foundational web-security concept.",
- keys:[
-  "Treat external input as untrusted",
-  "Use parameterized queries",
-  "Validate input",
-  "Avoid building commands from raw input"
- ],
- example:"A database application uses parameterized queries instead of concatenating user input into SQL statements.",
- scenario:"A developer constructs database queries by directly concatenating a form field into SQL. This design increases injection risk.",
- remember:"Data should remain data—not become instructions.",
- tags:["intermediate"]
-},
-
-{
- id:"xss",
- level:"Intermediate",
- title:"Cross-Site Scripting",
- short:"Understand the concept of unsafe script execution in web applications.",
- detail:"Cross-Site Scripting, or XSS, can occur when an application places untrusted content into a web page in a way that causes it to be interpreted as executable script.",
- why:"XSS can affect users of an otherwise trusted website.",
- keys:[
-  "Untrusted output must be handled safely",
-  "Context matters",
-  "Output encoding is important",
-  "Content Security Policy can add defense"
- ],
- example:"A comment system safely displays user text instead of allowing submitted content to become executable browser code.",
- scenario:"A website displays user-provided content without appropriate output handling. This creates potential XSS risk.",
- remember:"Validate input and safely encode output.",
- tags:["intermediate"]
-},
-
-{
- id:"incident-response",
- level:"Intermediate",
- title:"Incident Response",
- short:"A structured process for handling security incidents.",
- detail:"Incident response commonly includes preparation, detection and analysis, containment, eradication, recovery and lessons learned.",
- why:"A good response reduces damage while preserving evidence and restoring trustworthy operations.",
- keys:[
-  "Prepare",
-  "Detect and analyze",
-  "Contain",
-  "Eradicate",
-  "Recover",
-  "Learn"
- ],
- example:"During a suspected ransomware event, defenders isolate affected systems, preserve evidence, investigate the incident and recover from trusted backups.",
- scenario:"The team separates an affected workstation from the network to limit possible spread. This is containment.",
- remember:"Do not rush to destroy evidence.",
- tags:["intermediate"]
-},
-
-{
- id:"logging",
- level:"Intermediate",
- title:"Logging & SIEM",
- short:"Turn security events into useful evidence and alerts.",
- detail:"Logs record events such as authentication attempts, network activity, application errors and administrative changes. SIEM platforms can collect, correlate and analyze security-relevant events.",
- why:"Without useful logs, investigations can become guesswork.",
- keys:[
-  "Centralize important logs",
-  "Protect log integrity",
-  "Use timestamps",
-  "Correlate related events",
-  "Alert on meaningful patterns"
- ],
- example:"A SIEM correlates repeated login failures with a successful login from an unusual location.",
- scenario:"An analyst notices hundreds of failed logins followed by a successful login. Correlating these events can reveal suspicious authentication activity.",
- remember:"Good logs turn events into evidence.",
- tags:["intermediate"]
-},
-
-{
- id:"risk-management",
- level:"Intermediate",
- title:"Risk Management",
- short:"Identify, assess, prioritize and treat cybersecurity risk.",
- detail:"Risk management identifies assets, threats, vulnerabilities, likelihood and impact, then prioritizes responses. Treatments may include mitigation, transfer, avoidance or acceptance.",
- why:"Organizations cannot eliminate every risk, so they must prioritize.",
- keys:[
-  "Identify risk",
-  "Assess likelihood and impact",
-  "Prioritize",
-  "Select treatment",
-  "Monitor"
- ],
- example:"A critical internet-facing vulnerability with high business impact receives priority over a low-impact issue on an isolated test machine.",
- scenario:"Two vulnerabilities exist, but one affects a critical public service. The higher-impact risk should generally receive greater priority.",
- remember:"Security decisions should be risk-based.",
- tags:["intermediate"]
-},
-
-{
- id:"zero-trust",
- level:"Advanced",
- title:"Zero Trust",
- short:"Never automatically trust users, devices or network locations.",
- detail:"Zero Trust is an approach that assumes trust should not be granted merely because a user or device is inside a network boundary. Access decisions should consider identity, device state, context and policy.",
- why:"Modern environments are distributed across cloud, remote work and multiple devices.",
- keys:[
-  "Verify explicitly",
-  "Use least privilege",
-  "Assume breach",
-  "Continuously evaluate access"
- ],
- example:"An employee accessing a sensitive application may need strong authentication and device compliance even when working from the company network.",
- scenario:"A company stops automatically trusting devices simply because they are on the internal network.",
- remember:"Inside the network does not automatically mean trusted.",
- tags:["advanced"]
-},
-
-{
- id:"threat-modeling",
- level:"Advanced",
- title:"Threat Modeling",
- short:"Identify security threats during system design.",
- detail:"Threat modeling systematically examines a system, its assets, trust boundaries, data flows and potential threats. The goal is to identify and address security risks before they become incidents.",
- why:"Security is more effective when designed into systems instead of added at the end.",
- keys:[
-  "Identify assets",
-  "Map data flows",
-  "Find trust boundaries",
-  "Identify threats",
-  "Choose mitigations"
- ],
- example:"A team diagrams how customer data moves between browser, API and database and then evaluates threats at each trust boundary.",
- scenario:"Developers identify that an API trusts data from an external client without adequate authorization checks. Threat modeling can reveal this design weakness.",
- remember:"Find security problems during design—not after deployment.",
- tags:["advanced"]
-},
-
-{
- id:"forensics",
- level:"Advanced",
- title:"Digital Forensics",
- short:"Collect and analyze digital evidence responsibly.",
- detail:"Digital forensics involves identifying, preserving, collecting, examining and reporting digital evidence. Evidence integrity and chain of custody are important.",
- why:"Investigations must be repeatable and defensible.",
- keys:[
-  "Preserve evidence",
-  "Maintain integrity",
-  "Document actions",
-  "Use chain of custody",
-  "Report findings clearly"
- ],
- example:"An investigator creates a forensic copy of a storage device and calculates a hash to verify that the evidence image remains unchanged.",
- scenario:"An analyst records who handled evidence and when it changed hands. This supports chain of custody.",
- remember:"Preserve first. Analyze carefully. Document everything.",
- tags:["advanced"]
-},
-
-{
- id:"cloud",
- level:"Advanced",
- title:"Cloud Security",
- short:"Security concepts for cloud infrastructure and services.",
- detail:"Cloud security involves identity management, configuration, data protection, logging, network controls and understanding the shared-responsibility model.",
- why:"Cloud environments can scale quickly, making secure configuration and identity management essential.",
- keys:[
-  "Identity is critical",
-  "Secure configuration matters",
-  "Protect cloud data",
-  "Monitor activity",
-  "Understand responsibility boundaries"
- ],
- example:"A cloud storage service is accidentally configured for public access. Correct permissions and monitoring reduce this risk.",
- scenario:"Sensitive cloud storage is accidentally exposed to the public. This is a configuration and access-control issue.",
- remember:"Cloud security starts with identity and configuration.",
- tags:["advanced"]
-},
-
-{
- id:"secure-sdlc",
- level:"Advanced",
- title:"Secure SDLC",
- short:"Build security into the software development lifecycle.",
- detail:"Secure software development integrates security requirements, threat modeling, secure coding, testing, dependency management and monitoring throughout development.",
- why:"Fixing security issues during design is usually easier than fixing them after deployment.",
- keys:[
-  "Security requirements",
-  "Threat modeling",
-  "Secure coding",
-  "Security testing",
-  "Dependency management"
- ],
- example:"A development team reviews authentication design during planning rather than waiting for a penetration test after release.",
- scenario:"Security requirements are added during project planning. This is part of a secure development lifecycle.",
- remember:"Security should exist at every development stage.",
- tags:["advanced"]
-},
-
-{
- id:"governance",
- level:"Advanced",
- title:"Security Governance",
- short:"Policies, responsibilities, risk decisions and accountability.",
- detail:"Security governance establishes how an organization directs and oversees cybersecurity through policies, roles, risk decisions, standards and accountability.",
- why:"Technical security cannot work without organizational direction.",
- keys:[
-  "Policies",
-  "Roles and responsibilities",
-  "Risk decisions",
-  "Compliance",
-  "Accountability"
- ],
- example:"An organization defines who can approve privileged access and requires periodic reviews.",
- scenario:"Management establishes a formal policy requiring regular review of administrator accounts.",
- remember:"Governance answers who decides, who is responsible and what rules apply.",
- tags:["advanced"]
-},
-
-{
- id:"nist",
- level:"Advanced",
- title:"NIST Cybersecurity Framework",
- short:"A structured approach to managing cybersecurity risk.",
- detail:"The NIST Cybersecurity Framework provides a common structure for managing cybersecurity risk. Its CSF 2.0 Core is organized around Govern, Identify, Protect, Detect, Respond and Recover.",
- why:"The framework helps organizations communicate and organize cybersecurity outcomes.",
- keys:[
-  "Govern",
-  "Identify",
-  "Protect",
-  "Detect",
-  "Respond",
-  "Recover"
- ],
- example:"An organization uses the framework to identify important assets, establish protections, monitor events and plan recovery.",
- scenario:"An organization establishes cybersecurity policies and accountability before selecting technical controls. This aligns with the Govern function.",
- remember:"G-I-P-D-R-R.",
- tags:["advanced"]
-},
-
-{
- id:"owasp",
- level:"Advanced",
- title:"OWASP Top 10",
- short:"A widely used awareness resource for major web application security risks.",
- detail:"The OWASP Top 10 is an awareness document for web application security. It helps developers and security professionals understand common categories of application risk.",
- why:"It provides useful vocabulary for discussing web security risks.",
- keys:[
-  "Broken Access Control",
-  "Security Misconfiguration",
-  "Software Supply Chain Failures",
-  "Cryptographic Failures",
-  "Injection",
-  "Insecure Design",
-  "Authentication Failures",
-  "Software or Data Integrity Failures",
-  "Security Logging and Alerting Failures",
-  "Mishandling of Exceptional Conditions"
- ],
- example:"A web application that lets one user access another user's private record without authorization demonstrates an access-control problem.",
- scenario:"An application exposes administrative functionality to unauthorized users. The primary concern is broken access control.",
- remember:"Use OWASP as an awareness and secure-development reference.",
- tags:["advanced"]
-}
-
-];
-
-
-/* =========================
-   CASE STUDIES
-========================= */
-
-const trackInfo = [
-
-{
- id:"phishing",
- title:"Phishing Files",
- icon:"✉",
- description:"Investigate suspicious messages, social engineering and account-security incidents."
-},
-
-{
- id:"ransomware",
- title:"Ransomware Response",
- icon:"▣",
- description:"Practice defensive decisions during a ransomware-style incident."
-},
-
-{
- id:"insider",
- title:"Insider Mystery",
- icon:"◉",
- description:"Analyze identity, privilege, logging and unusual internal activity."
-},
-
-{
- id:"web",
- title:"Web Shield",
- icon:"⌘",
- description:"Apply secure web-development and application-security concepts."
-},
-
-{
- id:"forensics",
- title:"Digital Forensics",
- icon:"⌕",
- description:"Examine hashes, logs, metadata and evidence-handling decisions."
-}
-
-];
-
-const caseTopics = {
-
-phishing:[
-["Suspicious sender","An employee receives an urgent message asking them to verify an account.","What should the employee do first?","Verify the request through a trusted official channel.","Click the link immediately.","Forward it to everyone.","Ignore every email."],
-["Urgency tactic","A message says the account will be deleted in 15 minutes.","Which social-engineering technique is being used?","Urgency and pressure.","Encryption.","Hashing.","Network segmentation."],
-["Fake login","A login page looks almost identical to a familiar service.","What is the main concern?","Credential phishing.","Data compression.","Physical theft.","Backup failure."],
-["Attachment","An unexpected invoice arrives as an attachment.","What is the safest first response?","Verify the sender and attachment through a trusted channel.","Open it immediately.","Disable antivirus.","Upload it publicly."],
-["MFA request","A user receives repeated unexpected MFA prompts.","What should they do?","Deny the request and report the suspicious activity.","Approve one to stop the prompts.","Share the MFA code.","Disable all authentication."],
-["Executive impersonation","A message appears to come from a senior manager requesting confidential data.","What is the strongest response?","Independently verify the request.","Assume senior staff cannot be impersonated.","Send the data immediately.","Post the message publicly."],
-["Reporting","An employee clicked a suspicious link but did not enter credentials.","What is the best next step?","Report the event promptly according to the organization's process.","Hide the incident.","Delete all browser history.","Ignore it."],
-["Evidence","A suspicious email is being investigated.","What can help investigators?","Preserving the original message and relevant metadata.","Editing the email before sending it.","Deleting the sender information.","Forwarding it to random contacts."],
-["Prevention","An organization wants to reduce phishing success.","Which combination is strongest?","Awareness training, MFA, reporting and technical controls.","Only changing desktop wallpaper.","Removing all email.","Using one password everywhere."],
-["Response","Several employees entered credentials into a fake page.","What should the security team prioritize?","Contain affected accounts, investigate and follow incident response procedures.","Blame the employees and stop there.","Delete all security logs.","Ignore the event."]
-],
-
-ransomware:[
-["File changes","Multiple workstations suddenly show unfamiliar file extensions.","What should happen first?","Investigate and contain affected systems.","Open every changed file.","Disable all backups.","Ignore the alert."],
-["Containment","An endpoint appears compromised.","What defensive action can limit spread?","Isolate the affected endpoint.","Connect it to more systems.","Share its files.","Turn off logging."],
-["Backups","The organization has tested offline backups.","Why are they valuable?","They can support recovery after destructive incidents.","They prevent every attack automatically.","They replace incident response.","They eliminate vulnerabilities."],
-["Indicators","A security analyst sees unusual file-renaming activity.","What is this?","A potential indicator of compromise.","Proof that nothing happened.","A security policy.","A password factor."],
-["Preservation","During an incident, an analyst wants to immediately wipe a suspicious computer.","Why can this be problematic?","It may destroy evidence needed for investigation.","Wiping always improves evidence.","It creates more logs.","It guarantees recovery."],
-["Recovery","Systems have been contained and investigated.","What is an important recovery step?","Restore from trusted backups and verify systems.","Restore from unknown copies.","Disable monitoring.","Remove all access controls."],
-["Communication","A major security incident affects business operations.","Why is communication important?","Stakeholders need accurate information for coordinated response.","It replaces technical investigation.","It makes evidence unnecessary.","It prevents all malware."],
-["Lessons learned","The incident is resolved.","What should happen next?","Review what happened and improve controls.","Forget the incident.","Delete all records.","Never update procedures."],
-["Prevention","An organization wants stronger ransomware resilience.","Which approach is best?","Backups, patching, least privilege, segmentation, monitoring and training.","One antivirus scan per year.","No backups.","Shared administrator passwords."],
-["Final response","A confirmed ransomware incident affected several systems.","What describes a mature response?","Contain, investigate, eradicate, recover and learn.","Pay automatically without investigation.","Delete evidence.","Continue normal operations."]
-],
-
-insider:[
-["Least privilege","An employee has access to systems unrelated to their job.","What principle is being violated?","Least privilege.","Availability.","Hashing.","Compression."],
-["Access logs","An account accesses sensitive data outside normal working hours.","What should analysts do?","Investigate the activity using appropriate logs and context.","Immediately accuse the employee.","Delete the logs.","Publish the username."],
-["Privilege review","A user changes departments.","What security action is appropriate?","Review and adjust their access permissions.","Give them every permission.","Keep old access forever.","Disable all logging."],
-["Data access","A user downloads unusually large amounts of sensitive information.","What should this trigger?","Investigation based on policy and contextual evidence.","Automatic public disclosure.","Deletion of the account without review.","Ignoring the event."],
-["DLP","An organization wants to detect sensitive-data movement.","Which technology can help?","Data Loss Prevention controls.","Screen brightness settings.","A video player.","A password hint."],
-["Account review","A privileged account is no longer needed.","What should happen?","Remove or disable unnecessary access according to policy.","Share the account.","Increase privileges.","Publish credentials."],
-["Separation of duties","One person can approve and execute the same sensitive transaction.","What risk exists?","Insufficient separation of duties.","Too much availability.","Strong hashing.","Network latency."],
-["Investigation","An employee is suspected of misuse.","What should investigators emphasize?","Evidence, authorization, policy and documented procedures.","Rumors.","Public accusations.","Deleting records."],
-["Due care","Management regularly reviews privileged access.","What does this demonstrate?","A proactive security practice and due care.","A network protocol.","Encryption.","Malware."],
-["Final analysis","An investigation confirms excessive privileges contributed to an incident.","What is an appropriate lesson?","Improve access governance and least-privilege controls.","Give everyone more access.","Stop maintaining logs.","Remove authentication."]
-],
-
-web:[
-["Input validation","A web form accepts arbitrary input.","What security practice is important?","Validate and safely handle untrusted input.","Trust all input.","Disable logging.","Give users administrator access."],
-["SQL injection","A developer concatenates raw user input into SQL.","What is the safer design?","Use parameterized queries.","Build larger SQL strings.","Store passwords in URLs.","Disable authentication."],
-["XSS","A comment is displayed as executable browser content.","What concept applies?","Cross-Site Scripting.","Network segmentation.","Backup rotation.","Physical security."],
-["Authorization","A user changes a record identifier and sees another customer's record.","What is the main problem?","Broken access control.","Strong encryption.","High availability.","Compression."],
-["Authentication","A web application accepts weak identity verification.","What area should be improved?","Authentication controls.","Database indexing.","Screen resolution.","File compression."],
-["Session security","A web application does not adequately protect sessions.","Why is this important?","Session compromise can allow unauthorized access.","It only affects page design.","It improves availability.","It prevents backups."],
-["CSRF concept","A trusted browser is tricked into sending an unwanted state-changing request.","What is this related to?","Cross-Site Request Forgery.","Hash collision.","Physical intrusion.","Data recovery."],
-["Secure coding","A developer wants to reduce web vulnerabilities before release.","What is a good approach?","Secure coding, code review and security testing.","Wait for an incident.","Disable all users.","Remove logs."],
-["Logging","An application records important authentication and security events.","Why?","Logs support detection and investigation.","Logs are only for decoration.","Logs eliminate vulnerabilities.","Logs replace authorization."],
-["Patch management","A web server uses outdated software with known vulnerabilities.","What should the organization do?","Prioritize appropriate patching and risk remediation.","Ignore the issue.","Expose more services.","Remove security controls."]
-],
-
-forensics:[
-["Hash","An investigator calculates a SHA-256 value for an evidence image.","Why?","To help verify evidence integrity.","To decrypt the image.","To assign permissions.","To compress it."],
-["Metadata","A document contains timestamps and author information.","What is this called?","Metadata.","Encryption.","Authorization.","Firewalling."],
-["Chain of custody","An investigator records every evidence transfer.","Why?","To document evidence handling and support integrity.","To speed up Wi-Fi.","To encrypt passwords.","To create malware."],
-["Logs","An investigation needs to know when an account logged in.","What source may help?","Authentication and system logs.","Wallpaper settings.","Keyboard color.","Screen brightness."],
-["DNS","An analyst wants to understand which domain a device resolved.","Which evidence can help?","DNS logs.","Printer toner.","CPU temperature only.","Screen resolution."],
-["Firewall","A firewall log shows repeated blocked connections.","What can it provide?","Evidence about network activity.","Proof that malware definitely exists.","A password.","A backup."],
-["Integrity","Two copies of an evidence file have different hashes.","What does this suggest?","The contents differ and should be investigated.","They are definitely identical.","The network is faster.","Authentication succeeded."],
-["Evidence preservation","An analyst wants to modify the original evidence file.","What is the better practice?","Preserve the original and analyze an appropriate copy.","Modify it immediately.","Delete it.","Rename it repeatedly."],
-["Reporting","The investigation is complete.","What should the report contain?","Methods, evidence, findings and conclusions.","Only rumors.","Only a screenshot.","No documentation."],
-["Final investigation","The evidence supports a security incident.","What is the most professional conclusion?","Document evidence and findings objectively.","Make unsupported accusations.","Delete contradictory evidence.","Publish private information."]
-]
-
-};
-
-
-/* Build 50 unique levels */
-
-const tracks = trackInfo.map(track => {
-
-  const raw = caseTopics[track.id];
-
-  return {
-    ...track,
-    levels: raw.map((item,index) => ({
-      id:`${track.id}-${index+1}`,
-      number:index+1,
-      title:item[0],
-      scenario:item[1],
-      question:item[2],
-      answer:item[3],
-      options:[item[3],item[4],item[5],item[6]].sort(
-        () => Math.random() - 0.5
-      ),
-      hint:`Think about the safest defensive cybersecurity practice related to ${item[0].toLowerCase()}.`,
-      explanation:`The strongest answer is "${item[3]}" because it follows a defensive, risk-aware cybersecurity approach.`
-    }))
-  };
-
-});
-
-
-/* =========================
-   QUIZ
-========================= */
-
-const quizData = [
-
-{
- q:"A hospital database is online, but patient records were changed incorrectly. Which CIA objective is primarily affected?",
- options:["Confidentiality","Integrity","Availability","Authentication"],
- answer:"Integrity",
- explain:"Integrity protects information from unauthorized or improper modification."
-},
-
-{
- q:"An employee receives an unexpected request to buy gift cards for a manager. What should they do?",
- options:["Verify through another trusted channel","Send the gift cards immediately","Share their password","Forward the request publicly"],
- answer:"Verify through another trusted channel",
- explain:"Independent verification reduces the risk of impersonation and social engineering."
-},
-
-{
- q:"A company wants to give employees only the access needed for their jobs. Which principle applies?",
- options:["Least privilege","Availability","Compression","Hashing"],
- answer:"Least privilege",
- explain:"Least privilege limits permissions to what is necessary."
-},
-
-{
- q:"A SHA-256 value is used to compare two files. What is the main purpose?",
- options:["Verify integrity","Decrypt the files","Authenticate a person","Compress the files"],
- answer:"Verify integrity",
- explain:"Cryptographic hashes can act like digital fingerprints for integrity checking."
-},
-
-{
- q:"A system automatically blocks suspicious network traffic after detecting it. Which technology best fits?",
- options:["IDS","IPS","DNS","SIEM"],
- answer:"IPS",
- explain:"An IPS can detect and actively prevent or block suspicious traffic."
-},
-
-{
- q:"A user successfully logs in but cannot access a restricted folder. Which security concept determines this?",
- options:["Authorization","Encryption","Hashing","Availability"],
- answer:"Authorization",
- explain:"Authorization determines what an authenticated user is allowed to access."
-},
-
-{
- q:"A developer directly concatenates user input into a database query. What risk should be considered?",
- options:["SQL injection","Physical theft","Power failure","Shoulder surfing"],
- answer:"SQL injection",
- explain:"Parameterized queries help keep user-controlled data separate from SQL instructions."
-},
-
-{
- q:"An organization separates critical servers from ordinary user devices. What security technique is this?",
- options:["Network segmentation","Hashing","Phishing","Authentication"],
- answer:"Network segmentation",
- explain:"Segmentation limits unnecessary communication and can reduce incident spread."
-},
-
-{
- q:"A security team isolates a compromised workstation from the network. Which incident-response phase does this represent?",
- options:["Containment","Recovery","Governance","Training"],
- answer:"Containment",
- explain:"Isolation limits potential spread while the incident is investigated."
-},
-
-{
- q:"An organization establishes security policies, responsibilities and risk decisions. Which NIST CSF 2.0 function is especially relevant?",
- options:["Govern","Detect","Recover","Protect"],
- answer:"Govern",
- explain:"Govern focuses on cybersecurity strategy, policy, roles and organizational direction."
-}
-
-];
-
-let quizState = {
-  index:0,
-  score:0,
-  answered:false,
-  finished:false
-};
-
-
-/* =========================
-   LABS
-========================= */
-
-const labs = [
-
-{
- id:"base64",
- title:"Base64 Encoding & Decoding",
- icon:"01",
- theory:"Base64 converts binary data into a text representation using a defined character set. It is encoding, not encryption.",
- why:"It is commonly encountered when analyzing data formats, APIs, email content and other technical data.",
- steps:[
-  "Choose the text you want to encode.",
-  "Convert the text into bytes.",
-  "Represent those bytes using Base64.",
-  "To decode, reverse the process.",
-  "Remember that Base64 does not provide confidentiality."
- ],
- example:"Text: Hello\nBase64: SGVsbG8=",
- remember:"Base64 = encoding, not encryption.",
- type:"base64"
-},
-
-{
- id:"url",
- title:"URL Encoding",
- icon:"02",
- theory:"URL encoding represents characters in a format suitable for use inside URLs. Characters that have special meanings in URLs can be percent-encoded.",
- why:"Security analysts frequently encounter encoded URLs in logs, applications and web traffic.",
- steps:[
-  "Start with readable text.",
-  "Identify characters that need URL encoding.",
-  "Convert them into percent-encoded form.",
-  "Decode the value to recover the original text."
- ],
- example:"Text: hello world\nEncoded: hello%20world",
- remember:"URL encoding changes representation; it does not encrypt the information.",
- type:"url"
-},
-
-{
- id:"hex",
- title:"Hexadecimal",
- icon:"03",
- theory:"Hexadecimal represents bytes using hexadecimal digits from 0 to F. It is often used when inspecting binary data, hashes and low-level technical information.",
- why:"Security tools and forensic outputs frequently display byte values in hexadecimal.",
- steps:[
-  "Convert each byte into two hexadecimal digits.",
-  "Separate bytes with spaces for readability.",
-  "For decoding, convert each pair back into a byte.",
-  "Interpret the resulting bytes as text when appropriate."
- ],
- example:"Text: Hi\nHex: 48 69",
- remember:"Hex is a representation of bytes.",
- type:"hex"
-},
-
-{
- id:"rot13",
- title:"ROT13",
- icon:"04",
- theory:"ROT13 replaces each English letter with the letter 13 positions away in the alphabet. Applying ROT13 twice returns the original text.",
- why:"It is useful for understanding simple substitution transformations and recognizing that obfuscation is not encryption.",
- steps:[
-  "Take each alphabetic character.",
-  "Move it 13 positions forward.",
-  "Wrap around after Z.",
-  "Leave numbers and punctuation unchanged."
- ],
- example:"HELLO → URYYB",
- remember:"ROT13 is simple transformation, not secure encryption.",
- type:"rot13"
-},
-
-{
- id:"sha256",
- title:"SHA-256 Hashing",
- icon:"05",
- theory:"SHA-256 is a cryptographic hash function that produces a 256-bit digest from input data. It is designed to be one-way and sensitive to changes in the input.",
- why:"Hashes are useful for integrity verification, evidence handling and many security systems.",
- steps:[
-  "Choose the input.",
-  "Convert it into bytes.",
-  "Run the SHA-256 hash function.",
-  "Record the resulting hexadecimal digest.",
-  "Compare hashes when verifying integrity."
- ],
- example:"The SHA-256 hash of a file can be compared with a trusted reference value.",
- remember:"Hashing is not encryption and does not provide a way to recover the original input.",
- type:"sha256"
-}
-
-];
-
-
-/* =========================
-   BADGES
-========================= */
-
-const badgeData = [
-
-["first","First Case","Complete your first case study.","◈"],
-["foundation","Foundation Complete","Study at least five materials.","◆"],
-["phish","Phishing Analyst","Complete the Phishing Files track.","✉"],
-["ransom","Ransomware Responder","Complete the Ransomware Response track.","▣"],
-["insider","Insider Investigator","Complete the Insider Mystery track.","◉"],
-["web","Web Defender","Complete the Web Shield track.","⌘"],
-["forensics","Forensics Analyst","Complete the Digital Forensics track.","⌕"],
-["ten","10 Case Levels","Complete ten case levels.","10"],
-["twentyfive","25 Case Levels","Complete twenty-five case levels.","25"],
-["fifty","50 Case Levels","Complete all fifty case levels.","50"],
-["quiz","Quiz Master","Score 10/10 in the mini quiz.","✓"],
-["labs","Lab Explorer","Complete all five practice labs.","⌘"],
-["graduate","CyberHunt Graduate","Complete all case tracks and labs.","★"]
-
-];
-
-
-/* =========================
-   NAVIGATION
-========================= */
-
-function showSection(id){
-
-  $$(".page-section").forEach(section => {
-    section.classList.remove("active-section");
-  });
-
-  const target = document.getElementById(id);
-
-  if(target){
-    target.classList.add("active-section");
+  if ($("#welcomeName")) {
+    $("#welcomeName").textContent = name;
   }
 
-  $$(".nav-item").forEach(item => {
+  if ($("#profileTop")) {
+    $("#profileTop").textContent = name.charAt(0).toUpperCase();
+  }
+
+  const progress = getOverallProgress();
+
+  if ($("#progressPill")) {
+    $("#progressPill").textContent = progress + "%";
+  }
+
+  if ($("#overallProgress")) {
+    $("#overallProgress").style.width = progress + "%";
+  }
+
+  updateNextMission();
+}
+
+function updateNextMission() {
+  const title = $("#nextTitle");
+  const desc = $("#nextDesc");
+
+  if (!title || !desc) return;
+
+  if (state.completedCases.length === 0) {
+    title.textContent = "Start with Cybersecurity Foundations";
+    desc.textContent =
+      "Open a material, learn the concept, then test yourself with a case.";
+  } else if (state.completedCases.length < 10) {
+    title.textContent = "Continue your first investigation track";
+    desc.textContent =
+      "Solve more scenarios to strengthen your cybersecurity decision-making.";
+  } else if (state.completedLabs.length < 5) {
+    title.textContent = "Try a Practice Lab";
+    desc.textContent =
+      "Practice encoding, decoding and hashing safely in your browser.";
+  } else {
+    title.textContent = "Explore advanced security";
+    desc.textContent =
+      "Study Zero Trust, forensics, cloud security and governance.";
+  }
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function showSection(sectionId) {
+  const section = $("#" + sectionId);
+  if (!section) return;
+
+  $$(".page-section").forEach((page) => {
+    page.classList.remove("active-section");
+  });
+
+  section.classList.add("active-section");
+
+  $$(".nav-item").forEach((item) => {
     item.classList.toggle(
       "active",
-      item.dataset.section === id
+      item.dataset.section === sectionId
     );
   });
 
-  const labels = {
-    dashboard:"Dashboard",
-    ai:"AI Study Studio",
-    materials:"Materials",
-    cases:"Case Studies",
-    quizzes:"Mini Quizzes",
-    labs:"Practice Labs",
-    badges:"Badges"
+  const names = {
+    dashboard: "Dashboard",
+    ai: "AI Study Studio",
+    materials: "Materials",
+    cases: "Case Studies",
+    quizzes: "Mini Quizzes",
+    labs: "Practice Labs",
+    badges: "Badges"
   };
 
-  if($("#crumb")){
-    $("#crumb").textContent = labels[id] || "CyberHunt";
+  if ($("#crumb")) {
+    $("#crumb").textContent = names[sectionId] || "CyberHunt";
   }
 
-  state.currentSection = id;
+  state.currentSection = sectionId;
   save();
 
-  if(id === "materials") renderMaterials();
-  if(id === "cases") renderCases();
-  if(id === "quizzes") renderQuiz();
-  if(id === "labs") renderLabs();
-  if(id === "badges") renderBadges();
+  if (sectionId === "materials") renderMaterials();
+  if (sectionId === "cases") renderCases();
+  if (sectionId === "quizzes") renderQuiz();
+  if (sectionId === "labs") renderLabs();
+  if (sectionId === "badges") renderBadges();
+  if (sectionId === "ai") renderChat();
 
-  $("#sidebar")?.classList.remove("open");
+  $("#sidebar")?.classList.remove("mobile-open");
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 }
 
+/* =========================================================
+   CYBERSECURITY MATERIALS
+   ========================================================= */
 
-/* =========================
-   HEADER / DASHBOARD
-========================= */
+const materials = [
+  {
+    id: 1,
+    level: "FOUNDATION",
+    title: "Cybersecurity Foundations",
+    short: "Understand what cybersecurity protects and why it matters.",
+    detail:
+      "Cybersecurity is the practice of protecting systems, networks, applications, devices and information from unauthorized access, misuse, disruption or destruction.",
+    why:
+      "Almost every organization depends on digital systems. A security failure can affect money, privacy, reputation, operations and safety.",
+    keys: [
+      "Assets are things worth protecting.",
+      "Threats can cause harm.",
+      "Vulnerabilities are weaknesses.",
+      "Controls reduce risk.",
+      "Security requires people, processes and technology."
+    ],
+    example:
+      "A university protects student records using authentication, access controls, backups and monitoring.",
+    scenario:
+      "A student receives an unexpected attachment from an unknown sender. Before opening it, the student checks the sender, verifies the message and reports it.",
+    remember:
+      "Protect assets by identifying threats, weaknesses and appropriate controls."
+  },
 
-function updateHeader(){
+  {
+    id: 2,
+    level: "FOUNDATION",
+    title: "CIA Triad",
+    short: "The three fundamental goals of information security.",
+    detail:
+      "CIA stands for Confidentiality, Integrity and Availability. These three goals help security teams decide what protection a system needs.",
+    why:
+      "The CIA triad provides a simple framework for analyzing security incidents and selecting controls.",
+    keys: [
+      "Confidentiality = only authorized people can see information.",
+      "Integrity = information remains accurate and trustworthy.",
+      "Availability = authorized users can access information when needed."
+    ],
+    example:
+      "Encryption protects confidentiality, hashing can help verify integrity, and backups improve availability.",
+    scenario:
+      "An attacker changes a company's financial records without permission. The main security property affected is integrity.",
+    remember:
+      "C = Can I keep it secret? I = Is it correct? A = Can I access it?"
+  },
 
-  const level = xpLevel();
+  {
+    id: 3,
+    level: "FOUNDATION",
+    title: "Threats, Vulnerabilities & Risk",
+    short: "Learn the difference between a threat, weakness and risk.",
+    detail:
+      "A threat is a potential cause of harm. A vulnerability is a weakness that could be exploited. Risk is the possibility and impact of harm when a threat takes advantage of a vulnerability.",
+    why:
+      "Security teams need these concepts to prioritize what should be fixed first.",
+    keys: [
+      "Threat = potential danger.",
+      "Vulnerability = weakness.",
+      "Risk = potential loss or impact.",
+      "Control = protection used to reduce risk."
+    ],
+    example:
+      "An outdated web server is a vulnerability. An attacker exploiting it is a threat event. The resulting business damage is risk.",
+    scenario:
+      "A company discovers an old application with a known security weakness. The team patches it before attackers exploit it.",
+    remember:
+      "Threat + vulnerability can create risk."
+  },
 
-  $("#xpTop").textContent = state.xp;
-  $("#levelTop").textContent = level;
-  $("#dashXP").textContent = state.xp;
-  $("#casesDone").textContent = state.completedCases.length;
-  $("#labsDone").textContent = state.completedLabs.length;
-  $("#quizBest").textContent = state.quizBest;
+  {
+    id: 4,
+    level: "FOUNDATION",
+    title: "Assets & Security Controls",
+    short: "Identify what needs protection and how controls help.",
+    detail:
+      "Assets include data, hardware, software, identities, services and reputation. Security controls are safeguards that reduce security risk.",
+    why:
+      "You cannot protect something effectively until you know what it is and how valuable it is.",
+    keys: [
+      "Administrative controls use policies and procedures.",
+      "Technical controls use technology.",
+      "Physical controls protect physical environments."
+    ],
+    example:
+      "A server room can use locks as a physical control and access logging as a technical control.",
+    scenario:
+      "A company identifies customer records as a high-value asset and restricts access to authorized employees.",
+    remember:
+      "First identify the asset, then protect it."
+  },
 
-  const totalActivities = 50 + 5 + 10;
-  const done =
-    state.completedCases.length +
-    state.completedLabs.length +
-    state.quizBest;
+  {
+    id: 5,
+    level: "FOUNDATION",
+    title: "Authentication & Authorization",
+    short: "Understand identity verification versus permission.",
+    detail:
+      "Authentication answers 'Who are you?' Authorization answers 'What are you allowed to do?'",
+    why:
+      "Confusing these concepts can lead to excessive access and security failures.",
+    keys: [
+      "Authentication verifies identity.",
+      "Authorization determines permissions.",
+      "Accounting/logging records activity."
+    ],
+    example:
+      "Logging into a student portal is authentication. Being allowed to view only your own marks is authorization.",
+    scenario:
+      "A user successfully logs in but cannot access the administrator dashboard. Authentication succeeded, but authorization correctly denied access.",
+    remember:
+      "AUTHENTICATION = identity. AUTHORIZATION = permission."
+  },
 
-  const percentage =
-    Math.min(100,Math.round((done / totalActivities) * 100));
+  {
+    id: 6,
+    level: "FOUNDATION",
+    title: "Password Security & MFA",
+    short: "Use strong authentication to reduce account compromise.",
+    detail:
+      "Strong passwords should be long and unique. Multi-factor authentication adds another verification factor such as a hardware key, authenticator app or biometric.",
+    why:
+      "Passwords alone can be stolen, guessed, reused or phished.",
+    keys: [
+      "Use unique passwords.",
+      "Prefer long passwords or passphrases.",
+      "Use MFA.",
+      "Never share authentication codes."
+    ],
+    example:
+      "A student uses a password manager and MFA for their university account.",
+    scenario:
+      "An attacker knows a user's password but cannot access the account because MFA blocks the login.",
+    remember:
+      "MFA adds another layer beyond the password."
+  },
 
-  $("#overallProgress").style.width = percentage + "%";
-  $("#progressPill").textContent = percentage + "%";
+  {
+    id: 7,
+    level: "DEFENSIVE",
+    title: "Social Engineering & Phishing",
+    short: "Recognize attacks that manipulate people.",
+    detail:
+      "Social engineering uses psychological manipulation to make people reveal information, transfer money or perform unsafe actions. Phishing commonly uses deceptive messages or websites.",
+    why:
+      "Technology cannot fully protect an organization if users are manipulated into bypassing security.",
+    keys: [
+      "Urgency is a common warning sign.",
+      "Unexpected links require verification.",
+      "Check sender and destination.",
+      "Never share passwords or MFA codes."
+    ],
+    example:
+      "A fake bank email tells a user to verify an account through a suspicious link.",
+    scenario:
+      "An employee receives an urgent message requesting an MFA code. The employee refuses and reports the message.",
+    remember:
+      "Stop → Verify → Report."
+  },
 
-  if(state.user){
+  {
+    id: 8,
+    level: "DEFENSIVE",
+    title: "Malware Fundamentals",
+    short: "Learn the major categories of malicious software.",
+    detail:
+      "Malware is malicious software designed to disrupt, damage, spy on or gain unauthorized access to systems.",
+    why:
+      "Recognizing malware behavior helps defenders respond quickly.",
+    keys: [
+      "Virus",
+      "Worm",
+      "Trojan",
+      "Spyware",
+      "Ransomware"
+    ],
+    example:
+      "Ransomware encrypts files and demands payment.",
+    scenario:
+      "Several files suddenly become inaccessible and receive unusual extensions. The organization isolates affected systems.",
+    remember:
+      "Unexpected file changes + suspicious processes = investigate."
+  },
 
-    $("#welcomeName").textContent = state.user.name;
+  {
+    id: 9,
+    level: "DEFENSIVE",
+    title: "Network Security Basics",
+    short: "Understand how networks are protected.",
+    detail:
+      "Network security protects communication, devices and services from unauthorized access and disruption.",
+    why:
+      "Networks connect users, applications, cloud services and critical systems.",
+    keys: [
+      "Segmentation",
+      "Firewalls",
+      "Secure protocols",
+      "Monitoring",
+      "Access control"
+    ],
+    example:
+      "A company separates guest Wi-Fi from internal business systems.",
+    scenario:
+      "A guest device should not directly reach the company's database network, so segmentation is used.",
+    remember:
+      "Segmentation limits how far an incident can spread."
+  },
 
-    $("#profileTop").textContent =
-      state.user.name.charAt(0).toUpperCase();
+  {
+    id: 10,
+    level: "DEFENSIVE",
+    title: "Firewalls, IDS & IPS",
+    short: "Know the role of three common network defenses.",
+    detail:
+      "Firewalls control network traffic according to rules. IDS systems detect suspicious activity. IPS systems can detect and actively block certain traffic.",
+    why:
+      "Different controls provide different layers of defense.",
+    keys: [
+      "Firewall = traffic control.",
+      "IDS = detection.",
+      "IPS = detection + prevention/blocking."
+    ],
+    example:
+      "An IDS alerts analysts about suspicious traffic while an IPS may block matching malicious traffic.",
+    scenario:
+      "A security team wants alerts about suspicious network behavior without automatically blocking it. An IDS is appropriate.",
+    remember:
+      "IDS sees. IPS sees + can stop."
+  },
 
+  {
+    id: 11,
+    level: "INTERMEDIATE",
+    title: "Cryptography Basics",
+    short: "Understand encryption and secure communication.",
+    detail:
+      "Cryptography uses mathematical techniques to protect information. Encryption transforms readable plaintext into ciphertext that requires a key to recover.",
+    why:
+      "Sensitive information often travels across networks and must be protected from unauthorized viewing.",
+    keys: [
+      "Plaintext = readable information.",
+      "Ciphertext = encrypted information.",
+      "Key = secret or controlled value used by the algorithm.",
+      "Encryption primarily supports confidentiality."
+    ],
+    example:
+      "HTTPS protects web communication using cryptographic protocols.",
+    scenario:
+      "A company encrypts sensitive files so unauthorized people cannot read their contents.",
+    remember:
+      "Encryption protects readable data from unauthorized reading."
+  },
+
+  {
+    id: 12,
+    level: "INTERMEDIATE",
+    title: "Hashing & SHA-256",
+    short: "Learn one-way transformations and integrity checking.",
+    detail:
+      "A cryptographic hash function transforms input into a fixed-length digest. SHA-256 produces a 256-bit digest.",
+    why:
+      "Hashes can help verify whether data has changed.",
+    keys: [
+      "Hashing is not the same as encryption.",
+      "SHA-256 produces a fixed-size digest.",
+      "A small input change creates a very different digest.",
+      "Hashes are commonly used for integrity verification."
+    ],
+    example:
+      "A downloaded file can be hashed and compared with a trusted published hash.",
+    scenario:
+      "A forensic analyst calculates a SHA-256 hash before and after copying evidence to verify integrity.",
+    remember:
+      "Encryption is reversible with the correct key; hashing is designed as a one-way function."
+  },
+
+  {
+    id: 13,
+    level: "INTERMEDIATE",
+    title: "Digital Signatures & PKI",
+    short: "Understand trust, authenticity and digital signatures.",
+    detail:
+      "Digital signatures use asymmetric cryptography to provide evidence of authenticity and integrity. Public Key Infrastructure helps manage certificates and trust relationships.",
+    why:
+      "Organizations need ways to verify who or what produced digital information.",
+    keys: [
+      "Private key signs.",
+      "Public key verifies.",
+      "Certificates bind identities to public keys.",
+      "Signatures can detect modification."
+    ],
+    example:
+      "A software publisher signs an application so users can verify its origin and integrity.",
+    scenario:
+      "A browser validates a website certificate during an HTTPS connection.",
+    remember:
+      "Private key signs; public key verifies."
+  },
+
+  {
+    id: 14,
+    level: "INTERMEDIATE",
+    title: "Web Security Fundamentals",
+    short: "Understand common web application security principles.",
+    detail:
+      "Web security protects browsers, servers, APIs, databases and users from attacks and misuse.",
+    why:
+      "Web applications are exposed to large numbers of users and potentially untrusted input.",
+    keys: [
+      "Validate input.",
+      "Use secure authentication.",
+      "Enforce authorization.",
+      "Protect sessions.",
+      "Log important security events."
+    ],
+    example:
+      "A banking application checks that a user is authorized before returning account information.",
+    scenario:
+      "A user changes an ID in a URL and sees another user's record. This indicates an authorization failure.",
+    remember:
+      "Never trust client-controlled input or identity claims."
+  },
+
+  {
+    id: 15,
+    level: "INTERMEDIATE",
+    title: "Injection & XSS Concepts",
+    short: "Recognize two major web application risks.",
+    detail:
+      "Injection occurs when untrusted input is interpreted as commands or queries. Cross-site scripting (XSS) occurs when untrusted content is executed in a user's browser.",
+    why:
+      "Improper input handling can allow attackers to influence application behavior.",
+    keys: [
+      "Use parameterized queries.",
+      "Validate input.",
+      "Encode output appropriately.",
+      "Use secure frameworks and libraries."
+    ],
+    example:
+      "Parameterized SQL queries help prevent SQL injection.",
+    scenario:
+      "A login form safely passes user input to the database through a parameterized query.",
+    remember:
+      "Treat external input as untrusted."
+  },
+
+  {
+    id: 16,
+    level: "DEFENSIVE",
+    title: "Incident Response",
+    short: "Learn how defenders handle security incidents.",
+    detail:
+      "Incident response is a structured process for preparing for, detecting, analyzing, containing, eradicating and recovering from security incidents.",
+    why:
+      "Fast and organized response can reduce damage and improve recovery.",
+    keys: [
+      "Preparation",
+      "Detection and analysis",
+      "Containment",
+      "Eradication",
+      "Recovery",
+      "Lessons learned"
+    ],
+    example:
+      "When ransomware is detected, defenders isolate affected systems before investigating and restoring them.",
+    scenario:
+      "A compromised laptop is disconnected from the network to prevent possible spread.",
+    remember:
+      "Contain first when appropriate, then investigate and recover."
+  },
+
+  {
+    id: 17,
+    level: "DEFENSIVE",
+    title: "Logging & SIEM",
+    short: "Use security logs to understand what happened.",
+    detail:
+      "Logs record system and security events. SIEM platforms collect, correlate and analyze security information from multiple sources.",
+    why:
+      "Without useful logs, investigating an incident becomes much harder.",
+    keys: [
+      "Authentication logs",
+      "Firewall logs",
+      "Application logs",
+      "Endpoint events",
+      "Correlation and alerting"
+    ],
+    example:
+      "A SIEM correlates repeated failed logins with a successful login from an unusual location.",
+    scenario:
+      "An analyst reviews authentication and firewall logs to reconstruct suspicious activity.",
+    remember:
+      "Logs provide evidence and visibility."
+  },
+
+  {
+    id: 18,
+    level: "INTERMEDIATE",
+    title: "Risk Management",
+    short: "Prioritize security decisions based on risk.",
+    detail:
+      "Risk management identifies, evaluates and treats risks. Organizations may avoid, mitigate, transfer or accept risk depending on context.",
+    why:
+      "Organizations have limited resources and cannot eliminate every possible risk.",
+    keys: [
+      "Identify risk.",
+      "Assess likelihood and impact.",
+      "Choose treatment.",
+      "Monitor changes."
+    ],
+    example:
+      "A company prioritizes fixing a critical internet-facing vulnerability over a low-impact internal issue.",
+    scenario:
+      "A security team ranks vulnerabilities by likelihood and business impact before assigning remediation work.",
+    remember:
+      "Prioritize based on likelihood + impact."
+  },
+
+  {
+    id: 19,
+    level: "ADVANCED",
+    title: "Zero Trust",
+    short: "Never automatically trust based only on network location.",
+    detail:
+      "Zero Trust is a security approach that continuously verifies identities, devices, access and context rather than assuming that something is trustworthy simply because it is inside a network.",
+    why:
+      "Modern organizations use cloud services, remote work and distributed systems, making old perimeter assumptions weaker.",
+    keys: [
+      "Verify explicitly.",
+      "Use least privilege.",
+      "Assume breach.",
+      "Continuously evaluate access."
+    ],
+    example:
+      "An employee may need to authenticate and satisfy device requirements before accessing a sensitive application even from the corporate network.",
+    scenario:
+      "An internal employee attempts to access a sensitive database and is required to authenticate and receive only the permissions needed.",
+    remember:
+      "Never trust automatically; verify continuously."
+  },
+
+  {
+    id: 20,
+    level: "ADVANCED",
+    title: "Threat Modeling",
+    short: "Think about attacks before systems are deployed.",
+    detail:
+      "Threat modeling systematically identifies assets, trust boundaries, threats, vulnerabilities and mitigations during system design.",
+    why:
+      "Finding design weaknesses early is usually easier and cheaper than fixing them after deployment.",
+    keys: [
+      "Identify assets.",
+      "Map data flows.",
+      "Identify threats.",
+      "Design mitigations.",
+      "Review assumptions."
+    ],
+    example:
+      "A development team threat-models a payment application before releasing it.",
+    scenario:
+      "Developers identify that a payment API accepts sensitive input and add authentication, authorization and validation requirements.",
+    remember:
+      "Secure design starts before deployment."
+  },
+
+  {
+    id: 21,
+    level: "ADVANCED",
+    title: "Digital Forensics",
+    short: "Collect and analyze digital evidence responsibly.",
+    detail:
+      "Digital forensics involves identifying, preserving, collecting, examining and reporting digital evidence.",
+    why:
+      "Investigators need trustworthy evidence to understand incidents and support organizational or legal processes.",
+    keys: [
+      "Preserve evidence.",
+      "Maintain integrity.",
+      "Document actions.",
+      "Use chain of custody.",
+      "Separate facts from assumptions."
+    ],
+    example:
+      "An investigator calculates a hash of a forensic image to verify that the evidence remains unchanged.",
+    scenario:
+      "An analyst documents who handled evidence, when it was transferred and how it was stored.",
+    remember:
+      "Evidence must remain trustworthy and traceable."
+  },
+
+  {
+    id: 22,
+    level: "ADVANCED",
+    title: "Cloud Security",
+    short: "Protect systems and data in cloud environments.",
+    detail:
+      "Cloud security involves identity management, configuration security, encryption, logging, monitoring and understanding the shared responsibility model.",
+    why:
+      "Cloud environments can be highly dynamic and misconfiguration can expose sensitive resources.",
+    keys: [
+      "Least privilege IAM.",
+      "Secure configuration.",
+      "Encryption.",
+      "Logging.",
+      "Shared responsibility."
+    ],
+    example:
+      "A cloud storage bucket is configured so sensitive files cannot be publicly accessed.",
+    scenario:
+      "A team discovers that a storage resource is public and immediately changes its access configuration.",
+    remember:
+      "Cloud security depends heavily on identity and configuration."
+  },
+
+  {
+    id: 23,
+    level: "ADVANCED",
+    title: "Secure SDLC",
+    short: "Build security into software development.",
+    detail:
+      "A Secure Software Development Life Cycle integrates security throughout requirements, design, coding, testing, deployment and maintenance.",
+    why:
+      "Security discovered only after deployment can be more expensive to fix.",
+    keys: [
+      "Secure requirements.",
+      "Threat modeling.",
+      "Code review.",
+      "Security testing.",
+      "Dependency management."
+    ],
+    example:
+      "Developers run automated security checks during CI/CD before deployment.",
+    scenario:
+      "A development team identifies an authorization weakness during design review rather than after release.",
+    remember:
+      "Security is a lifecycle activity, not a final checkbox."
+  },
+
+  {
+    id: 24,
+    level: "ADVANCED",
+    title: "Security Governance & Compliance",
+    short: "Understand policies, responsibilities and requirements.",
+    detail:
+      "Security governance defines how security decisions are directed, monitored and aligned with organizational objectives. Compliance involves meeting applicable requirements.",
+    why:
+      "Security needs leadership, accountability and documented expectations.",
+    keys: [
+      "Policies",
+      "Roles and responsibilities",
+      "Risk oversight",
+      "Audits",
+      "Compliance requirements"
+    ],
+    example:
+      "An organization creates a policy defining how sensitive data should be handled.",
+    scenario:
+      "A company assigns responsibility for reviewing security risks to an appropriate governance role.",
+    remember:
+      "Governance sets direction and accountability."
+  },
+
+  {
+    id: 25,
+    level: "ADVANCED",
+    title: "Software Supply Chain Security",
+    short: "Protect dependencies, packages and development pipelines.",
+    detail:
+      "Software supply chain security focuses on the components, tools and processes used to build and distribute software.",
+    why:
+      "A vulnerability or compromise in a dependency can affect many applications.",
+    keys: [
+      "Dependency inventory.",
+      "Patch vulnerable packages.",
+      "Verify sources.",
+      "Protect CI/CD.",
+      "Use software bills of materials where appropriate."
+    ],
+    example:
+      "A development team scans third-party dependencies for known vulnerabilities.",
+    scenario:
+      "A vulnerable library is identified in an application and replaced with a patched version.",
+    remember:
+      "Your software can inherit risk from what it depends on."
+  },
+
+  {
+    id: 26,
+    level: "ADVANCED",
+    title: "NIST CSF 2.0",
+    short: "Understand the modern cybersecurity risk-management framework.",
+    detail:
+      "The NIST Cybersecurity Framework 2.0 provides a structure for managing cybersecurity risk. Its core functions are Govern, Identify, Protect, Detect, Respond and Recover.",
+    why:
+      "Frameworks help organizations organize security activities and communicate risk.",
+    keys: [
+      "Govern",
+      "Identify",
+      "Protect",
+      "Detect",
+      "Respond",
+      "Recover"
+    ],
+    example:
+      "An organization identifies critical assets, protects them, monitors for incidents and prepares recovery processes.",
+    scenario:
+      "Leadership establishes cybersecurity policies, roles and risk strategy. This aligns strongly with Govern.",
+    remember:
+      "GV → ID → PR → DE → RS → RC."
+  },
+
+  {
+    id: 27,
+    level: "ADVANCED",
+    title: "OWASP Top 10",
+    short: "Study common web application security risks.",
+    detail:
+      "The OWASP Top 10 is a widely used awareness resource for web application security risks. Use the current OWASP material when studying the latest categories.",
+    why:
+      "It gives developers and security learners a common vocabulary for discussing web application risks.",
+    keys: [
+      "Broken access control",
+      "Injection",
+      "Security misconfiguration",
+      "Cryptographic failures",
+      "Authentication failures",
+      "Logging and monitoring"
+    ],
+    example:
+      "An application checks authorization on the server before returning another user's information.",
+    scenario:
+      "A user changes an object identifier and obtains another user's data because the server failed to enforce authorization.",
+    remember:
+      "Authorization must be enforced server-side."
   }
+];
 
-  renderDashboardNext();
+/* =========================================================
+   MATERIALS RENDERING
+   ========================================================= */
+
+function renderMaterialFilters() {
+  const box = $("#materialFilters");
+  if (!box) return;
+
+  const levels = ["ALL", "FOUNDATION", "DEFENSIVE", "INTERMEDIATE", "ADVANCED"];
+
+  box.innerHTML = levels
+    .map(
+      (level, index) =>
+        `<button class="${index === 0 ? "active" : ""}" data-level="${level}">
+          ${level}
+        </button>`
+    )
+    .join("");
 }
 
-function renderDashboardNext(){
+function renderMaterials() {
+  const grid = $("#materialsGrid");
+  if (!grid) return;
 
-  if(state.completedCases.length < 50){
+  const query = ($("#materialSearch")?.value || "")
+    .trim()
+    .toLowerCase();
 
-    const next =
-      state.completedCases.length + 1;
+  const activeFilter =
+    $("#materialFilters .active")?.dataset.level || "ALL";
 
-    $("#nextTitle").textContent =
-      `Case Level ${next}`;
+  const filtered = materials.filter((item) => {
+    const matchesLevel =
+      activeFilter === "ALL" || item.level === activeFilter;
 
-    $("#nextDesc").textContent =
-      "Continue your cybersecurity scenario learning.";
+    const text =
+      `${item.title} ${item.short} ${item.detail} ${item.keys.join(" ")}`.toLowerCase();
 
-  }else if(state.completedLabs.length < 5){
-
-    $("#nextTitle").textContent =
-      "Try a Practice Lab";
-
-    $("#nextDesc").textContent =
-      "Learn the theory and practice a security transformation.";
-
-  }else{
-
-    $("#nextTitle").textContent =
-      "Explore Advanced Materials";
-
-    $("#nextDesc").textContent =
-      "Continue learning advanced cybersecurity concepts.";
-
-  }
-}
-
-
-/* =========================
-   MATERIALS
-========================= */
-
-let activeMaterialFilter = "all";
-
-function initMaterialFilters(){
-
-  const filters = [
-    ["all","All"],
-    ["beginner","Beginner"],
-    ["intermediate","Intermediate"],
-    ["advanced","Advanced"]
-  ];
-
-  $("#materialFilters").innerHTML =
-    filters.map(item => `
-      <button
-        class="${item[0] === "all" ? "active" : ""}"
-        data-filter="${item[0]}"
-      >
-        ${item[1]}
-      </button>
-    `).join("");
-
-}
-
-function renderMaterials(){
-
-  const search =
-    ($("#materialSearch")?.value || "").toLowerCase();
-
-  const list = materials.filter(material => {
-
-    const matchesSearch =
-      material.title.toLowerCase().includes(search) ||
-      material.short.toLowerCase().includes(search);
-
-    const matchesFilter =
-      activeMaterialFilter === "all" ||
-      material.tags.includes(activeMaterialFilter);
-
-    return matchesSearch && matchesFilter;
-
+    return matchesLevel && text.includes(query);
   });
 
-  $("#materialsGrid").innerHTML =
-    list.map(material => `
-
-      <article
-        class="material-card"
-        data-material="${material.id}"
-      >
-
-        <div class="tagline">
-
-          <span class="level-tag">
-            ${material.level}
-          </span>
-
+  grid.innerHTML = filtered
+    .map(
+      (item) => `
+      <article class="info-card material-card">
+        <span class="card-tag">${escapeHTML(item.level)}</span>
+        <h3>${escapeHTML(item.title)}</h3>
+        <p>${escapeHTML(item.short)}</p>
+        <div class="button-row">
+          <button class="primary-btn small-btn" data-material="${item.id}">
+            Study Topic →
+          </button>
         </div>
-
-        <h3>${esc(material.title)}</h3>
-
-        <p>
-          ${esc(material.short)}
-        </p>
-
-        <div class="learn">
-          OPEN DETAILED MATERIAL →
-        </div>
-
       </article>
+    `
+    )
+    .join("");
 
-    `).join("");
-
-}
-
-function openDetail(html){
-
-  $("#detailContent").innerHTML = html;
-  $("#detailOverlay").classList.remove("hidden");
-
-}
-
-function closeDetail(){
-
-  $("#detailOverlay").classList.add("hidden");
-
-}
-
-function materialDetail(id){
-
-  const m = materials.find(x => x.id === id);
-
-  if(!m) return;
-
-  openDetail(`
-
-    <p class="eyebrow">
-      ${esc(m.level)} MATERIAL
-    </p>
-
-    <h2 class="detail-title">
-      ${esc(m.title)}
-    </h2>
-
-    <p class="detail-sub">
-      Detailed CyberHunt learning material
-    </p>
-
-
-    <div class="detail-section">
-
-      <h4>Detailed Explanation</h4>
-
-      <p>
-        ${esc(m.detail)}
-      </p>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Why It Matters</h4>
-
-      <p>
-        ${esc(m.why)}
-      </p>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Key Concepts</h4>
-
-      <div class="key-grid">
-
-        ${m.keys.map(k => `
-          <div class="key-item">
-            ${esc(k)}
-          </div>
-        `).join("")}
-
+  if (!filtered.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <h3>No materials found</h3>
+        <p>Try another keyword or category.</p>
       </div>
+    `;
+  }
+}
 
-    </div>
+function openMaterial(id) {
+  const item = materials.find((m) => m.id === Number(id));
+  if (!item) return;
 
+  const content = $("#detailContent");
+  const overlay = $("#detailOverlay");
 
-    <div class="detail-section">
+  if (!content || !overlay) return;
 
-      <h4>Example</h4>
-
-      <p>
-        ${esc(m.example)}
-      </p>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Scenario</h4>
-
-      <div class="case-story">
-        ${esc(m.scenario)}
-      </div>
-
-    </div>
-
+  content.innerHTML = `
+    <p class="eyebrow">${escapeHTML(item.level)}</p>
+    <h2>${escapeHTML(item.title)}</h2>
 
     <div class="detail-section">
-
-      <h4>Remember</h4>
-
-      <p>
-        ${esc(m.remember)}
-      </p>
-
+      <h3>What is it?</h3>
+      <p>${escapeHTML(item.detail)}</p>
     </div>
 
+    <div class="detail-section">
+      <h3>Why does it matter?</h3>
+      <p>${escapeHTML(item.why)}</p>
+    </div>
+
+    <div class="detail-section">
+      <h3>Key concepts</h3>
+      <ul>
+        ${item.keys.map((x) => `<li>${escapeHTML(x)}</li>`).join("")}
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Example</h3>
+      <p>${escapeHTML(item.example)}</p>
+    </div>
+
+    <div class="detail-section scenario-box">
+      <h3>Scenario</h3>
+      <p>${escapeHTML(item.scenario)}</p>
+    </div>
+
+    <div class="detail-section remember-box">
+      <h3>Remember</h3>
+      <p>${escapeHTML(item.remember)}</p>
+    </div>
 
     <div class="button-row">
-
-      <button
-        class="primary-btn"
-        data-ask-topic="${esc(m.title)}"
-      >
-        Ask AI About This
+      <button class="primary-btn" data-ask-material="${item.id}">
+        Ask AI about this
       </button>
-
-      <button
-        class="ghost-btn"
-        data-web-topic="${esc(m.title + " cybersecurity")}"
-      >
-        Connect to Web ↗
+      <button class="ghost-btn" data-web-material="${item.id}">
+        Search Web ↗
       </button>
-
+      <button class="ghost-btn" data-youtube-material="${item.id}">
+        YouTube ↗
+      </button>
     </div>
+  `;
 
-  `);
-
+  overlay.classList.remove("hidden");
 }
 
+function askAboutMaterial(id) {
+  const item = materials.find((m) => m.id === Number(id));
+  if (!item) return;
 
-/* =========================
+  $("#detailOverlay")?.classList.add("hidden");
+
+  showSection("ai");
+
+  const prompt =
+    `Explain ${item.title} in simple BTech CSE exam language with a definition, ` +
+    `key points, one example, one scenario and a memory trick.`;
+
+  $("#aiInput").value = prompt;
+  askAI(prompt);
+}
+
+/* =========================================================
    CASE STUDIES
-========================= */
+   ========================================================= */
 
-function renderCases(){
+const tracks = [
+  {
+    id: "phishing",
+    title: "Phishing Files",
+    description: "Investigate deceptive messages and social engineering.",
+    icon: "✉"
+  },
+  {
+    id: "ransomware",
+    title: "Ransomware Response",
+    description: "Practice defensive incident response decisions.",
+    icon: "◆"
+  },
+  {
+    id: "insider",
+    title: "Insider Mystery",
+    description: "Analyze access, logs and insider-risk scenarios.",
+    icon: "◉"
+  },
+  {
+    id: "web",
+    title: "Web Shield",
+    description: "Apply secure web application principles.",
+    icon: "⌁"
+  },
+  {
+    id: "forensics",
+    title: "Digital Forensics Hunt",
+    description: "Learn evidence preservation and investigation.",
+    icon: "⌘"
+  }
+];
 
-  $("#casesGrid").innerHTML =
-    tracks.map(track => {
+const caseData = {
+  phishing: [
+    ["Urgent Invoice", "An employee receives an unexpected invoice email demanding immediate payment.", "What should the employee do first?", ["Click the invoice quickly", "Verify the sender and report the message", "Forward it to everyone", "Disable all company systems"], "B", "Unexpected urgency is a common phishing warning sign. Verify before acting."],
+    ["Suspicious Link", "A message contains a button labeled 'Company Portal' but its destination looks unfamiliar.", "Which clue is most important?", ["The email uses a company logo", "The link destination is suspicious", "The message is short", "The font looks normal"], "B", "The destination of a link can reveal a deceptive domain."],
+    ["Unknown Attachment", "A supplier sends an unexpected executable attachment.", "What is the safest response?", ["Open it immediately", "Rename it", "Verify the sender and scan/report it", "Send it to a friend"], "C", "Unexpected attachments should be treated as untrusted."],
+    ["MFA Request", "A user receives a message asking for a one-time MFA code.", "What should the user do?", ["Share it", "Post it", "Refuse and report the request", "Send it to the manager through the same message"], "C", "Legitimate support should not require users to casually disclose authentication codes."],
+    ["Smishing", "A student receives a text message claiming their bank account will be closed unless they click a link.", "What type of social engineering is this?", ["Smishing", "Tailgating", "Shoulder surfing", "Dumpster diving"], "A", "SMS-based phishing is commonly called smishing."],
+    ["Authority Pressure", "A fake executive asks an employee to urgently purchase gift cards.", "Which manipulation technique is being used?", ["Authority and urgency", "Encryption", "Hashing", "Network segmentation"], "A", "Attackers often exploit authority and urgency."],
+    ["Report It", "An employee recognizes a phishing email before clicking anything.", "What is the best defensive action?", ["Ignore it forever", "Report it through the organization's process", "Reply angrily", "Publish it online"], "B", "Reporting helps security teams protect other users."],
+    ["Evidence", "A suspicious message is reported to the security team.", "What can help investigation?", ["Deleting all traces", "Preserving the message and relevant headers", "Forwarding it publicly", "Changing the font"], "B", "Preserved evidence can help analysts investigate the event."],
+    ["Prevention", "A company wants to reduce successful phishing attacks.", "Which combination is strongest?", ["Training only", "Technology only", "Training, technical controls and reporting", "No controls"], "C", "Defense in depth combines people, process and technology."],
+    ["Response", "Several employees clicked a phishing link.", "What should security teams prioritize?", ["Blame employees", "Investigate affected accounts and contain the incident", "Delete logs", "Ignore it"], "B", "Containment and investigation reduce further risk."]
+  ],
 
-      const completed =
-        track.levels.filter(level =>
-          caseDone(level.id)
-        ).length;
+  ransomware: [
+    ["Strange Extensions", "Several computers suddenly show unfamiliar file extensions.", "What should defenders suspect?", ["Normal maintenance", "Possible ransomware activity", "Printer failure", "Password expiration"], "B", "Sudden widespread file changes can indicate ransomware."],
+    ["Isolation", "Ransomware is suspected on one workstation.", "What is an appropriate immediate defensive action?", ["Connect it to more systems", "Isolate the affected system", "Delete every backup", "Publish the files"], "B", "Isolation can reduce spread."],
+    ["Backups", "A ransomware incident has affected production files.", "What should responders verify?", ["Whether reliable backups exist", "Whether users can change wallpaper", "Whether the keyboard works", "Whether email signatures changed"], "A", "Backups can support recovery if they are intact and trustworthy."],
+    ["Preserve Evidence", "An incident responder needs to understand how the ransomware entered.", "What should be protected?", ["Logs and relevant evidence", "Only screenshots", "Nothing", "Random files"], "A", "Evidence can reveal root cause and scope."],
+    ["Scope", "One server is infected and defenders suspect others may be affected.", "What should investigators determine?", ["The scope of compromise", "The office temperature", "Employee birthdays", "Wallpaper settings"], "A", "Determining scope helps containment and recovery."],
+    ["Recovery", "Systems are isolated and verified clean backups are available.", "What is an appropriate recovery step?", ["Restore using trusted processes", "Reconnect everything blindly", "Delete all logs", "Disable security controls"], "A", "Recovery should use trusted systems and controlled processes."],
+    ["Root Cause", "After recovery, the team investigates how the attack started.", "Why?", ["To identify and fix weaknesses", "To make the attack happen again", "To remove all documentation", "To blame users"], "A", "Root-cause analysis supports long-term improvement."],
+    ["Communication", "A major incident affects business operations.", "Why is incident communication important?", ["To coordinate stakeholders", "To hide every fact", "To spread rumors", "To disable backups"], "A", "Clear communication helps coordinate response and recovery."],
+    ["Lessons Learned", "The incident is resolved.", "What should happen next?", ["Conduct a lessons-learned review", "Forget everything", "Delete the incident report", "Remove monitoring"], "A", "Post-incident review improves future resilience."],
+    ["Resilience", "A company wants to reduce future ransomware impact.", "Which approach is strongest?", ["Backups, segmentation, MFA, patching and response planning", "One password for everyone", "No monitoring", "Publicly sharing credentials"], "A", "Layered controls improve resilience."]
+  ],
 
-      const percent =
-        Math.round((completed / 10) * 100);
+  insider: [
+    ["Least Privilege", "An employee only needs access to one project.", "Which principle should guide access?", ["Least privilege", "Maximum privilege", "Anonymous access", "No logging"], "A", "Users should receive only the access needed for their role."],
+    ["Access Review", "An employee changes departments.", "What should happen to old permissions?", ["Review and remove unnecessary access", "Keep everything forever", "Give administrator rights", "Disable all systems"], "A", "Access should match current responsibilities."],
+    ["Log Anomaly", "A user account accesses sensitive files at an unusual time.", "What should analysts do?", ["Investigate the anomaly", "Ignore it automatically", "Delete logs", "Share credentials"], "A", "An unusual event is a signal for investigation, not automatic proof of guilt."],
+    ["DLP", "An organization wants to reduce unauthorized transfer of sensitive data.", "Which type of control can help?", ["Data Loss Prevention", "Screen brightness", "Printer paper", "Wallpaper policy"], "A", "DLP can help identify or prevent inappropriate data movement."],
+    ["Separation", "One employee can both request and approve a sensitive financial transaction.", "Which control could reduce this risk?", ["Separation of duties", "Shared passwords", "Open access", "No auditing"], "A", "Separating responsibilities reduces opportunities for abuse."],
+    ["Privileged Access", "An administrator account has broad permissions.", "What is a strong practice?", ["Restrict and monitor privileged access", "Share the account", "Remove all logs", "Use it for everyone"], "A", "Privileged accounts require strong controls."],
+    ["Due Care", "Management implements reasonable safeguards for important systems.", "What principle does this reflect?", ["Due care", "Random access", "Social engineering", "Encryption"], "A", "Due care means taking reasonable security precautions."],
+    ["Fair Investigation", "An employee is suspected of misuse.", "What should investigators do?", ["Collect evidence objectively", "Assume guilt immediately", "Delete evidence", "Publish accusations"], "A", "Security investigations should distinguish evidence from assumptions."],
+    ["Account Review", "A contractor's project ends.", "What should happen to the contractor account?", ["Disable or review access promptly", "Keep full access forever", "Share it", "Make it public"], "A", "Unused accounts increase unnecessary risk."],
+    ["Reporting", "Evidence suggests a policy violation.", "What should the security team do?", ["Follow the organization's investigation and reporting process", "Post private evidence online", "Destroy records", "Ignore it"], "A", "Controlled reporting protects evidence and supports fair handling."]
+  ],
+
+  web: [
+    ["Record Ownership", "A user changes an ID in a URL and sees another user's record.", "What security issue is most likely?", ["Broken access control", "Strong encryption", "Availability", "Backup failure"], "A", "Server-side authorization must verify ownership."],
+    ["SQL Safety", "A developer builds SQL queries by directly concatenating user input.", "What should be used instead?", ["Parameterized queries", "More HTML", "Longer URLs", "Screenshots"], "A", "Parameterized queries help prevent SQL injection."],
+    ["XSS Defense", "User-supplied content is displayed directly in a web page.", "What should developers consider?", ["Context-appropriate output encoding", "Removing all logs", "Giving admin access", "Sharing passwords"], "A", "Untrusted output should be handled safely."],
+    ["Session Security", "A website keeps users logged in using a session token.", "What is important?", ["Secure session management", "Public session tokens", "Shared tokens", "No expiration"], "A", "Session tokens need appropriate protection and lifecycle controls."],
+    ["CSRF", "A malicious page attempts to cause a user's browser to submit an unwanted state-changing request.", "Which defense can help?", ["CSRF protections", "More screen brightness", "Open permissions", "Plaintext passwords"], "A", "CSRF defenses help ensure state-changing requests are legitimate."],
+    ["Input Validation", "A form accepts unexpected input.", "What is a strong principle?", ["Validate and constrain untrusted input", "Trust all input", "Disable authentication", "Delete logs"], "A", "Input should be treated as untrusted."],
+    ["Secure Design", "A developer identifies an authorization problem before coding begins.", "What practice helped?", ["Threat modeling / secure design", "Password sharing", "No testing", "Open access"], "A", "Security should be considered during design."],
+    ["Logging", "A web application suffers repeated failed administrator logins.", "What can help investigation?", ["Security logging and monitoring", "Deleting logs", "Ignoring events", "Disabling alerts"], "A", "Useful logs provide visibility into suspicious behavior."],
+    ["Patching", "A framework has a known critical security vulnerability.", "What should the team do?", ["Apply a tested security update", "Ignore it", "Publish credentials", "Disable all security"], "A", "Known vulnerabilities should be remediated appropriately."],
+    ["Defense in Depth", "A web application uses MFA, authorization, validation and monitoring.", "What principle does this demonstrate?", ["Defense in depth", "Single point of failure", "No trust", "Data deletion"], "A", "Multiple independent controls provide layered protection."]
+  ],
+
+  forensics: [
+    ["File Hash", "An investigator wants to verify a forensic file did not change.", "What can help?", ["Cryptographic hash", "File rename", "Screenshot only", "Email forwarding"], "A", "Hashes can help verify integrity."],
+    ["Metadata", "An investigator examines timestamps and file metadata.", "Why?", ["They may provide investigative context", "They automatically prove guilt", "They replace all evidence", "They disable malware"], "A", "Metadata can provide useful context but must be interpreted carefully."],
+    ["DNS Logs", "An infected endpoint contacted a suspicious domain.", "Which source may help?", ["DNS logs", "Wallpaper settings", "Printer color", "Keyboard layout"], "A", "DNS logs can help reveal domain lookups."],
+    ["Firewall Event", "A firewall recorded an unusual outbound connection.", "What can it provide?", ["Network evidence", "A guaranteed attacker's identity", "A password", "A replacement for all logs"], "A", "Firewall events can contribute to an investigation."],
+    ["Timeline", "An analyst combines login, file and network events.", "What are they building?", ["An incident timeline", "A password list", "A firewall", "A database"], "A", "Timelines help reconstruct sequences of events."],
+    ["Chain of Custody", "Evidence is transferred between investigators.", "What should be documented?", ["Who handled it and when", "Nothing", "Only the filename", "The investigator's favorite color"], "A", "Chain of custody supports evidence traceability."],
+    ["Evidence Copy", "An analyst needs to examine a disk image.", "What is safer?", ["Work from a verified forensic copy", "Modify the original", "Delete the original", "Upload it publicly"], "A", "Investigators generally preserve originals and work from controlled copies."],
+    ["Integrity Check", "A forensic image has a known hash.", "Why calculate it again later?", ["To verify integrity", "To change the evidence", "To create a password", "To disable logging"], "A", "Matching hashes provide evidence that the data has not changed."],
+    ["Facts vs Assumptions", "An analyst sees an unusual login.", "What should the report say?", ["Document the observed fact and investigate possible explanations", "State guilt immediately", "Delete the event", "Invent a reason"], "A", "Good analysis separates facts from assumptions."],
+    ["Final Report", "An investigation is complete.", "What should the final report contain?", ["Methods, evidence, findings and conclusions", "Only rumors", "Passwords", "Unverified accusations"], "A", "A professional report explains what was examined and what was found."]
+  ]
+};
+
+function getCaseList(trackId) {
+  return caseData[trackId] || [];
+}
+
+function renderCases() {
+  const grid = $("#casesGrid");
+  if (!grid) return;
+
+  grid.innerHTML = tracks
+    .map((track) => {
+      const done = getCaseList(track.id).filter((_, i) =>
+        state.completedCases.includes(`${track.id}-${i + 1}`)
+      ).length;
 
       return `
-
-        <article
-          class="case-card"
-          data-track="${track.id}"
-        >
-
-          <div class="case-num">
-            ${track.icon} TRACK
+        <article class="case-track">
+          <div class="case-icon">${track.icon}</div>
+          <div>
+            <p class="eyebrow">${done}/10 COMPLETE</p>
+            <h3>${escapeHTML(track.title)}</h3>
+            <p>${escapeHTML(track.description)}</p>
           </div>
-
-          <h3>
-            ${esc(track.title)}
-          </h3>
-
-          <p>
-            ${esc(track.description)}
-          </p>
-
-          <div class="case-progress">
-
-            <small>
-              ${completed}/10 levels
-            </small>
-
-            <div class="progress">
-              <i style="width:${percent}%"></i>
-            </div>
-
-          </div>
-
+          <button class="primary-btn" data-track="${track.id}">
+            View Levels →
+          </button>
         </article>
-
       `;
+    })
+    .join("");
 
-    }).join("");
-
+  const levels = $("#caseLevels");
+  if (levels) {
+    levels.classList.add("hidden");
+    levels.innerHTML = "";
+  }
 }
 
-function showLevels(trackId){
+function openTrack(trackId) {
+  const track = tracks.find((t) => t.id === trackId);
+  const list = getCaseList(trackId);
 
-  const track =
-    tracks.find(t => t.id === trackId);
+  if (!track || !list.length) return;
 
-  if(!track) return;
+  const grid = $("#casesGrid");
+  const levels = $("#caseLevels");
 
-  const container = $("#caseLevels");
+  if (!grid || !levels) return;
 
-  container.classList.remove("hidden");
+  grid.classList.add("hidden");
+  levels.classList.remove("hidden");
 
-  container.innerHTML = `
-
-    <div class="levels-head">
-
+  levels.innerHTML = `
+    <div class="section-heading">
       <div>
-        <p class="eyebrow">
-          CASE TRACK
-        </p>
-
-        <h3>
-          ${esc(track.title)}
-        </h3>
+        <p class="eyebrow">INVESTIGATION TRACK</p>
+        <h3>${escapeHTML(track.title)}</h3>
+        <p>${escapeHTML(track.description)}</p>
       </div>
-
-      <button
-        class="ghost-btn"
-        id="hideLevels"
-      >
-        Hide
-      </button>
-
+      <button class="ghost-btn" data-back-cases>← All Tracks</button>
     </div>
-
 
     <div class="level-grid">
+      ${list
+        .map((item, index) => {
+          const number = index + 1;
+          const id = `${trackId}-${number}`;
+          const complete = state.completedCases.includes(id);
 
-      ${track.levels.map(level => `
+          return `
+            <button class="level-card ${complete ? "complete" : ""}"
+                    data-case="${trackId}|${number}">
+              <span>LEVEL ${number}</span>
+              <b>${escapeHTML(item[0])}</b>
+              <small>${complete ? "✓ Completed" : "Start Investigation →"}</small>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
 
-        <button
-          class="level-btn ${caseDone(level.id) ? "done" : ""}"
-          data-level="${level.id}"
-        >
+function openCase(trackId, number) {
+  const list = getCaseList(trackId);
+  const item = list[number - 1];
+  const track = tracks.find((t) => t.id === trackId);
 
-          <b>
-            Level ${level.number}
-          </b>
+  if (!item || !track) return;
 
-          <span>
-            ${caseDone(level.id)
-              ? "✓ Completed"
-              : esc(level.title)}
-          </span>
+  const content = $("#detailContent");
+  const overlay = $("#detailOverlay");
 
-        </button>
+  if (!content || !overlay) return;
 
-      `).join("")}
+  const [title, scenario, question, options, answer, explanation] = item;
 
+  content.innerHTML = `
+    <p class="eyebrow">${escapeHTML(track.title)} · LEVEL ${number}</p>
+    <h2>${escapeHTML(title)}</h2>
+
+    <div class="detail-section scenario-box">
+      <h3>Mission Briefing</h3>
+      <p>${escapeHTML(scenario)}</p>
     </div>
 
+    <div class="detail-section">
+      <h3>Clues</h3>
+      <ul>
+        <li>Look for unusual behavior.</li>
+        <li>Identify the security principle involved.</li>
+        <li>Choose the safest defensive action.</li>
+      </ul>
+    </div>
+
+    <div class="detail-section">
+      <h3>Question</h3>
+      <p><strong>${escapeHTML(question)}</strong></p>
+
+      <div class="case-options">
+        ${options
+          .map(
+            (option, index) => `
+              <button
+                class="case-option"
+                data-answer="${String.fromCharCode(65 + index)}"
+                data-correct="${answer}"
+                data-track="${trackId}"
+                data-level="${number}"
+              >
+                <span>${String.fromCharCode(65 + index)}</span>
+                ${escapeHTML(option)}
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+
+    <div id="caseResult"></div>
+
+    <button
+      id="hintBtn"
+      class="ghost-btn"
+      data-hint="${escapeHTML(explanation)}"
+    >
+      💡 Show Hint
+    </button>
   `;
 
-  container.scrollIntoView({
-    behavior:"smooth",
-    block:"start"
+  overlay.classList.remove("hidden");
+}
+
+function answerCase(button) {
+  const selected = button.dataset.answer;
+  const correct = button.dataset.correct;
+  const track = button.dataset.track;
+  const level = Number(button.dataset.level);
+
+  $$(".case-option").forEach((option) => {
+    option.disabled = true;
+
+    if (option.dataset.answer === correct) {
+      option.classList.add("correct");
+    }
+
+    if (
+      option.dataset.answer === selected &&
+      selected !== correct
+    ) {
+      option.classList.add("wrong");
+    }
   });
 
-}
+  const result = $("#caseResult");
+  if (!result) return;
 
-function getCase(levelId){
+  const isCorrect = selected === correct;
 
-  for(const track of tracks){
+  if (isCorrect) {
+    const caseId = `${track}-${level}`;
+    let earned = 0;
 
-    const level =
-      track.levels.find(l => l.id === levelId);
-
-    if(level){
-      return {
-        track,
-        level
-      };
-    }
-
-  }
-
-  return null;
-}
-
-function caseDetail(levelId){
-
-  const result = getCase(levelId);
-
-  if(!result) return;
-
-  const {track,level} = result;
-
-  openDetail(`
-
-    <p class="eyebrow">
-      ${esc(track.title)} · LEVEL ${level.number}
-    </p>
-
-    <h2 class="detail-title">
-      ${esc(level.title)}
-    </h2>
-
-    <p class="detail-sub">
-      Read the incident carefully before answering.
-    </p>
-
-
-    <div class="detail-section">
-
-      <h4>Case Scenario</h4>
-
-      <div class="case-story">
-        ${esc(level.scenario)}
-      </div>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Investigation Clue</h4>
-
-      <p>
-        Look for the security principle that best fits
-        the situation rather than choosing the most dramatic option.
-      </p>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Question</h4>
-
-      <p class="quiz-question">
-        ${esc(level.question)}
-      </p>
-
-    </div>
-
-
-    <div id="caseOptions">
-
-      ${level.options.map(option => `
-
-        <button
-          class="case-option"
-          data-case-answer="${level.id}"
-          data-opt="${esc(option)}"
-        >
-          ${esc(option)}
-        </button>
-
-      `).join("")}
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Hint</h4>
-
-      <p>
-        ${esc(level.hint)}
-      </p>
-
-    </div>
-
-  `);
-
-}
-
-function answerCase(levelId,selected){
-
-  const result = getCase(levelId);
-
-  if(!result) return;
-
-  const {level} = result;
-
-  const existing =
-    document.querySelector(".case-result");
-
-  if(existing) existing.remove();
-
-  const correct =
-    selected === level.answer;
-
-  const resultBox =
-    document.createElement("div");
-
-  resultBox.className =
-    "case-result " +
-    (correct ? "correct" : "wrong");
-
-  if(correct){
-
-    if(!caseDone(level.id)){
-
-      state.completedCases.push(level.id);
-      state.xp += 20;
-
+    if (!state.completedCases.includes(caseId)) {
+      state.completedCases.push(caseId);
+      earned = 25;
+      state.xp += earned;
+      checkBadges();
       save();
-
-      toast("+20 XP · Case completed");
-
+      updateHeader();
     }
 
-    resultBox.innerHTML = `
-      <b>✓ Correct</b><br>
-      ${esc(level.explanation)}
+    result.innerHTML = `
+      <div class="result success">
+        <h3>✓ Correct!</h3>
+        <p>You identified the correct defensive decision.</p>
+        <strong>${earned ? "+" + earned + " XP" : "Already completed · review mode"}</strong>
+      </div>
     `;
 
-  }else{
-
-    resultBox.innerHTML = `
-      <b>✕ Not quite</b><br>
-      Review the clue and try again.
+    toast(earned ? `Case solved! +${earned} XP` : "Case reviewed.");
+  } else {
+    result.innerHTML = `
+      <div class="result error">
+        <h3>Not quite.</h3>
+        <p>Review the highlighted correct option and explanation.</p>
+      </div>
     `;
 
+    toast("Review the correct answer and explanation.");
   }
 
-  $("#caseOptions").after(resultBox);
+  const explanation = caseData[track][level - 1][5];
 
-  updateHeader();
+  result.innerHTML += `
+    <div class="detail-section">
+      <h3>Explanation</h3>
+      <p>${escapeHTML(explanation)}</p>
+    </div>
+  `;
+
   renderCases();
-  renderBadges();
-
 }
 
+function showHint(text) {
+  toast(text);
+}
 
-/* =========================
-   QUIZ
-========================= */
+/* =========================================================
+   MINI QUIZ
+   ========================================================= */
 
-function renderQuiz(){
+const quizQuestions = [
+  {
+    q: "A database record is changed without authorization. Which CIA property is affected most directly?",
+    options: ["Confidentiality", "Integrity", "Availability", "Authentication"],
+    answer: 1,
+    explanation: "Integrity means information remains accurate and trustworthy."
+  },
+  {
+    q: "A password is stolen, but an authenticator app blocks the attacker's login. Which control helped?",
+    options: ["MFA", "Hashing only", "Firewall only", "Backup"],
+    answer: 0,
+    explanation: "MFA requires an additional authentication factor."
+  },
+  {
+    q: "A logged-in user changes an ID and views another user's data. What is the primary issue?",
+    options: ["Broken access control", "Encryption", "Availability", "Compression"],
+    answer: 0,
+    explanation: "The server failed to enforce authorization for the requested resource."
+  },
+  {
+    q: "A security system detects suspicious network traffic and alerts analysts without blocking it. What is it?",
+    options: ["IDS", "IPS", "Backup", "Password manager"],
+    answer: 0,
+    explanation: "An IDS focuses on detection and alerting."
+  },
+  {
+    q: "Which is primarily designed as a one-way transformation?",
+    options: ["Encryption", "Hashing", "Compression", "Encoding"],
+    answer: 1,
+    explanation: "Cryptographic hashes are designed as one-way functions."
+  },
+  {
+    q: "A message urgently asks for an MFA code. What is the safest response?",
+    options: ["Share the code", "Ignore security rules", "Refuse and report it", "Post it"],
+    answer: 2,
+    explanation: "Authentication codes should never be casually disclosed."
+  },
+  {
+    q: "Ransomware is detected on one endpoint. What should defenders consider immediately?",
+    options: ["Isolation", "Sharing the endpoint", "Deleting backups", "Disabling monitoring"],
+    answer: 0,
+    explanation: "Isolation can reduce the chance of further spread."
+  },
+  {
+    q: "Which principle gives a user only the access required for their role?",
+    options: ["Least privilege", "Maximum privilege", "Open access", "Anonymous access"],
+    answer: 0,
+    explanation: "Least privilege limits permissions to what is necessary."
+  },
+  {
+    q: "In NIST CSF 2.0, which function focuses on cybersecurity strategy, policy and oversight?",
+    options: ["Protect", "Detect", "Govern", "Recover"],
+    answer: 2,
+    explanation: "Govern establishes and monitors cybersecurity strategy and expectations."
+  },
+  {
+    q: "What is a strong defense against SQL injection?",
+    options: ["Parameterized queries", "More screenshots", "Longer usernames", "Disabling logs"],
+    answer: 0,
+    explanation: "Parameterized queries separate data from SQL commands."
+  }
+];
 
-  if(quizState.finished){
+let quizAnswers = {};
 
-    $("#quizArea").innerHTML = `
+function renderQuiz() {
+  const area = $("#quizArea");
+  if (!area) return;
 
-      <div class="quiz-result">
+  if (Object.keys(quizAnswers).length === quizQuestions.length) {
+    const score = calculateQuizScore();
 
-        <p class="eyebrow">
-          QUIZ COMPLETE
-        </p>
-
-        <strong>
-          ${quizState.score}/10
-        </strong>
-
-        <p>
-          ${
-            quizState.score >= 8
-            ? "Excellent application of cybersecurity concepts."
-            : quizState.score >= 5
-            ? "Good foundation. Review the missed concepts."
-            : "Review the materials and try again."
-          }
-        </p>
-
-        <button
-          class="primary-btn"
-          id="restartQuiz"
-        >
-          Retake Quiz
+    area.innerHTML = `
+      <div class="quiz-complete">
+        <p class="eyebrow">QUIZ COMPLETE</p>
+        <h2>${score}/10</h2>
+        <p>You answered ${score} questions correctly.</p>
+        <button class="primary-btn" data-restart-quiz>
+          Try Again
         </button>
-
       </div>
-
     `;
 
     return;
-
   }
 
-  const q =
-    quizData[quizState.index];
-
-  $("#quizArea").innerHTML = `
-
-    <div class="quiz-number">
-      QUESTION ${quizState.index + 1} / ${quizData.length}
-    </div>
-
-    <div class="quiz-question">
-      ${esc(q.q)}
-    </div>
-
-    <div class="quiz-options">
-
-      ${q.options.map(option => `
-
-        <button
-          class="quiz-option"
-          data-qopt="${esc(option)}"
-        >
-          ${esc(option)}
-        </button>
-
-      `).join("")}
-
-    </div>
-
-  `;
-
-}
-
-function answerQuiz(selected){
-
-  if(quizState.answered) return;
-
-  const q =
-    quizData[quizState.index];
-
-  quizState.answered = true;
-
-  const buttons =
-    $$(".quiz-option");
-
-  buttons.forEach(button => {
-
-    if(button.textContent.trim() === q.answer){
-      button.classList.add("correct");
-    }
-
-    if(button.textContent.trim() === selected &&
-       selected !== q.answer){
-      button.classList.add("wrong");
-    }
-
-  });
-
-  if(selected === q.answer){
-
-    quizState.score++;
-
-  }
-
-  $("#quizArea").insertAdjacentHTML(
-    "beforeend",
-    `
-      <div class="quiz-explanation">
-        <b>Explanation:</b>
-        ${esc(q.explain)}
-        <br><br>
-        <button class="primary-btn" id="nextQuiz">
-          ${
-            quizState.index === quizData.length - 1
-            ? "Finish Quiz"
-            : "Next Question →"
-          }
-        </button>
+  area.innerHTML = `
+    <div class="quiz-head">
+      <div>
+        <p class="eyebrow">10 SCENARIOS</p>
+        <h3>Apply what you know</h3>
       </div>
-    `
-  );
-
-}
-
-function nextQuiz(){
-
-  if(
-    quizState.index ===
-    quizData.length - 1
-  ){
-
-    quizState.finished = true;
-
-    if(quizState.score > state.quizBest){
-
-      state.quizBest =
-        quizState.score;
-
-      state.xp += quizState.score * 5;
-
-      save();
-
-      toast(
-        `Quiz complete · +${quizState.score * 5} XP`
-      );
-
-    }
-
-    updateHeader();
-    renderBadges();
-
-    renderQuiz();
-
-    return;
-  }
-
-  quizState.index++;
-  quizState.answered = false;
-
-  renderQuiz();
-
-}
-
-
-/* =========================
-   LABS
-========================= */
-
-function renderLabs(){
-
-  $("#labsGrid").innerHTML =
-    labs.map(lab => `
-
-      <article
-        class="material-card"
-        data-lab="${lab.id}"
-      >
-
-        <div class="lab-symbol">
-          ${lab.icon}
-        </div>
-
-        <span class="level-tag">
-          SAFE PRACTICE
-        </span>
-
-        <h3>
-          ${esc(lab.title)}
-        </h3>
-
-        <p>
-          ${esc(lab.theory.slice(0,150))}…
-        </p>
-
-        <div class="lab-cta">
-          ${
-            labDone(lab.id)
-            ? "✓ COMPLETED · REVIEW"
-            : "OPEN LEARNING PANEL →"
-          }
-        </div>
-
-      </article>
-
-    `).join("");
-
-}
-
-function labDetail(id,startPractice=false){
-
-  const lab =
-    labs.find(x => x.id === id);
-
-  if(!lab) return;
-
-  openDetail(`
-
-    <p class="eyebrow">
-      PRACTICE LAB
-    </p>
-
-    <h2 class="detail-title">
-      ${esc(lab.title)}
-    </h2>
-
-    <p class="detail-sub">
-      Learn first. Practice second.
-    </p>
-
-
-    <div class="detail-section">
-
-      <h4>Theory</h4>
-
-      <p>
-        ${esc(lab.theory)}
-      </p>
-
+      <span class="pill">${Object.keys(quizAnswers).length}/10</span>
     </div>
 
+    ${quizQuestions
+      .map(
+        (item, index) => `
+        <div class="quiz-question">
+          <p>
+            <strong>${index + 1}.</strong>
+            ${escapeHTML(item.q)}
+          </p>
 
-    <div class="detail-section">
-
-      <h4>Why It Matters</h4>
-
-      <p>
-        ${esc(lab.why)}
-      </p>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>How To Do It</h4>
-
-      <ol>
-        ${lab.steps.map(step => `
-          <li>${esc(step)}</li>
-        `).join("")}
-      </ol>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>One Worked Example</h4>
-
-      <p style="white-space:pre-line">
-        ${esc(lab.example)}
-      </p>
-
-    </div>
-
-
-    <div class="detail-section">
-
-      <h4>Remember</h4>
-
-      <p>
-        ${esc(lab.remember)}
-      </p>
-
-    </div>
-
-
-    ${
-      startPractice
-      ? `
-        <div class="detail-section">
-
-          <h4>Your Practice</h4>
-
-          <div class="practice-box">
-            ${practiceUI(lab)}
+          <div class="quiz-options">
+            ${item.options
+              .map(
+                (option, optionIndex) => `
+                  <button
+                    class="${
+                      quizAnswers[index] !== undefined
+                        ? optionIndex === item.answer
+                          ? "correct"
+                          : quizAnswers[index] === optionIndex
+                          ? "wrong"
+                          : ""
+                        : ""
+                    }"
+                    data-quiz="${index}|${optionIndex}"
+                    ${
+                      quizAnswers[index] !== undefined
+                        ? "disabled"
+                        : ""
+                    }
+                  >
+                    ${String.fromCharCode(65 + optionIndex)}.
+                    ${escapeHTML(option)}
+                  </button>
+                `
+              )
+              .join("")}
           </div>
 
+          ${
+            quizAnswers[index] !== undefined
+              ? `
+                <small class="quiz-explanation">
+                  ${escapeHTML(item.explanation)}
+                </small>
+              `
+              : ""
+          }
         </div>
       `
-      : `
-        <button
-          class="primary-btn"
-          data-start-lab="${lab.id}"
-        >
-          Start Practice
-        </button>
-      `
+      )
+      .join("")}
+  `;
+}
+
+function answerQuiz(questionIndex, optionIndex) {
+  if (quizAnswers[questionIndex] !== undefined) return;
+
+  quizAnswers[questionIndex] = optionIndex;
+  renderQuiz();
+
+  if (Object.keys(quizAnswers).length === quizQuestions.length) {
+    const score = calculateQuizScore();
+
+    if (score > state.quizBest) {
+      state.quizBest = score;
+
+      if (!state.quizAttemptAwarded) {
+        state.xp += score * 5;
+        state.quizAttemptAwarded = true;
+      }
     }
 
-  `);
-
+    checkBadges();
+    save();
+    updateHeader();
+  }
 }
 
-function practiceUI(lab){
+function calculateQuizScore() {
+  return quizQuestions.reduce(
+    (score, question, index) =>
+      score +
+      (quizAnswers[index] === question.answer ? 1 : 0),
+    0
+  );
+}
 
-  if(lab.type === "base64"){
+function restartQuiz() {
+  quizAnswers = {};
+  renderQuiz();
+}
 
-    return `
+/* =========================================================
+   PRACTICE LABS
+   ========================================================= */
 
-      <label>
-        Text
-
-        <textarea
-          id="labInput"
-          placeholder="Enter text..."
-        ></textarea>
-
-      </label>
-
-      <div class="practice-actions">
-
-        <button
-          class="primary-btn"
-          data-lab-action="b64e"
-        >
-          Encode Base64
-        </button>
-
-        <button
-          class="ghost-btn"
-          data-lab-action="b64d"
-        >
-          Decode Base64
-        </button>
-
-      </div>
-
-      <div id="labOutput" class="practice-output">
-        Your result will appear here.
-      </div>
-
-    `;
-
+const labs = [
+  {
+    id: "base64",
+    title: "Base64 Encode / Decode",
+    icon: "B64",
+    theory:
+      "Base64 is an encoding scheme that represents binary data using printable characters. It is encoding, not encryption.",
+    why:
+      "Base64 appears in data transfer, email, APIs and security investigations.",
+    steps: [
+      "Enter text.",
+      "Choose Encode or Decode.",
+      "Run the operation.",
+      "Inspect the result."
+    ],
+    example: "Text: CyberHunt → Base64: Q3liZXJIdW50",
+    remember: "Base64 does NOT provide confidentiality."
+  },
+  {
+    id: "url",
+    title: "URL Encode / Decode",
+    icon: "URL",
+    theory:
+      "URL encoding converts characters into a format suitable for use inside URLs.",
+    why:
+      "Web applications frequently handle user-controlled URL parameters.",
+    steps: [
+      "Enter a URL or text.",
+      "Choose Encode or Decode.",
+      "Run the operation.",
+      "Compare the input and output."
+    ],
+    example: "hello world → hello%20world",
+    remember: "URL encoding is not encryption."
+  },
+  {
+    id: "hex",
+    title: "Hex Encode / Decode",
+    icon: "HEX",
+    theory:
+      "Hexadecimal represents bytes using symbols 0–9 and A–F.",
+    why:
+      "Hex is common in digital forensics, networking and data inspection.",
+    steps: [
+      "Enter text.",
+      "Encode it into hexadecimal.",
+      "Copy the result.",
+      "Decode it back."
+    ],
+    example: "ABC → 41 42 43",
+    remember: "Hex is a representation, not encryption."
+  },
+  {
+    id: "rot13",
+    title: "ROT13",
+    icon: "13",
+    theory:
+      "ROT13 substitutes each alphabetic character with the character 13 positions away.",
+    why:
+      "It is useful for understanding substitution and reversible transformations.",
+    steps: [
+      "Enter text.",
+      "Apply ROT13.",
+      "Apply ROT13 again.",
+      "Observe that the original text returns."
+    ],
+    example: "HELLO → URYYB",
+    remember: "ROT13 provides no serious security."
+  },
+  {
+    id: "sha256",
+    title: "SHA-256 Hashing",
+    icon: "#",
+    theory:
+      "SHA-256 is a cryptographic hash function that produces a 256-bit digest.",
+    why:
+      "Hashes can be used to verify data integrity and identify exact content.",
+    steps: [
+      "Enter text.",
+      "Generate SHA-256.",
+      "Copy the digest.",
+      "Change one character and hash again."
+    ],
+    example:
+      "A tiny input change should produce a substantially different digest.",
+    remember: "Hashing is designed as a one-way transformation."
   }
+];
 
-  if(lab.type === "url"){
+function renderLabs() {
+  const grid = $("#labsGrid");
+  if (!grid) return;
 
-    return `
-
-      <label>
-        Text
-
-        <textarea
-          id="labInput"
-          placeholder="Enter text..."
-        ></textarea>
-
-      </label>
-
-      <div class="practice-actions">
-
-        <button
-          class="primary-btn"
-          data-lab-action="urle"
-        >
-          Encode URL
+  grid.innerHTML = labs
+    .map(
+      (lab) => `
+      <article class="info-card lab-card">
+        <div class="lab-icon">${escapeHTML(lab.icon)}</div>
+        <span class="card-tag">SAFE PRACTICE</span>
+        <h3>${escapeHTML(lab.title)}</h3>
+        <p>${escapeHTML(lab.theory)}</p>
+        <button class="primary-btn" data-lab="${lab.id}">
+          Learn & Practice →
         </button>
+      </article>
+    `
+    )
+    .join("");
+}
 
-        <button
-          class="ghost-btn"
-          data-lab-action="urld"
-        >
-          Decode URL
-        </button>
+function openLab(id) {
+  const lab = labs.find((x) => x.id === id);
+  if (!lab) return;
 
-      </div>
+  const content = $("#detailContent");
+  const overlay = $("#detailOverlay");
 
-      <div id="labOutput" class="practice-output">
-        Your result will appear here.
-      </div>
+  if (!content || !overlay) return;
 
-    `;
+  content.innerHTML = `
+    <p class="eyebrow">SAFE PRACTICE LAB</p>
+    <h2>${escapeHTML(lab.title)}</h2>
 
-  }
-
-  if(lab.type === "hex"){
-
-    return `
-
-      <label>
-        Text / Hex
-
-        <textarea
-          id="labInput"
-          placeholder="Text or hex such as 48 69..."
-        ></textarea>
-
-      </label>
-
-      <div class="practice-actions">
-
-        <button
-          class="primary-btn"
-          data-lab-action="hexe"
-        >
-          Encode Hex
-        </button>
-
-        <button
-          class="ghost-btn"
-          data-lab-action="hexd"
-        >
-          Decode Hex
-        </button>
-
-      </div>
-
-      <div id="labOutput" class="practice-output">
-        Your result will appear here.
-      </div>
-
-    `;
-
-  }
-
-  if(lab.type === "rot13"){
-
-    return `
-
-      <label>
-        Text
-
-        <textarea
-          id="labInput"
-          placeholder="Enter text..."
-        ></textarea>
-
-      </label>
-
-      <div class="practice-actions">
-
-        <button
-          class="primary-btn"
-          data-lab-action="rot"
-        >
-          Apply ROT13
-        </button>
-
-      </div>
-
-      <div id="labOutput" class="practice-output">
-        Your result will appear here.
-      </div>
-
-    `;
-
-  }
-
-  return `
-
-    <label>
-      Text
-
-      <textarea
-        id="labInput"
-        placeholder="Enter text to hash..."
-      ></textarea>
-
-    </label>
-
-    <div class="practice-actions">
-
-      <button
-        class="primary-btn"
-        data-lab-action="sha"
-      >
-        Compute SHA-256
-      </button>
-
+    <div class="detail-section">
+      <h3>Theory</h3>
+      <p>${escapeHTML(lab.theory)}</p>
     </div>
 
-    <div id="labOutput" class="practice-output">
-      Your result will appear here.
+    <div class="detail-section">
+      <h3>Why it matters</h3>
+      <p>${escapeHTML(lab.why)}</p>
     </div>
 
+    <div class="detail-section">
+      <h3>Steps</h3>
+      <ol>
+        ${lab.steps.map((x) => `<li>${escapeHTML(x)}</li>`).join("")}
+      </ol>
+    </div>
+
+    <div class="detail-section scenario-box">
+      <h3>Worked example</h3>
+      <p>${escapeHTML(lab.example)}</p>
+    </div>
+
+    <div class="detail-section remember-box">
+      <h3>Remember</h3>
+      <p>${escapeHTML(lab.remember)}</p>
+    </div>
+
+    <button class="primary-btn full" data-start-lab="${lab.id}">
+      Start Practice →
+    </button>
   `;
 
+  overlay.classList.remove("hidden");
 }
 
+function startLab(id) {
+  const lab = labs.find((x) => x.id === id);
+  if (!lab) return;
 
-/* =========================
-   LAB FUNCTIONS
-========================= */
+  const content = $("#detailContent");
+  if (!content) return;
 
-function base64Encode(text){
+  content.innerHTML = `
+    <p class="eyebrow">PRACTICE</p>
+    <h2>${escapeHTML(lab.title)}</h2>
 
-  return btoa(
-    unescape(
-      encodeURIComponent(text)
-    )
+    <div class="lab-practice">
+      <textarea
+        id="labInput"
+        rows="5"
+        placeholder="Enter your text here..."
+      ></textarea>
+
+      ${
+        id === "base64"
+          ? `
+          <div class="button-row">
+            <button class="primary-btn" data-lab-action="base64-encode">Encode</button>
+            <button class="ghost-btn" data-lab-action="base64-decode">Decode</button>
+          </div>
+        `
+          : ""
+      }
+
+      ${
+        id === "url"
+          ? `
+          <div class="button-row">
+            <button class="primary-btn" data-lab-action="url-encode">Encode</button>
+            <button class="ghost-btn" data-lab-action="url-decode">Decode</button>
+          </div>
+        `
+          : ""
+      }
+
+      ${
+        id === "hex"
+          ? `
+          <div class="button-row">
+            <button class="primary-btn" data-lab-action="hex-encode">Encode</button>
+            <button class="ghost-btn" data-lab-action="hex-decode">Decode</button>
+          </div>
+        `
+          : ""
+      }
+
+      ${
+        id === "rot13"
+          ? `
+          <button class="primary-btn full" data-lab-action="rot13">
+            Apply ROT13
+          </button>
+        `
+          : ""
+      }
+
+      ${
+        id === "sha256"
+          ? `
+          <button class="primary-btn full" data-lab-action="sha256">
+            Generate SHA-256
+          </button>
+        `
+          : ""
+      }
+
+      <div id="labOutput" class="lab-output">
+        Result will appear here.
+      </div>
+    </div>
+  `;
+}
+
+function markLabComplete(id) {
+  if (!state.completedLabs.includes(id)) {
+    state.completedLabs.push(id);
+    state.xp += 30;
+
+    checkBadges();
+    save();
+    updateHeader();
+
+    toast("Lab completed! +30 XP");
+  }
+}
+
+function base64Encode(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+
+  return btoa(binary);
+}
+
+function base64Decode(text) {
+  const binary = atob(text.trim());
+  const bytes = Uint8Array.from(binary, (char) =>
+    char.charCodeAt(0)
   );
 
+  return new TextDecoder().decode(bytes);
 }
 
-function base64Decode(text){
-
-  return decodeURIComponent(
-    escape(atob(text))
-  );
-
-}
-
-function hexEncode(text){
-
+function hexEncode(text) {
   return [...new TextEncoder().encode(text)]
-    .map(byte =>
-      byte.toString(16).padStart(2,"0")
-    )
+    .map((byte) => byte.toString(16).padStart(2, "0"))
     .join(" ");
-
 }
 
-function hexDecode(text){
+function hexDecode(text) {
+  const clean = text.replace(/[^0-9a-fA-F]/g, "");
 
-  const clean =
-    text.trim().replace(/\s+/g,"");
-
-  if(!/^[0-9a-fA-F]*$/.test(clean) ||
-     clean.length % 2 !== 0){
-
-    throw new Error("Invalid hex");
-
+  if (clean.length % 2 !== 0) {
+    throw new Error("Invalid hexadecimal input.");
   }
 
   const bytes = [];
 
-  for(let i=0;i<clean.length;i+=2){
-
-    bytes.push(
-      parseInt(clean.slice(i,i+2),16)
-    );
-
+  for (let i = 0; i < clean.length; i += 2) {
+    bytes.push(parseInt(clean.slice(i, i + 2), 16));
   }
 
-  return new TextDecoder().decode(
-    new Uint8Array(bytes)
-  );
-
+  return new TextDecoder().decode(new Uint8Array(bytes));
 }
 
-function rot13(text){
-
-  return text.replace(
-    /[a-zA-Z]/g,
-    char => {
-
-      const base =
-        char <= "Z"
-        ? 65
-        : 97;
-
-      return String.fromCharCode(
-        (
-          char.charCodeAt(0) -
-          base +
-          13
-        ) % 26 + base
-      );
-
-    }
-  );
-
+function rot13(text) {
+  return text.replace(/[A-Za-z]/g, (char) => {
+    const base = char <= "Z" ? 65 : 97;
+    return String.fromCharCode(
+      ((char.charCodeAt(0) - base + 13) % 26) + base
+    );
+  });
 }
 
-async function labAction(action){
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", data);
 
-  const input = $("#labInput");
+  return [...new Uint8Array(hash)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function runLabAction(action) {
+  const input = $("#labInput")?.value || "";
   const output = $("#labOutput");
 
-  if(!input || !output) return;
+  if (!output) return;
 
-  const text = input.value;
-
-  try{
-
+  try {
     let result = "";
 
-    if(action === "b64e")
-      result = base64Encode(text);
+    if (action === "base64-encode") {
+      result = base64Encode(input);
+    }
 
-    if(action === "b64d")
-      result = base64Decode(text);
+    if (action === "base64-decode") {
+      result = base64Decode(input);
+    }
 
-    if(action === "urle")
-      result = encodeURIComponent(text);
+    if (action === "url-encode") {
+      result = encodeURIComponent(input);
+    }
 
-    if(action === "urld")
-      result = decodeURIComponent(text);
+    if (action === "url-decode") {
+      result = decodeURIComponent(input);
+    }
 
-    if(action === "hexe")
-      result = hexEncode(text);
+    if (action === "hex-encode") {
+      result = hexEncode(input);
+    }
 
-    if(action === "hexd")
-      result = hexDecode(text);
+    if (action === "hex-decode") {
+      result = hexDecode(input);
+    }
 
-    if(action === "rot")
-      result = rot13(text);
+    if (action === "rot13") {
+      result = rot13(input);
+    }
 
-    if(action === "sha"){
-
-      if(!window.crypto?.subtle){
-        throw new Error("SHA unavailable");
-      }
-
-      const buffer =
-        await crypto.subtle.digest(
-          "SHA-256",
-          new TextEncoder().encode(text)
-        );
-
-      result =
-        [...new Uint8Array(buffer)]
-        .map(byte =>
-          byte.toString(16).padStart(2,"0")
-        )
-        .join("");
-
+    if (action === "sha256") {
+      result = await sha256(input);
     }
 
     output.textContent = result;
 
-    const title =
-      $("#detailContent .detail-title")?.textContent;
+    const id = action.split("-")[0];
 
-    const lab =
-      labs.find(x =>
-        x.title === title
-      );
-
-    if(
-      lab &&
-      !labDone(lab.id)
-    ){
-
-      state.completedLabs.push(lab.id);
-      state.xp += 30;
-
-      save();
-
-      updateHeader();
-      renderLabs();
-      renderBadges();
-
-      toast("+30 XP · Lab completed");
-
+    if (labs.some((lab) => lab.id === id)) {
+      markLabComplete(id);
     }
-
-  }catch{
-
+  } catch (error) {
     output.textContent =
-      "Please check the input format and try again.";
-
+      "Invalid input. Please check the value and try again.";
   }
-
 }
 
-
-/* =========================
-   AI STUDY STUDIO
-========================= */
-
-function saveAIHistory(){
-
-  save();
-
-}
-
-function renderChat(){
-
-  const box =
-    $("#chatMessages");
-
-  if(!box) return;
-
-  if(!state.aiHistory.length){
-
-    box.innerHTML = `
-
-      <div class="msg ai">
-        <b>CyberHunt AI</b><br><br>
-        Welcome to your study studio.
-        Ask me about cybersecurity concepts,
-        exam scenarios, definitions or comparisons.
-        You can also connect your topic to the live web.
-      </div>
-
-    `;
-
-    return;
-
-  }
-
-  box.innerHTML =
-    state.aiHistory.map(message => `
-
-      <div class="msg ${message.role === "user" ? "user" : "ai"}">
-        ${esc(message.text)}
-      </div>
-
-    `).join("");
-
-  box.scrollTop = box.scrollHeight;
-
-}
-
-function findMaterialForQuery(query){
-
-  const q =
-    query.toLowerCase();
-
-  const direct =
-    materials.find(material =>
-      q.includes(material.title.toLowerCase())
-    );
-
-  if(direct) return direct;
-
-  const words =
-    q.split(/\W+/).filter(Boolean);
-
-  let best = null;
-  let score = 0;
-
-  materials.forEach(material => {
-
-    const text =
-      (
-        material.title +
-        " " +
-        material.short +
-        " " +
-        material.tags.join(" ")
-      ).toLowerCase();
-
-    let current = 0;
-
-    words.forEach(word => {
-
-      if(word.length > 2 &&
-         text.includes(word)){
-
-        current++;
-
-      }
-
-    });
-
-    if(current > score){
-
-      score = current;
-      best = material;
-
-    }
-
-  });
-
-  return best;
-
-}
-
-function generateAIAnswer(query){
-
-  const q =
-    query.toLowerCase();
-
-  const material =
-    findMaterialForQuery(query);
-
-  if(material){
-
-    return `
-Based on the CyberHunt study library:
-
-${material.title}
-
-${material.detail}
-
-WHY IT MATTERS:
-${material.why}
-
-KEY POINTS:
-${material.keys.map(x => "• " + x).join("\n")}
-
-EXAMPLE:
-${material.example}
-
-SCENARIO:
-${material.scenario}
-
-REMEMBER:
-${material.remember}
-
-You can use "Connect to Web" beside this conversation to research the same topic live.
-`;
-
-  }
-
-  if(q.includes("difference") &&
-     q.includes("hash") &&
-     q.includes("encrypt")){
-
-    return `
-Hashing and encryption are different.
-
-HASHING:
-• One-way transformation
-• Produces a fixed-size digest
-• Useful for integrity verification
-• Example: SHA-256
-
-ENCRYPTION:
-• Designed to protect confidentiality
-• Data can be decrypted with the appropriate key
-• Used to protect readable information
-
-REMEMBER:
-Hash = fingerprint.
-Encryption = protected readable data.
-
-For an exam scenario, if the question asks you to verify whether a file changed, think HASH.
-If it asks you to keep information secret, think ENCRYPTION.
-`;
-
-  }
-
-  if(q.includes("cia")){
-
-    return `
-CIA TRIAD:
-
-Confidentiality = prevent unauthorized disclosure.
-
-Integrity = prevent unauthorized or improper modification.
-
-Availability = keep systems and information accessible when required.
-
-Memory trick:
-C = secrecy
-I = correctness
-A = access
-`;
-
-  }
-
-  if(q.includes("phishing")){
-
-    return `
-PHISHING:
-
-Phishing uses deceptive messages, links, websites or other communication to manipulate people.
-
-Warning signs:
-• urgency
-• unusual requests
-• suspicious links
-• unexpected attachments
-• requests for credentials or money
-
-Best response:
-Pause → inspect → independently verify → report.
-`;
-
-  }
-
-  if(q.includes("zero trust")){
-
-    return `
-ZERO TRUST:
-
-Do not automatically trust a user, device or network location.
-
-Important principles:
-• Verify explicitly
-• Use least privilege
-• Assume breach
-• Continuously evaluate access
-
-Exam memory:
-"Inside the network" does not automatically mean "trusted."
-`;
-
-  }
-
-  return `
-I found several related cybersecurity areas in the CyberHunt library.
-
-Try asking about:
-• CIA Triad
-• Phishing
-• Authentication
-• Authorization
-• Hashing
-• Encryption
-• Malware
-• Firewalls
-• SQL Injection
-• XSS
-• Incident Response
-• SIEM
-• Risk Management
-• Zero Trust
-• Digital Forensics
-• Cloud Security
-• NIST CSF
-• OWASP Top 10
-
-You can also use Connect to Web to research your exact question live.
-`;
-
-}
-
-function askAI(query){
-
-  const clean =
-    query.trim();
-
-  if(!clean) return;
-
-  state.aiHistory.push({
-    role:"user",
-    text:clean
-  });
-
-  state.aiHistory.push({
-    role:"ai",
-    text:generateAIAnswer(clean)
-  });
-
-  saveAIHistory();
-
-  renderChat();
-
-  $("#chatMessages").scrollTop =
-    $("#chatMessages").scrollHeight;
-
-}
-
-
-/* =========================
-   CONNECT TO WEB
-========================= */
-
-function webSearch(query){
-
-  const clean =
-    query.trim();
-
-  if(!clean){
-
-    toast("Enter a study topic first.");
-
-    return;
-
-  }
-
-  const search =
-    encodeURIComponent(
-      clean + " cybersecurity"
-    );
-
-  window.open(
-    "https://www.google.com/search?q=" + search,
-    "_blank",
-    "noopener,noreferrer"
-  );
-
-}
-
-
-/* =========================
+/* =========================================================
    BADGES
-========================= */
+   ========================================================= */
 
-function renderBadges(){
+const badgeDefinitions = [
+  {
+    id: "first-case",
+    title: "First Case",
+    description: "Solve your first cybersecurity case.",
+    condition: () => state.completedCases.length >= 1
+  },
+  {
+    id: "foundation",
+    title: "Foundation Complete",
+    description: "Complete your first 5 cases.",
+    condition: () => state.completedCases.length >= 5
+  },
+  {
+    id: "phishing",
+    title: "Phishing Analyst",
+    description: "Complete all Phishing Files cases.",
+    condition: () =>
+      getCaseList("phishing").every((_, i) =>
+        state.completedCases.includes(`phishing-${i + 1}`)
+      )
+  },
+  {
+    id: "ransomware",
+    title: "Ransomware Responder",
+    description: "Complete all Ransomware Response cases.",
+    condition: () =>
+      getCaseList("ransomware").every((_, i) =>
+        state.completedCases.includes(`ransomware-${i + 1}`)
+      )
+  },
+  {
+    id: "insider",
+    title: "Insider Investigator",
+    description: "Complete all Insider Mystery cases.",
+    condition: () =>
+      getCaseList("insider").every((_, i) =>
+        state.completedCases.includes(`insider-${i + 1}`)
+      )
+  },
+  {
+    id: "web",
+    title: "Web Defender",
+    description: "Complete all Web Shield cases.",
+    condition: () =>
+      getCaseList("web").every((_, i) =>
+        state.completedCases.includes(`web-${i + 1}`)
+      )
+  },
+  {
+    id: "forensics",
+    title: "Forensics Analyst",
+    description: "Complete all Digital Forensics cases.",
+    condition: () =>
+      getCaseList("forensics").every((_, i) =>
+        state.completedCases.includes(`forensics-${i + 1}`)
+      )
+  },
+  {
+    id: "ten-levels",
+    title: "10 Levels",
+    description: "Solve 10 case studies.",
+    condition: () => state.completedCases.length >= 10
+  },
+  {
+    id: "twenty-five-levels",
+    title: "25 Levels",
+    description: "Solve 25 case studies.",
+    condition: () => state.completedCases.length >= 25
+  },
+  {
+    id: "fifty-levels",
+    title: "50 Levels",
+    description: "Complete every case study.",
+    condition: () => state.completedCases.length >= 50
+  },
+  {
+    id: "quiz-master",
+    title: "Quiz Master",
+    description: "Score at least 8/10 on the quiz.",
+    condition: () => state.quizBest >= 8
+  },
+  {
+    id: "lab-explorer",
+    title: "Lab Explorer",
+    description: "Complete all five practice labs.",
+    condition: () => state.completedLabs.length >= 5
+  },
+  {
+    id: "graduate",
+    title: "CyberHunt Graduate",
+    description: "Complete all major learning activities.",
+    condition: () =>
+      state.completedCases.length >= 50 &&
+      state.completedLabs.length >= 5 &&
+      state.quizBest >= 8
+  }
+];
 
-  const earned =
-    new Set(state.badges);
-
-  const cases =
-    state.completedCases.length;
-
-  const trackComplete =
-    id => {
-
-      const track =
-        tracks.find(x => x.id === id);
-
-      return track &&
-        track.levels.every(level =>
-          caseDone(level.id)
-        );
-
-    };
-
-  const conditions = {
-
-    first:cases >= 1,
-
-    foundation:materials.length >= 5,
-
-    phish:trackComplete("phishing"),
-
-    ransom:trackComplete("ransomware"),
-
-    insider:trackComplete("insider"),
-
-    web:trackComplete("web"),
-
-    forensics:trackComplete("forensics"),
-
-    ten:cases >= 10,
-
-    twentyfive:cases >= 25,
-
-    fifty:cases >= 50,
-
-    quiz:state.quizBest >= 10,
-
-    labs:state.completedLabs.length >= 5,
-
-    graduate:
-      cases >= 50 &&
-      state.completedLabs.length >= 5
-
-  };
-
-  badgeData.forEach(badge => {
-
-    if(conditions[badge[0]]){
-
-      earned.add(badge[0]);
-
+function checkBadges() {
+  badgeDefinitions.forEach((badge) => {
+    if (badge.condition() && !state.badges.includes(badge.id)) {
+      state.badges.push(badge.id);
+      toast("Badge unlocked: " + badge.title);
     }
-
   });
+}
 
-  state.badges =
-    [...earned];
+function renderBadges() {
+  const grid = $("#badgesGrid");
+  if (!grid) return;
 
-  save();
-
-  $("#badgesGrid").innerHTML =
-    badgeData.map(badge => {
-
-      const isEarned =
-        earned.has(badge[0]);
+  grid.innerHTML = badgeDefinitions
+    .map((badge) => {
+      const unlocked = state.badges.includes(badge.id);
 
       return `
-
-        <article
-          class="badge-card ${isEarned ? "earned" : ""}"
-        >
-
-          <div class="badge-icon">
-            ${badge[3]}
+        <article class="badge-card ${unlocked ? "unlocked" : "locked"}">
+          <div class="badge-symbol">
+            ${unlocked ? "◇" : "?"}
           </div>
-
-          <h3>
-            ${esc(badge[1])}
-          </h3>
-
-          <p>
-            ${esc(badge[2])}
-          </p>
-
-          <span class="earned-label">
-            ${isEarned ? "EARNED" : "LOCKED"}
+          <span class="card-tag">
+            ${unlocked ? "UNLOCKED" : "LOCKED"}
           </span>
-
+          <h3>${escapeHTML(badge.title)}</h3>
+          <p>${escapeHTML(badge.description)}</p>
         </article>
-
       `;
-
-    }).join("");
-
+    })
+    .join("");
 }
 
+/* =========================================================
+   AI STUDY STUDIO
+   ========================================================= */
 
-/* =========================
-   LOGIN
-========================= */
+const aiKnowledge = [
+  {
+    keywords: ["cia", "confidentiality", "integrity", "availability"],
+    title: "CIA Triad",
+    answer:
+      "The CIA Triad has three goals: Confidentiality means only authorized people can access information. Integrity means information stays accurate and trustworthy. Availability means authorized users can access systems and data when needed."
+  },
+  {
+    keywords: ["phishing", "email scam", "smishing", "social engineering"],
+    title: "Phishing",
+    answer:
+      "Phishing is a social-engineering technique that tries to trick users into revealing information or performing unsafe actions. Warning signs include urgency, suspicious links, unexpected attachments, unusual sender addresses and requests for passwords or MFA codes. A good response is Stop → Verify → Report."
+  },
+  {
+    keywords: ["hash", "hashing", "sha", "sha-256", "sha256"],
+    title: "Hashing",
+    answer:
+      "Hashing converts input into a fixed-length digest. SHA-256 produces a 256-bit digest. Hashing is designed as a one-way transformation and is commonly used for integrity verification. It is different from encryption."
+  },
+  {
+    keywords: ["encryption", "cryptography", "ciphertext"],
+    title: "Encryption",
+    answer:
+      "Encryption transforms plaintext into ciphertext using a cryptographic algorithm and key. Its main security purpose is confidentiality. Unlike hashing, encryption is designed so authorized users can recover the original data."
+  },
+  {
+    keywords: ["authentication", "authorization", "auth"],
+    title: "Authentication vs Authorization",
+    answer:
+      "Authentication answers 'Who are you?' Authorization answers 'What are you allowed to do?' Logging in is authentication. Permission to view or edit a specific resource is authorization."
+  },
+  {
+    keywords: ["mfa", "multi factor", "multifactor", "2fa"],
+    title: "MFA",
+    answer:
+      "Multi-factor authentication requires more than one authentication factor. For example, a password plus an authenticator-app approval. MFA reduces the impact of stolen passwords."
+  },
+  {
+    keywords: ["ransomware"],
+    title: "Ransomware",
+    answer:
+      "Ransomware is malware that commonly encrypts data and demands payment. Defensive priorities can include isolation, investigation, preserving evidence, checking trustworthy backups, removing the cause and controlled recovery."
+  },
+  {
+    keywords: ["malware", "virus", "worm", "trojan", "spyware"],
+    title: "Malware",
+    answer:
+      "Malware is malicious software. Common categories include viruses, worms, Trojans, spyware and ransomware. Defenses include secure configuration, patching, endpoint protection, access controls, backups and user awareness."
+  },
+  {
+    keywords: ["firewall", "ids", "ips"],
+    title: "Firewall, IDS and IPS",
+    answer:
+      "A firewall controls network traffic using rules. An IDS detects suspicious activity and alerts defenders. An IPS can detect and actively block certain traffic. They provide different layers of network defense."
+  },
+  {
+    keywords: ["sql injection", "sql"],
+    title: "SQL Injection",
+    answer:
+      "SQL injection can occur when untrusted input is incorrectly incorporated into database queries. Strong defenses include parameterized queries, safe database APIs, input validation and least-privilege database accounts."
+  },
+  {
+    keywords: ["xss", "cross site scripting"],
+    title: "XSS",
+    answer:
+      "Cross-site scripting occurs when untrusted content is executed in a user's browser. Common defenses include context-appropriate output encoding, safe frameworks, input handling and appropriate security policies."
+  },
+  {
+    keywords: ["incident response", "incident"],
+    title: "Incident Response",
+    answer:
+      "Incident response is the organized handling of security incidents. A common lifecycle includes preparation, detection and analysis, containment, eradication, recovery and lessons learned."
+  },
+  {
+    keywords: ["least privilege"],
+    title: "Least Privilege",
+    answer:
+      "Least privilege means giving users, applications and services only the permissions they need to perform their tasks. This reduces the possible impact of compromised accounts."
+  },
+  {
+    keywords: ["zero trust"],
+    title: "Zero Trust",
+    answer:
+      "Zero Trust does not automatically trust users or devices simply because they are inside a network. It emphasizes explicit verification, least privilege and continuous evaluation."
+  },
+  {
+    keywords: ["nist", "csf", "cybersecurity framework"],
+    title: "NIST CSF 2.0",
+    answer:
+      "NIST CSF 2.0 organizes cybersecurity risk management around six Core Functions: Govern, Identify, Protect, Detect, Respond and Recover."
+  },
+  {
+    keywords: ["owasp", "top 10"],
+    title: "OWASP Top 10",
+    answer:
+      "The OWASP Top 10 is a widely used awareness resource for important web application security risks. For current study, learners should consult the latest official OWASP publication."
+  },
+  {
+    keywords: ["risk", "vulnerability", "threat"],
+    title: "Threat, Vulnerability and Risk",
+    answer:
+      "A threat is a potential cause of harm. A vulnerability is a weakness. Risk represents the potential for loss or impact when threats interact with vulnerabilities. Controls reduce risk."
+  },
+  {
+    keywords: ["digital forensics", "forensics", "evidence"],
+    title: "Digital Forensics",
+    answer:
+      "Digital forensics involves preserving, collecting, examining and reporting digital evidence. Important ideas include integrity, hashing, documentation, timelines and chain of custody."
+  }
+];
 
-function login(){
+function findAIAnswer(question) {
+  const q = question.toLowerCase();
 
-  const email =
-    $("#email").value.trim();
+  let best = null;
+  let bestScore = 0;
 
-  const username =
-    $("#username").value.trim();
+  aiKnowledge.forEach((entry) => {
+    let score = 0;
 
-  const password =
-    $("#password").value;
+    entry.keywords.forEach((keyword) => {
+      if (q.includes(keyword)) score += keyword.length;
+    });
 
-  const error =
-    $("#loginError");
+    if (score > bestScore) {
+      bestScore = score;
+      best = entry;
+    }
+  });
 
-  error.textContent = "";
-
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-
-    error.textContent =
-      "Enter a valid email address.";
-
-    return;
-
+  if (best) {
+    return {
+      title: best.title,
+      text:
+        best.answer +
+        "\n\nExam tip: In a scenario question, identify the asset, threat, vulnerability and security principle before choosing the answer."
+    };
   }
 
-  if(!/^[A-Za-z0-9]+$/.test(username)){
-
-    error.textContent =
-      "Username can contain only letters and numbers.";
-
-    return;
-
-  }
-
-  if(password.length < 8){
-
-    error.textContent =
-      "Password must be at least 8 characters.";
-
-    return;
-
-  }
-
-  state.user = {
-    name:username,
-    email:email
+  return {
+    title: "Cybersecurity Study Guidance",
+    text:
+      "Start by identifying the cybersecurity concept involved. Ask yourself: What is being protected? What is the threat? What weakness is involved? Which security principle or control applies? Then connect the situation to concepts such as CIA, authentication, authorization, least privilege, defense in depth or incident response."
   };
-
-  state.currentSection =
-    "dashboard";
-
-  save();
-
-  sessionStorage.setItem(
-    "cyberhuntLoggedIn",
-    "1"
-  );
-
-  $("#loginPage").classList.add("hidden");
-  $("#app").classList.remove("hidden");
-
-  updateHeader();
-  showSection("dashboard");
-  renderChat();
-
 }
 
-function logout(){
+function addChatMessage(type, title, text) {
+  const box = $("#chatMessages");
+  if (!box) return;
 
-  sessionStorage.removeItem(
-    "cyberhuntLoggedIn"
-  );
+  const message = document.createElement("div");
+  message.className = "chat-message " + type;
 
-  $("#app").classList.add("hidden");
-  $("#loginPage").classList.remove("hidden");
+  message.innerHTML = `
+    <div class="chat-message-title">${escapeHTML(title)}</div>
+    <div class="chat-message-text">
+      ${escapeHTML(text).replace(/\n/g, "<br>")}
+    </div>
+  `;
 
-  $("#password").value = "";
-
+  box.appendChild(message);
+  box.scrollTop = box.scrollHeight;
 }
 
-
-/* =========================
-   EVENT HANDLERS
-========================= */
-
-function init(){
-
-  load();
-
-  initMaterialFilters();
-
-  $("#loginForm").addEventListener(
-    "submit",
-    event => {
-      event.preventDefault();
-      login();
-    }
-  );
-
-  $("#logoutBtn").addEventListener(
-    "click",
-    logout
-  );
-
-  $("#closeDetail").addEventListener(
-    "click",
-    closeDetail
-  );
-
-  $("#detailOverlay").addEventListener(
-    "click",
-    event => {
-
-      if(event.target.id === "detailOverlay"){
-        closeDetail();
-      }
-
-    }
-  );
-
-  $("#aiForm").addEventListener(
-    "submit",
-    event => {
-
-      event.preventDefault();
-
-      const input =
-        $("#aiInput");
-
-      const query =
-        input.value.trim();
-
-      if(query){
-
-        askAI(query);
-
-        input.value = "";
-
-        /*
-          Open live web research from the same
-          user action. This gives study queries
-          a direct web handoff.
-        */
-
-        webSearch(query);
-
-      }
-
-    }
-  );
-
-
-  $("#webSearchBtn").addEventListener(
-    "click",
-    () => {
-
-      webSearch(
-        $("#webQuery").value
-      );
-
-    }
-  );
-
-
-  $("#materialSearch").addEventListener(
-    "input",
-    renderMaterials
-  );
-
-
-  $("#materialFilters").addEventListener(
-    "click",
-    event => {
-
-      const button =
-        event.target.closest("[data-filter]");
-
-      if(!button) return;
-
-      activeMaterialFilter =
-        button.dataset.filter;
-
-      $$("#materialFilters button")
-        .forEach(btn =>
-          btn.classList.remove("active")
-        );
-
-      button.classList.add("active");
-
-      renderMaterials();
-
-    }
-  );
-
-
-  $("#menuBtn").addEventListener(
-    "click",
-    () => {
-      $("#sidebar").classList.toggle("open");
-    }
-  );
-
-
-  document.addEventListener(
-    "keydown",
-    event => {
-
-      if(event.key === "Escape"){
-        closeDetail();
-      }
-
-    }
-  );
-
-
-  document.addEventListener(
-    "click",
-    event => {
-
-      const nav =
-        event.target.closest("[data-section]");
-
-      if(nav){
-
-        showSection(
-          nav.dataset.section
-        );
-
-        return;
-
-      }
-
-
-      const go =
-        event.target.closest("[data-go]");
-
-      if(go){
-
-        showSection(
-          go.dataset.go
-        );
-
-        return;
-
-      }
-
-
-      const material =
-        event.target.closest("[data-material]");
-
-      if(material){
-
-        materialDetail(
-          material.dataset.material
-        );
-
-        return;
-
-      }
-
-
-      const track =
-        event.target.closest("[data-track]");
-
-      if(track){
-
-        showLevels(
-          track.dataset.track
-        );
-
-        return;
-
-      }
-
-
-      const level =
-        event.target.closest("[data-level]");
-
-      if(level){
-
-        caseDetail(
-          level.dataset.level
-        );
-
-        return;
-
-      }
-
-
-      const answer =
-        event.target.closest("[data-case-answer]");
-
-      if(answer){
-
-        $$(".case-option")
-          .forEach(button =>
-            button.classList.remove("selected")
-          );
-
-        answer.classList.add("selected");
-
-        answerCase(
-          answer.dataset.caseAnswer,
-          answer.dataset.opt
-        );
-
-        return;
-
-      }
-
-
-      const qopt =
-        event.target.closest("[data-qopt]");
-
-      if(qopt){
-
-        answerQuiz(
-          qopt.dataset.qopt
-        );
-
-        return;
-
-      }
-
-
-      if(event.target.id === "nextQuiz"){
-
-        nextQuiz();
-
-        return;
-
-      }
-
-
-      if(event.target.id === "restartQuiz"){
-
-        quizState = {
-          index:0,
-          score:0,
-          answered:false,
-          finished:false
-        };
-
-        renderQuiz();
-
-        return;
-
-      }
-
-
-      const lab =
-        event.target.closest("[data-lab]");
-
-      if(lab){
-
-        labDetail(
-          lab.dataset.lab
-        );
-
-        return;
-
-      }
-
-
-      const startLab =
-        event.target.closest("[data-start-lab]");
-
-      if(startLab){
-
-        labDetail(
-          startLab.dataset.startLab,
-          true
-        );
-
-        return;
-
-      }
-
-
-      const labActionButton =
-        event.target.closest("[data-lab-action]");
-
-      if(labActionButton){
-
-        labAction(
-          labActionButton.dataset.labAction
-        );
-
-        return;
-
-      }
-
-
-      const askTopic =
-        event.target.closest("[data-ask-topic]");
-
-      if(askTopic){
-
-        const topic =
-          askTopic.dataset.askTopic;
-
-        closeDetail();
-
-        showSection("ai");
-
-        setTimeout(() => {
-
-          askAI(
-            "Explain " +
-            topic +
-            " in detail with an exam scenario."
-          );
-
-        },50);
-
-        return;
-
-      }
-
-
-      const webTopic =
-        event.target.closest("[data-web-topic]");
-
-      if(webTopic){
-
-        webSearch(
-          webTopic.dataset.webTopic
-        );
-
-        return;
-
-      }
-
-
-      const webButton =
-        event.target.closest("[data-web]");
-
-      if(webButton){
-
-        $("#webQuery").value =
-          webButton.dataset.web;
-
-        webSearch(
-          webButton.dataset.web
-        );
-
-        return;
-
-      }
-
-
-      const suggestion =
-        event.target.closest("[data-prompt]");
-
-      if(suggestion){
-
-        const prompt =
-          suggestion.dataset.prompt;
-
-        showSection("ai");
-
-        $("#aiInput").value = prompt;
-
-        askAI(prompt);
-
-        webSearch(prompt);
-
-        return;
-
-      }
-
-
-      if(event.target.id === "hideLevels"){
-
-        $("#caseLevels")
-          .classList.add("hidden");
-
-      }
-
-    }
-  );
-
+function renderChat() {
+  const box = $("#chatMessages");
+  if (!box) return;
+
+  box.innerHTML = "";
+
+  if (!state.aiHistory.length) {
+    addChatMessage(
+      "assistant",
+      "CyberHunt AI",
+      "Hi! I'm your cybersecurity study assistant. Ask me about CIA, phishing, ransomware, hashing, encryption, authentication, web security, incident response, NIST, OWASP and more."
+    );
+    return;
+  }
+
+  state.aiHistory.forEach((message) => {
+    addChatMessage(
+      message.role,
+      message.title,
+      message.text
+    );
+  });
+}
+
+function askAI(question) {
+  const q = question.trim();
+  if (!q) return;
+
+  const answer = findAIAnswer(q);
+
+  state.aiHistory.push({
+    role: "user",
+    title: "You",
+    text: q
+  });
+
+  state.aiHistory.push({
+    role: "assistant",
+    title: answer.title,
+    text: answer.text
+  });
 
   /*
-    Existing session?
+    Keep session history manageable.
   */
-
-  if(
-    sessionStorage.getItem(
-      "cyberhuntLoggedIn"
-    ) === "1" &&
-    state.user
-  ){
-
-    $("#loginPage")
-      .classList.add("hidden");
-
-    $("#app")
-      .classList.remove("hidden");
-
-    updateHeader();
-
-    showSection(
-      state.currentSection || "dashboard"
-    );
-
-    renderChat();
-
-  }else{
-
-    $("#loginPage")
-      .classList.remove("hidden");
-
-    $("#app")
-      .classList.add("hidden");
-
+  if (state.aiHistory.length > 30) {
+    state.aiHistory = state.aiHistory.slice(-30);
   }
 
-
-  renderMaterials();
-  renderCases();
-  renderLabs();
-  renderBadges();
-  renderQuiz();
-  updateHeader();
-
+  save();
+  renderChat();
 }
 
-document.addEventListener(
-  "DOMContentLoaded",
-  init
-);
+/* =========================================================
+   LIVE WEB + YOUTUBE
+   ========================================================= */
 
-})();
+function webSearch(query) {
+  const q = (query || "").trim();
+
+  if (!q) {
+    toast("Enter a topic to research.");
+    return;
+  }
+
+  const url =
+    "https://www.google.com/search?q=" +
+    encodeURIComponent(q + " cybersecurity");
+
+  openExternal(url);
+
+  toast("Live Web research opened.");
+}
+
+function youtubeSearch(query) {
+  const q = (query || "").trim();
+
+  if (!q) {
+    toast("Enter a topic for YouTube.");
+    return;
+  }
+
+  const url =
+    "https://www.youtube.com/results?search_query=" +
+    encodeURIComponent(q + " cybersecurity tutorial");
+
+  openExternal(url);
+
+  toast("YouTube learning opened.");
+}
+
+/* =========================================================
+   EVENT HANDLERS
+   ========================================================= */
+
+function initEvents() {
+  /* LOGIN */
+
+  const loginForm = $("#loginForm");
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      login();
+    });
+  }
+
+  /* LOGOUT */
+
+  $("#logoutBtn")?.addEventListener("click", logout);
+
+  /* NAVIGATION */
+
+  $$(".nav-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      showSection(button.dataset.section);
+    });
+  });
+
+  $$("[data-go]").forEach((button) => {
+    button.addEventListener("click", () => {
+      showSection(button.dataset.go);
+    });
+  });
+
+  /* MOBILE MENU */
+
+  $("#menuBtn")?.addEventListener("click", () => {
+    $("#sidebar")?.classList.toggle("mobile-open");
+  });
+
+  /* MATERIAL SEARCH */
+
+  $("#materialSearch")?.addEventListener("input", renderMaterials);
+
+  /* MATERIAL FILTERS */
+
+  $("#materialFilters")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-level]");
+    if (!button) return;
+
+    $$("#materialFilters button").forEach((item) =>
+      item.classList.remove("active")
+    );
+
+    button.classList.add("active");
+    renderMaterials();
+  });
+
+  /* LIVE WEB */
+
+  $("#webSearchBtn")?.addEventListener("click", () => {
+    webSearch($("#webQuery")?.value);
+  });
+
+  /* YOUTUBE */
+
+  $("#youtubeSearchBtn")?.addEventListener("click", () => {
+    youtubeSearch($("#webQuery")?.value);
+  });
+
+  /* AI FORM */
+
+  $("#aiForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const input = $("#aiInput");
+    const q = input?.value.trim();
+
+    if (!q) return;
+
+    askAI(q);
+
+    if (input) input.value = "";
+
+    /*
+      The same topic goes to both research options.
+    */
+    webSearch(q);
+    youtubeSearch(q);
+  });
+
+  /* SUGGESTED AI PROMPTS */
+
+  document.addEventListener("click", (event) => {
+    const promptButton = event.target.closest("[data-prompt]");
+
+    if (promptButton) {
+      const prompt = promptButton.dataset.prompt;
+
+      showSection("ai");
+
+      if ($("#aiInput")) {
+        $("#aiInput").value = prompt;
+      }
+
+      askAI(prompt);
+
+      webSearch(prompt);
+      youtubeSearch(prompt);
+
+      if ($("#aiInput")) {
+        $("#aiInput").value = "";
+      }
+
+      return;
+    }
+
+    /* WEB PRESETS */
+
+    const webButton = event.target.closest("[data-web]");
+
+    if (webButton) {
+      const query = webButton.dataset.web;
+
+      if ($("#webQuery")) {
+        $("#webQuery").value = query;
+      }
+
+      webSearch(query);
+      return;
+    }
+
+    /* YOUTUBE PRESETS */
+
+    const youtubeButton = event.target.closest("[data-youtube]");
+
+    if (youtubeButton) {
+      const query = youtubeButton.dataset.youtube;
+
+      if ($("#webQuery")) {
+        $("#webQuery").value = query;
+      }
+
+      youtubeSearch(query);
+      return;
+    }
+
+    /* MATERIAL */
+
+    const materialButton =
+      event.target.closest("[data-material]");
+
+    if (materialButton) {
+      openMaterial(materialButton.dataset.material);
+      return;
+    }
+
+    /* MATERIAL ASK AI */
+
+    const askMaterialButton =
+      event.target.closest("[data-ask-material]");
+
+    if (askMaterialButton) {
+      askAboutMaterial(
+        askMaterialButton.dataset.askMaterial
+      );
+      return;
+    }
+
+    /* MATERIAL WEB */
+
+    const materialWebButton =
+      event.target.closest("[data-web-material]");
+
+    if (materialWebButton) {
+      const item = materials.find(
+        (m) =>
+          m.id === Number(
+            materialWebButton.dataset.webMaterial
+          )
+      );
+
+      if (item) webSearch(item.title);
+      return;
+    }
+
+    /* MATERIAL YOUTUBE */
+
+    const materialYoutubeButton =
+      event.target.closest("[data-youtube-material]");
+
+    if (materialYoutubeButton) {
+      const item = materials.find(
+        (m) =>
+          m.id === Number(
+            materialYoutubeButton.dataset.youtubeMaterial
+          )
+      );
+
+      if (item) youtubeSearch(item.title);
+      return;
+    }
+
+    /* CASE TRACK */
+
+    const trackButton = event.target.closest("[data-track]");
+
+    if (trackButton) {
+      openTrack(trackButton.dataset.track);
+      return;
+    }
+
+    /* CASE LEVEL */
+
+    const caseButton = event.target.closest("[data-case]");
+
+    if (caseButton) {
+      const [track, level] =
+        caseButton.dataset.case.split("|");
+
+      openCase(track, Number(level));
+      return;
+    }
+
+    /* BACK TO CASES */
+
+    if (event.target.closest("[data-back-cases]")) {
+      renderCases();
+      return;
+    }
+
+    /* CASE ANSWER */
+
+    const answerButton =
+      event.target.closest("[data-answer]");
+
+    if (
+      answerButton &&
+      answerButton.classList.contains("case-option")
+    ) {
+      answerCase(answerButton);
+      return;
+    }
+
+    /* HINT */
+
+    const hintButton = event.target.closest("[data-hint]");
+
+    if (hintButton) {
+      showHint(hintButton.dataset.hint);
+      return;
+    }
+
+    /* QUIZ */
+
+    const quizButton = event.target.closest("[data-quiz]");
+
+    if (quizButton) {
+      const [questionIndex, optionIndex] =
+        quizButton.dataset.quiz.split("|");
+
+      answerQuiz(
+        Number(questionIndex),
+        Number(optionIndex)
+      );
+
+      return;
+    }
+
+    /* RESTART QUIZ */
+
+    if (event.target.closest("[data-restart-quiz]")) {
+      restartQuiz();
+      return;
+    }
+
+    /* LAB */
+
+    const labButton = event.target.closest("[data-lab]");
+
+    if (labButton) {
+      openLab(labButton.dataset.lab);
+      return;
+    }
+
+    /* START LAB */
+
+    const startLabButton =
+      event.target.closest("[data-start-lab]");
+
+    if (startLabButton) {
+      startLab(startLabButton.dataset.startLab);
+      return;
+    }
+
+    /* LAB ACTION */
+
+    const labActionButton =
+      event.target.closest("[data-lab-action]");
+
+    if (labActionButton) {
+      runLabAction(labActionButton.dataset.labAction);
+      return;
+    }
+  });
+
+  /* CLOSE DETAIL */
+
+  $("#closeDetail")?.addEventListener("click", () => {
+    $("#detailOverlay")?.classList.add("hidden");
+  });
+
+  $("#detailOverlay")?.addEventListener("click", (event) => {
+    if (event.target.id === "detailOverlay") {
+      event.currentTarget.classList.add("hidden");
+    }
+  });
+}
+
+/* =========================================================
+   INITIAL RENDER
+   ========================================================= */
+
+function renderAll() {
+  renderMaterialFilters();
+  renderMaterials();
+  renderCases();
+  renderQuiz();
+  renderLabs();
+  renderBadges();
+  updateHeader();
+}
+
+/* =========================================================
+   START CYBERHUNT
+   ========================================================= */
+
+function init() {
+  load();
+
+  /*
+    Login listener is initialized regardless of whether
+    the user has previously logged in.
+  */
+  initEvents();
+
+  renderAll();
+
+  let loggedIn = false;
+
+  try {
+    loggedIn =
+      sessionStorage.getItem("cyberhuntLoggedIn") === "1";
+  } catch (e) {}
+
+  /*
+    If the current browser session is already logged in,
+    show the application.
+  */
+  if (loggedIn && state.user) {
+    $("#loginPage")?.classList.add("hidden");
+    $("#app")?.classList.remove("hidden");
+
+    updateHeader();
+    showSection(state.currentSection || "dashboard");
+    renderChat();
+  } else {
+    $("#loginPage")?.classList.remove("hidden");
+    $("#app")?.classList.add("hidden");
+  }
+}
+
+/*
+  Because the script tag in your HTML uses "defer",
+  DOMContentLoaded is safe and prevents the login
+  elements from being accessed before they exist.
+*/
+document.addEventListener("DOMContentLoaded", init);
